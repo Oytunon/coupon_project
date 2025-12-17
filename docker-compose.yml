@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: coupon_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: coupon_db
+      POSTGRES_USER: coupon_user
+      POSTGRES_PASSWORD: coupon_pass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
