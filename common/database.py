@@ -40,7 +40,7 @@ def get_engine_kwargs(db_url: str) -> dict:
         kwargs["max_overflow"] = settings.DB_MAX_OVERFLOW
         kwargs["pool_timeout"] = settings.DB_POOL_TIMEOUT
         kwargs["pool_recycle"] = settings.DB_POOL_RECYCLE
-        kwargs["pool_pre_ping"] = True  # Connection health check
+        kwargs["pool_pre_ping"] = True  # Bağlantı sağlık kontrolü
     
     return kwargs
 
@@ -75,7 +75,7 @@ def get_db_session():
     for attempt in range(settings.DB_RETRY_ATTEMPTS):
         try:
             db = SessionLocal()
-            # Connection test
+            # Bağlantı testi
             db.execute(text("SELECT 1"))
             return db
         except (DisconnectionError, Exception) as e:

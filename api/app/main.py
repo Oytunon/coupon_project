@@ -7,7 +7,7 @@ from app.routers.participation import router
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Coupon API")
+app = FastAPI(title="Kupon Turnuvası API")
 
 # CORS ayarları - Frontend'den istekler için
 # Production'da FRONTEND_URL environment variable'ından alınır

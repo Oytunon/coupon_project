@@ -7,12 +7,12 @@ from common.settings import settings
 
 
 def get_headers():
-    """Get headers for Betconstruct API requests (deposit service)."""
+    """Betconstruct API istekleri için header'ları hazırlar."""
     headers = {
         "Content-Type": "application/json;charset=UTF-8",
     }
     
-    # Add Betconstruct API authentication token if available
+    # BAPI_TOKEN set edilmişse ekle
     if settings.BAPI_TOKEN:
         headers["Authentication"] = settings.BAPI_TOKEN
     
@@ -21,13 +21,10 @@ def get_headers():
 
 async def fetch_client_id_by_login(login: str) -> Optional[int]:
     """
-    Fetch client ID from Betconstruct API using user login/username.
+    Kullanıcı adını (login) kullanarak Betconstruct'tan client ID çeker.
     
-    Args:
-        login: User login/username
-        
     Returns:
-        Client ID if found, None otherwise
+        Client ID bulunursa int, bulunamazsa None
     """
     body = {
         "Login": login,

@@ -16,18 +16,17 @@ async def has_joined(
     db: Session = Depends(get_db)
 ):
     """
-    Check if user has joined the tournament.
-    Can use either username (login) or client_id.
-    If username is provided, it will be converted to client_id first.
+    Kullanıcının turnuvaya katılıp katılmadığını kontrol eder.
+    username (login) veya client_id kullanılabilir.
     """
-    # If username provided, convert to client_id
+    # Username verilmişse client_id'ye çevir
     if username:
         resolved_client_id = await fetch_client_id_by_login(username)
         if not resolved_client_id:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
         client_id = resolved_client_id
     elif not client_id:
-        raise HTTPException(status_code=400, detail="Either username or client_id must be provided")
+        raise HTTPException(status_code=400, detail="Username veya client_id gereklidir")
     
     exists = db.query(Participant).filter_by(client_id=client_id).first()
     return {"can_join": exists is None}
@@ -40,34 +39,34 @@ async def join_tournament(
     db: Session = Depends(get_db)
 ):
     """
-    Join the tournament.
-    Can use either username (login) or client_id.
-    If username is provided, it will be converted to client_id first.
+    Turnuvaya katılım sağlar.
+    Kullanıcının yatırım şartını (1000 TL) kontrol eder.
     """
-    # If username provided, convert to client_id
+    # Username verilmişse client_id'ye çevir
     resolved_username = username
     if username:
         resolved_client_id = await fetch_client_id_by_login(username)
         if not resolved_client_id:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
         client_id = resolved_client_id
     elif not client_id:
-        raise HTTPException(status_code=400, detail="Either username or client_id must be provided")
+        raise HTTPException(status_code=400, detail="Username veya client_id gereklidir")
     else:
-        resolved_username = None  # client_id ile geldiyse username yok
+        resolved_username = None
     
     exists = db.query(Participant).filter_by(client_id=client_id).first()
     if exists:
-        raise HTTPException(status_code=400, detail="User already joined")
+        raise HTTPException(status_code=400, detail="Kullanıcı zaten katılmış")
 
+    # Yatırım kontrolü (Tek seferde >= 1000 TL)
     eligible = await has_single_deposit_1000(client_id)
     if not eligible:
         raise HTTPException(
             status_code=403,
-            detail="No single deposit >= 1000 TL in current month"
+            detail="Bu ay tek seferde minimum 1000 TL yatırım şartı sağlanmamış"
         )
 
-    # Save both username and client_id
+    # Katılımcıyı kaydet
     db.add(Participant(client_id=client_id, username=resolved_username))
     db.commit()
 

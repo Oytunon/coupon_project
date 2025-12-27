@@ -7,12 +7,11 @@ from common.settings import settings
 
 
 def get_headers():
-    """Get headers for Betconstruct API requests."""
+    """Betconstruct API istekleri için header'ları hazırlar."""
     headers = {
         "Content-Type": "application/json;charset=UTF-8",
     }
     
-    # Add authentication token if available
     if settings.BAPI_TOKEN:
         headers["Authentication"] = settings.BAPI_TOKEN
     
