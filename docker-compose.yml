@@ -12,6 +12,38 @@ services:
       POSTGRES_PASSWORD: coupon_pass
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coupon_user -d coupon_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: coupon_api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://coupon_user:coupon_pass@postgres:5432/coupon_db
+      - API_TOKEN=${API_TOKEN}
+      - BAPI_TOKEN=${BAPI_TOKEN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    container_name: coupon_worker
+    environment:
+      - DATABASE_URL=postgresql://coupon_user:coupon_pass@postgres:5432/coupon_db
+      - BAPI_TOKEN=${BAPI_TOKEN}
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   pgdata:

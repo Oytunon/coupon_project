@@ -1,0 +1,26 @@
+# Worker Bağımlılıkları
+# Worker, API ile aynı common modülünü kullandığı için benzer bağımlılıklara ihtiyaç duyar
+
+# Database
+SQLAlchemy==2.0.45
+psycopg2-binary==2.9.11
+
+# Settings Management
+pydantic==2.12.5
+pydantic-settings==2.5.2
+
+# Async HTTP Client (Betconstruct API için)
+httpx==0.27.0
+anyio==4.12.0
+
+# Scheduler (Cron job için)
+APScheduler==3.10.4
+
+# Environment Variables
+python-dotenv==1.0.1
+
+# Type Hints
+typing-extensions==4.15.0
+
+
+
