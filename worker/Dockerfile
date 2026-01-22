@@ -12,8 +12,8 @@ RUN apt-get update && apt-get install -y \
 COPY worker/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy common package (needed for settings and database)
-COPY common /app/common
+# Copy shared package
+COPY shared /app/shared
 
 # Copy worker package
 COPY worker /app/worker

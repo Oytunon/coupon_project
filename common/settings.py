@@ -32,6 +32,9 @@ class Settings(BaseSettings):
 
     # API
     API_TOKEN: Optional[str] = None
+    SECRET_KEY: str = "your-super-secret-key-change-in-production"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
 
     # Betconstruct
     BAPI_TOKEN: Optional[str] = None
@@ -40,15 +43,42 @@ class Settings(BaseSettings):
     BAPI_BET_HISTORY_URL: str = "https://backofficewebadmin.betconstruct.com/api/en/Report/GetBetHistory"
     BAPI_BET_SELECTIONS_URL: str = "https://backofficewebadmin.betconstruct.com/api/en/Sport/GetBetSelections"
 
-    # Kurallar
-    MIN_STAKE: float = 100.0
-    MIN_COMBINATION: int = 2
-    MIN_ODD: float = 1.50
+
+
+    # Mailgun (Email)
+    MAILGUN_API_KEY: Optional[str] = None
+    MAILGUN_DOMAIN: Optional[str] = None
+    MAILGUN_FROM_EMAIL: str = "noreply@extrabet.com"
+    MAILGUN_FROM_NAME: str = "Extrabet Admin"
+    MAILGUN_BASE_URL: str = "https://api.eu.mailgun.net"  # EU endpoint (değiştirilebilir)
+
+    # Frontend URL for Magic Link
+    MAGIC_LINK_URL: str = "http://localhost:3000/verify-magic-link"
 
     # Sunucu
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000
     FRONTEND_URL: Optional[str] = None
+
+    def validate_required_settings(self):
+        """Production'da zorunlu ayarları kontrol et"""
+        errors = []
+        
+        # SECRET_KEY kontrolü
+        if self.SECRET_KEY == "your-super-secret-key-change-in-production":
+            errors.append("SECRET_KEY production'da değiştirilmeli! Güçlü bir anahtar kullanın.")
+        
+        # API_TOKEN kontrolü
+        if not self.API_TOKEN:
+            errors.append("API_TOKEN zorunludur! .env dosyasında ayarlayın.")
+        
+        # BAPI_TOKEN kontrolü
+        if not self.BAPI_TOKEN:
+            errors.append("BAPI_TOKEN zorunludur! Betconstruct API anahtarını .env dosyasında ayarlayın.")
+        
+        if errors:
+            error_msg = "\n".join(f"  - {err}" for err in errors)
+            raise ValueError(f"Eksik veya hatalı environment variables:\n{error_msg}")
 
 
 # Ayar nesnesi oluşturulur ve uygulama genelinde kullanılır

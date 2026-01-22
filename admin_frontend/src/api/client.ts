@@ -1,0 +1,41 @@
+import axios from 'axios'
+import { API_URL } from '../config/api'
+
+// Create axios instance
+export const apiClient = axios.create({
+    baseURL: API_URL,
+    headers: {
+        "Content-Type": "application/json",
+    },
+})
+
+// Request interceptor: Attach Token
+apiClient.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem("admin_token")
+        if (token) {
+            // Backend deps.py supports both X-API-Key and Authorization Bearer
+            // Using standard Bearer format for consistency
+            config.headers["Authorization"] = `Bearer ${token}`
+        }
+        return config
+    },
+    (error) => {
+        return Promise.reject(error)
+    }
+)
+
+// Response interceptor: Handle 401
+apiClient.interceptors.response.use(
+    (response) => response, // If success, return response
+    (error) => {
+        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            // If 401/403, redirect to login unless we are already there
+            if (!window.location.pathname.includes("/login")) {
+                localStorage.removeItem("admin_token");
+                window.location.href = "/login";
+            }
+        }
+        return Promise.reject(error)
+    }
+)

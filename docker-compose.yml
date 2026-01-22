@@ -1,4 +1,4 @@
-version: "3.9"
+# Docker Compose for Coupon Project
 
 services:
   postgres:
@@ -13,7 +13,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U coupon_user -d coupon_db"]
+      test: [ "CMD-SHELL", "pg_isready -U coupon_user -d coupon_db" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -21,14 +21,19 @@ services:
   api:
     build:
       context: .
-      dockerfile: api/Dockerfile
+      dockerfile: backend_api/Dockerfile
     container_name: coupon_api
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://coupon_user:coupon_pass@postgres:5432/coupon_db
-      - API_TOKEN=${API_TOKEN}
-      - BAPI_TOKEN=${BAPI_TOKEN}
+    env_file:
+      - .env
+    volumes:
+      - ./backend_api:/app/backend_api
+      - ./shared:/app/shared
+      - ./alembic:/app/alembic
+      - ./alembic.ini:/app/alembic.ini
     depends_on:
       postgres:
         condition: service_healthy
@@ -40,10 +45,34 @@ services:
     container_name: coupon_worker
     environment:
       - DATABASE_URL=postgresql://coupon_user:coupon_pass@postgres:5432/coupon_db
-      - BAPI_TOKEN=${BAPI_TOKEN}
+    env_file:
+      - .env
+    volumes:
+      - ./worker:/app/worker
+      - ./shared:/app/shared
     depends_on:
       postgres:
         condition: service_healthy
+
+  admin-frontend:
+    build:
+      context: admin_frontend
+      dockerfile: Dockerfile
+    container_name: coupon_admin_frontend
+    ports:
+      - "3001:80"
+    depends_on:
+      - api
+
+  client-frontend:
+    build:
+      context: client_frontend
+      dockerfile: Dockerfile
+    container_name: coupon_client_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
 
 volumes:
   pgdata:

@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Premium Extra Dark Theme (Forced as Default) */
+    --background: 0 0% 0%;
+    /* Deep Navy/Black */
+    --foreground: 210 40% 98%;
+    --card: 222 47% 11%;
+    /* Slightly lighter navy for cards */
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 40 96% 53%;
+    /* Extra Gold (Amber-500 equivalent) */
+    --primary-foreground: 0 0% 0%;
+    /* Black text on Gold */
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 40 96% 53%;
+    /* Gold accent */
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 40 96% 53%;
+    /* Gold ring */
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Premium Extra Dark Theme */
+    --background: 0 0% 0%;
+    /* Deep Navy/Black */
+    --foreground: 210 40% 98%;
+    --card: 222 47% 11%;
+    /* Slightly lighter navy for cards */
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 40 96% 53%;
+    /* Extra Gold (Amber-500 equivalent) */
+    --primary-foreground: 0 0% 0%;
+    /* Black text on Gold */
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 40 96% 53%;
+    /* Gold accent */
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 40 96% 53%;
+    /* Gold ring */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
