@@ -1,118 +1,68 @@
-# Coupon Project
+# 🎫 Kupon Turnuvası Sistemi (Coupon Tournament System)
 
-## Overview
-This project is a betting coupon tracking system that fetches user bet history from an external provider (BetConstruct based) and stores it for analysis. It includes an Admin Dashboard for monitoring.
+Bu proje, bahis severlerin kuponlarıyla yarışarak puan topladığı, dinamik kurallara sahip, güvenli ve ölçeklenebilir bir **Turnuva Yönetim Sistemi**dir.
 
-## Project Structure
-- `backend_api/`: FastAPI backend service (Port 8001).
-- `worker/`: Background worker for fetching coupons (logic isolated).
-- `shared/`: Centralized domain models, business logic (scoring engine), and services (BetConstruct, Email).
-- `admin_frontend/`: Management dashboard for admins (Port 5173).
-- `client_frontend/`: Participant dashboard for users (Port 5175).
-- `tests/`: Pytest suite for API and Domain logic.
+Modern mikroservis benzeri bir mimariyle tasarlanmış olup, arka planda gelişmiş bir veri işleme motoru (worker) çalışır.
 
-## Setup & Running
+---
 
-### Prerequisites
-- Docker & Docker Compose
-- Python 3.11+ (for local dev)
-- Node.js 18+ (for local dev)
+## 🏗️ Sistem Mimarisi ve Teknoloji Yığını
 
-### Docker (Recommended)
-1. Create a `.env` file from `.env.example`.
-2. Build and run:
-   ```bash
-   docker-compose up --build
-   ```
-3. Access:
-   - Frontend: http://localhost:3000
-   - API Docs: http://localhost:8000/docs
-   - Admin Login: Use the API Key defined in `.env`.
+Sistem, birbirleriyle entegre çalışan üç ana katmandan oluşur:
 
-### Local Development
+### 1. Backend API (Beyin)
+*   **Teknoloji:** Python 3.10+, FastAPI, Pydantic, SQLAlchemy (Async).
+*   **Veritabanı:** PostgreSQL.
+*   **Görevi:**
+    *   RESTful API servislerini sunar.
+    *   Kullanıcı kimlik doğrulama (JWT) ve oturum yönetimini sağlar.
+    *   BetConstruct (B-API) ile entegre olarak kullanıcı verilerini doğrular.
+    *   Hız sınırlama (Rate Limiting) ve CORS gibi güvenlik önlemlerini barındırır.
 
-#### API
-```bash
-python -m venv .venv
-source .venv/bin/activate  # or .venv\Scripts\activate
-pip install -r api/requirements.txt
-uvicorn backend_api.app.main:app --reload
-```
+### 2. Otomasyon Servisi - Worker (Kalp)
+*   **Teknoloji:** Python (APScheduler), AsyncIO.
+*   **Çalışma Prensibi:**
+    *   Sistemden bağımsız, arka planda çalışan bir servistir.
+    *   **Her 4 saatte bir** (00:00, 04:00, 08:00...) otomatik olarak tetiklenir.
+    *   B-API'den tüm katılımcıların son işlem geçmişini çeker.
+    *   **Dinamik Kural Motoru:** Her turnuvanın kendi kurallarına (Min Oran, Min Yatırım, Lig Kısıtlaması vb.) göre kuponları süzer.
+    *   Geçerli kuponları puanlayarak (`Oran * Katsayı`) liderlik tablosunu günceller.
 
-#### Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
+### 3. Frontend Uygulamaları (Yüz)
+*   **Client App:** Son kullanıcıların turnuvaya katıldığı, sıralamasını gördüğü modern arayüz. (React, Vite, TailwindCSS)
+*   **Admin Panel:** Yöneticilerin turnuva oluşturduğu, kuralları belirlediği ve Excel raporları aldığı yönetim paneli.
 
-#### Worker
-```bash
-# Run once for testing
-python worker/main.py --once
-```
+---
 
-## Testing
-Run the test suite:
-```bash
-pip install -r api/requirements.txt
-pip install pytest httpx
-pytest tests/
-```
+## 🚀 Kurulum ve Canlıya Geçiş
 
-## Database Migrations
+Bu projeyi kendi sunucunuza kurmak için detaylı hazırlanmış **[DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)** dosyasını referans alınız.
 
-This project uses **Alembic** for database schema management.
+### Temel Adımlar:
+1.  **Hazırlık:** Gerekli `.env` dosyalarını `.env.example` şablonlarından oluşturun.
+2.  **Backend:** `pip install -r requirements.txt` ile bağımlılıkları yükleyin.
+3.  **Frontend:** `npm run build` komutuyla React projelerini derleyin.
+4.  **Worker:** Servisi systemd veya görev zamanlayıcı ile arka planda çalıştırın.
 
-### First Time Setup
-```bash
-# 1. Activate virtual environment
-.\.venv\Scripts\Activate.ps1  # Windows
-# source .venv/bin/activate    # Linux/Mac
+---
 
-# 2. Start database (if using Docker)
-docker-compose up -d postgres
+## 🛡️ Veri Güvenliği ve Protokoller
 
-# 3. Run migrations
-alembic upgrade head
-```
+*   **Hassas Veri:** API anahtarları ve şifreler asla kod içinde tutulmaz, `.env` dosyalarından okunur.
+*   **Git Güvenliği:** `.gitignore` dosyası ile hassas ve gereksiz dosyalar (şifreler, kütüphaneler) depoya gönderilmez.
+*   **Sahtecilik Önleme:** Kullanıcılar sadece doğrulanmış `Client ID` ile sisteme dahil olabilir. Manuel manipülasyon engellenmiştir.
 
-### Common Migration Commands
-```bash
-# Check current migration status
-alembic current
+---
 
-# View migration history
-alembic history
+## 📁 Proje Yapısı
 
-# Create new migration (after model changes)
-python tools/migration_helper.py create "description"
-# OR
-alembic revision --autogenerate -m "description"
+*   `/backend_api` - API Kaynak kodları
+*   `/worker` - Otomasyon servisi kodları
+*   `/client_frontend` - Kullanıcı arayüzü
+*   `/admin_frontend` - Yönetim paneli
+*   `/shared` - Ortak kullanılan modeller ve servisler
+*   `/docs` - Teknik dokümantasyonlar
 
-# Apply migrations
-alembic upgrade head
+---
 
-# Rollback one migration
-alembic downgrade -1
-```
-
-### Helper Script
-For easier migration management, use the helper script:
-```bash
-python tools/migration_helper.py status     # Check status
-python tools/migration_helper.py create "msg"  # Create migration
-python tools/migration_helper.py upgrade    # Apply migrations
-python tools/migration_helper.py test       # Test migrations
-```
-
-### Documentation
-- [Alembic Usage Guide (Turkish)](docs/alembic_kullanim.md) - Comprehensive guide
-- [Migration Workflow](docs/migration_workflow.md) - Step-by-step workflows
-- [Migration FAQ](docs/migration_faq.md) - Common issues and solutions
-
-## Security
-- The Admin Panel is protected by an API Key (`API_TOKEN` in `.env`).
-- Ensure `DATABASE_URL` is set correctly.
-- **Always backup your database before running migrations in production!**
-
+*Geliştirme: Oytunon*

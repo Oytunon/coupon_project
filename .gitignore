@@ -10,6 +10,19 @@ __pycache__/
 *.sqlite3
 pgdata/
 
+# Docker Files (User requested exclusion)
+docker-compose*.yml
+Dockerfile
+.dockerignore
+
+# IDE & Editors
+.vscode/
+.idea/
+*.swp
+
+# Gemini / AI tools
+.gemini/
+
 # Node / Genell
 **/node_modules/
 **/dist/
