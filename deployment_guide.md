@@ -56,6 +56,13 @@ Backend servisini "Production Mode"da çalıştırmalıyız.
     gunicorn -w 4 -k uvicorn.workers.UvicornWorker backend_api.app.main:app --bind 0.0.0.0:8000
     ```
 
+3.  **Admin Kullanıcısı Oluştur (Wizard):**
+    Artık veritabanımız hazır olduğuna göre ilk yöneticiyi oluşturabiliriz.
+    ```bash
+    python tools/admin_setup_wizard.py
+    # Sırasıyla kullanıcı adı, e-posta ve şifrenizi girin.
+    ```
+
 ---
 
 ## ⚙️ 3. Otomasyon (Worker) Kurulumu
