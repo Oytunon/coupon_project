@@ -10,7 +10,7 @@ Modern mikroservis benzeri bir mimariyle tasarlanmış olup, arka planda gelişm
 
 Sistem, birbirleriyle entegre çalışan üç ana katmandan oluşur:
 
-### 1. Backend API (Beyin)
+### 1. Backend API 
 *   **Teknoloji:** Python 3.10+, FastAPI, Pydantic, SQLAlchemy (Async).
 *   **Veritabanı:** PostgreSQL.
 *   **Görevi:**
@@ -19,7 +19,7 @@ Sistem, birbirleriyle entegre çalışan üç ana katmandan oluşur:
     *   BetConstruct (B-API) ile entegre olarak kullanıcı verilerini doğrular.
     *   Hız sınırlama (Rate Limiting) ve CORS gibi güvenlik önlemlerini barındırır.
 
-### 2. Otomasyon Servisi - Worker (Kalp)
+### 2. Otomasyon Servisi - Worker 
 *   **Teknoloji:** Python (APScheduler), AsyncIO.
 *   **Çalışma Prensibi:**
     *   Sistemden bağımsız, arka planda çalışan bir servistir.
@@ -28,7 +28,7 @@ Sistem, birbirleriyle entegre çalışan üç ana katmandan oluşur:
     *   **Dinamik Kural Motoru:** Her turnuvanın kendi kurallarına (Min Oran, Min Yatırım, Lig Kısıtlaması vb.) göre kuponları süzer.
     *   Geçerli kuponları puanlayarak (`Oran * Katsayı`) liderlik tablosunu günceller.
 
-### 3. Frontend Uygulamaları (Yüz)
+### 3. Frontend Uygulamaları 
 *   **Client App:** Son kullanıcıların turnuvaya katıldığı, sıralamasını gördüğü modern arayüz. (React, Vite, TailwindCSS)
 *   **Admin Panel:** Yöneticilerin turnuva oluşturduğu, kuralları belirlediği ve Excel raporları aldığı yönetim paneli.
 
