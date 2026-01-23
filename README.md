@@ -1,4 +1,4 @@
-# 🎫 Kupon Turnuvası Sistemi (Coupon Tournament System)
+# 🎫 Kupon Turnuvası Sistemi 
 
 Bu proje, bahis severlerin kuponlarıyla yarışarak puan topladığı, dinamik kurallara sahip, güvenli ve ölçeklenebilir bir **Turnuva Yönetim Sistemi**dir.
 
