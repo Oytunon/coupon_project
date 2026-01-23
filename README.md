@@ -44,13 +44,6 @@ Bu projeyi kendi sunucunuza kurmak için detaylı hazırlanmış **[DEPLOYMENT_G
 3.  **Frontend:** `npm run build` komutuyla React projelerini derleyin.
 4.  **Worker:** Servisi systemd veya görev zamanlayıcı ile arka planda çalıştırın.
 
----
-
-## 🛡️ Veri Güvenliği ve Protokoller
-
-*   **Hassas Veri:** API anahtarları ve şifreler asla kod içinde tutulmaz, `.env` dosyalarından okunur.
-*   **Git Güvenliği:** `.gitignore` dosyası ile hassas ve gereksiz dosyalar (şifreler, kütüphaneler) depoya gönderilmez.
-*   **Sahtecilik Önleme:** Kullanıcılar sadece doğrulanmış `Client ID` ile sisteme dahil olabilir. Manuel manipülasyon engellenmiştir.
 
 ---
 
