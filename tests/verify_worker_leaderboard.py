@@ -106,12 +106,12 @@ async def run_async_worker_test(db_session):
     }
     
     selections_mock = {
-        "Data": [
+        "Selections": [
              {"Price": 5.0, "CompetitionId": 100} # Matches total odds 5.0
         ]
     }
     selections_mock_b = {
-        "Data": [
+        "Selections": [
              {"Price": 2.0, "CompetitionId": 100} # Matches total odds 2.0
         ]
     }
@@ -198,7 +198,7 @@ async def run_async_worker_test(db_session):
     }
     
     selections_mock_huge = {
-        "Data": [
+        "Selections": [
              {"Price": 10.0, "CompetitionId": 100}
         ]
     }
@@ -246,6 +246,66 @@ async def run_async_worker_test(db_session):
     assert leaderboard_2[1].participant_id == user_a.id
     
     print("[Round 2] Leaderboard Order Verified: B > A")
+
+    # 6. Verify Round 3: League Filtering
+    # Set allowed leagues to [100]
+    # User A bets on League 100 -> OK (Already done)
+    # User B bets on League 200 -> REJECTED
+    
+    # Update Event Rules
+    event.rules = {"scoring_formula": "odds", "min_odds": 1.1, "allowed_leagues": [100]}
+    db_session.commit()
+    
+    # New Bet for User B on League 200
+    bet_history_mock_b_league = {
+        "Bets": [
+            {
+                "BetId": 104, 
+                "ClientId": USER_B_CLIENT_ID,
+                "EquivalentAmount": 100,
+                "Type": 1,
+                "State": 4, 
+                "Winning": 500,
+                "IsLive": False
+            }
+        ]
+    }
+    
+    selections_mock_forbidden = {
+        "Selections": [
+             {"Price": 5.0, "CompetitionId": 200} # Forbidden League
+        ]
+    }
+    
+    with patch("shared.domain.scoring_engine.SessionLocal", side_effect=lambda: TestingSessionLocal()):
+        with patch("shared.domain.scoring_engine.fetch_bet_history") as mock_fetch:
+            with patch("shared.domain.scoring_engine.fetch_bet_selections") as mock_selections:
+                
+                def side_effect_fetch_3(client_id, start, end):
+                    if client_id == USER_B_CLIENT_ID: return bet_history_mock_b_league
+                    return {}
+                
+                def side_effect_selections_3(bet_id):
+                    if bet_id == 104: return selections_mock_forbidden
+                    return {}
+
+                mock_fetch.side_effect = side_effect_fetch_3
+                mock_selections.side_effect = side_effect_selections_3
+
+                await process_coupons(target_event_id=MOCK_EVENT_ID)
+
+    # Refresh session
+    db_session.commit()
+    
+    # User B points should NOT increase
+    db_session.refresh(ep_b)
+    print(f"\n[Round 3] User B Points (Should stay 12.0): {ep_b.total_points}")
+    assert ep_b.total_points == 12.0 # No change
+    
+    # Check if coupon 104 exists (Should NOT exist)
+    bad_coupon = db_session.query(Coupon).filter_by(bet_id="104").first()
+    assert bad_coupon is None
+    print("[Round 3] League Filtering Verified: Bet 104 rejected.")
 
 if __name__ == "__main__":
     import sys

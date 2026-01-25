@@ -52,17 +52,30 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str) -> D
         "ToCurrencyId": "TRY"
     }
     
-    # MOCK logic for development
     # MOCK logic removed during cleanup
-    # if client_id == 12345:
-    #     pass
-
+    
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             r = await client.post(settings.BAPI_BET_HISTORY_URL, headers=get_headers(), json=body)
             r.raise_for_status()
             data = r.json()
-            return data.get("Data") or data
+            
+            # 1. Try standard "Data" key
+            if "Data" in data:
+                return data["Data"]
+                
+            # 2. Try "BetData" -> "Objects" (Actual API structure)
+            if "BetData" in data:
+                bet_data = data["BetData"]
+                if isinstance(bet_data, dict):
+                     # Return standardized format or just the list
+                     # Let's return the list directly, or a dict wrapper if we want to preserve metadata
+                     # For simplicity, let's return a Text dict compatible with worker expectance if we can,
+                     # BUT worker expects "Bets" key. 
+                     # Let's Normalize to: { "Bets": [list] }
+                     return { "Bets": bet_data.get("Objects", []) }
+                     
+            return data
     except Exception as e:
         logger.error(f"Error fetching bet history for {client_id}: {e}")
         return {}
@@ -73,16 +86,21 @@ async def fetch_bet_selections(bet_id: str) -> Dict[str, Any]:
         "BetId": bet_id
     }
     
-    # MOCK logic for development
-    if bet_id == "99999":
-        return {"Data": {"Objects": []}}
-
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             r = await client.post(settings.BAPI_BET_SELECTIONS_URL, headers=get_headers(), json=body)
             r.raise_for_status()
             data = r.json()
-            return data.get("Data") or data
+            
+            # API returns a List directly in some cases
+            if isinstance(data, list):
+                return { "Selections": data }
+            
+            # API returns { "Data": [...] }
+            if "Data" in data:
+                 return { "Selections": data["Data"] }
+                 
+            return data
     except Exception as e:
         logger.error(f"Error fetching bet selections for {bet_id}: {e}")
         return {}
