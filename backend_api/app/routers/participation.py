@@ -37,7 +37,10 @@ async def get_leaderboard(
         target_event = db.query(Event).filter(Event.status == "active").first()
     
     if not target_event:
+
         raise HTTPException(status_code=404, detail="Turnuva bulunamadı")
+        
+
 
     results = get_event_leaderboard(db, target_event.id)
     # Map to rank format for public UI
@@ -114,7 +117,7 @@ async def join_tournament_api(
     slug: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    print(f"DEBUG_ROUTER_JOIN_HIT: username={username} event_id={event_id}")
+
     """Turnuvaya katıl."""
     from shared.domain.participation import join_event
     return await join_event(db, username, client_id, event_id, slug)

@@ -95,21 +95,21 @@ async def join_event(
         
     # Resolve User
     resolved_username = username
-    print(f"DEBUG_JOIN_START: username={username}, client_id={client_id}")
+
     if username:
         # Optimization: Check DB first
         existing_participant = db.query(Participant).filter(Participant.username == username).first()
         if existing_participant:
             client_id = existing_participant.client_id
-            print(f"DEBUG_JOIN_DB_CACHE: Found user {username} with ID {client_id}")
+
         else:
             resolved_client_id = await fetch_client_id_by_login(username)
-            print(f"DEBUG_JOIN_FETCH: fetch_result={resolved_client_id}")
+
             if not resolved_client_id:
                 raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı - FROM DEBUG CONTAINER")
             client_id = resolved_client_id
         
-        print(f"DEBUG_JOIN_RESOLVED: client_id set to {client_id}")
+
     elif not client_id:
         raise HTTPException(status_code=400, detail="Username veya client_id gereklidir")
         
