@@ -1,5 +1,12 @@
 import pytest
 from sqlalchemy import create_engine
+# Patch JSONB for SQLite compatibility (Needs to be before any model import that uses JSONB)
+from sqlalchemy.types import JSON
+import sqlalchemy.dialects.postgresql
+try:
+    sqlalchemy.dialects.postgresql.JSONB = JSON
+except AttributeError:
+    pass # In case module structure is different or mocked elsewhere
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient

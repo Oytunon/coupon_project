@@ -278,6 +278,8 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             event
                         )
                         
+                        created_at = datetime.utcnow() # Fallback if not available in bet_history
+                        
                         new_coupon = Coupon(
                             client_id=user.client_id,
                             bet_id=str(bet_id),
