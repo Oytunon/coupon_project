@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     MAILGUN_BASE_URL: str = "https://api.eu.mailgun.net"  # EU endpoint (değiştirilebilir)
 
     # Frontend URL for Magic Link (User preferred 3000)
-    MAGIC_LINK_URL: str = "http://localhost:3000/verify-magic-link"
+    MAGIC_LINK_URL: str = "https://coupon-project-three.vercel.app/verify-magic-link"
 
     # Sunucu
     API_HOST: str = "0.0.0.0"
@@ -59,7 +59,7 @@ class Settings(BaseSettings):
     FRONTEND_URL: Optional[str] = None
 
     # Security (REQUIRED for main.py)
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:5175,http://127.0.0.1:5173,http://127.0.0.1:5175,http://localhost:3000"
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:5175,http://127.0.0.1:5173,http://127.0.0.1:5175,http://localhost:3000,https://coupon-project-three.vercel.app,https://coupon-project-three.vercel.app/"
 
     def validate_required_settings(self):
         """Production'da zorunlu ayarları kontrol et"""
