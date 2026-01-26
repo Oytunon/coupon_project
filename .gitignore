@@ -35,3 +35,6 @@ Dockerfile
 
 # Allow example files
 !*.env.example
+
+# Sensitive Tools
+tools/create_owner_admin.py
