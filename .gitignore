@@ -12,7 +12,11 @@ pgdata/
 
 # Docker Files (User requested exclusion)
 docker-compose*.yml
+!docker-compose.prod.yml
+
 Dockerfile
+!backend_api/Dockerfile
+!worker/Dockerfile
 .dockerignore
 
 # IDE & Editors
