@@ -82,6 +82,7 @@ async def has_single_deposit(client_id: int, min_amount: float = 1000) -> bool:
         r = await client.post(settings.BAPI_DEPOSIT_URL, headers=get_headers(), json=body)
         r.raise_for_status()
         data = r.json()
+        print(f"DEBUG_BAPI_TRANSACTIONS: {data}")
 
     data_field = data.get("Data") or {}
     items = data_field.get("Objects") or []
