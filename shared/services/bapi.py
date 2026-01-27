@@ -65,8 +65,8 @@ async def has_single_deposit(client_id: int, min_amount: float = 1000) -> bool:
     body = {
         "ClientId": client_id,
         "CurrencyId": "TRY",
-        "StartTimeLocal": start.strftime("%d-%m-%Y"),
-        "EndTimeLocal": end.strftime("%d-%m-%Y"),
+        "StartTimeLocal": start.strftime("%Y-%m-%dT00:00:00"),
+        "EndTimeLocal": end.strftime("%Y-%m-%dT23:59:59"),
         "DocumentTypeIds": [3],
         "MaxRows": 20,
         "SkipRows": 0,
