@@ -27,6 +27,7 @@ COPY tools /app/tools
 
 # Set Python path to include current directory
 ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 
