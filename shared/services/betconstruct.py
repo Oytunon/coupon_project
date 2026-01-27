@@ -58,21 +58,19 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str) -> D
             r.raise_for_status()
             data = r.json()
             
-            # --- Parsing Logic Fix ---
-            # 1. Data -> BetData -> Objects (En yaygın başarılı yapı)
+            # --- Parsing Logic Verified with Raw Response ---
+            # Structure: Data -> BetData -> Objects (List of bets)
             if "Data" in data and isinstance(data["Data"], dict):
-                if "BetData" in data["Data"]:
-                    bet_data = data["Data"]["BetData"]
-                    if isinstance(bet_data, dict):
-                        return { "Bets": bet_data.get("Objects", []) }
+                inner_data = data["Data"]
+                if "BetData" in inner_data and isinstance(inner_data["BetData"], dict):
+                     return { "Bets": inner_data["BetData"].get("Objects", []) }
 
-            # 2. Direkt BetData -> Objects (Bazen root seviyesinde gelebilir)
+            # Fallback patterns
             if "BetData" in data:
                 bet_data = data["BetData"]
                 if isinstance(bet_data, dict):
                      return { "Bets": bet_data.get("Objects", []) }
             
-            # 3. Direkt Data listesi
             if "Data" in data:
                 return data["Data"]
                 

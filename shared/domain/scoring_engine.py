@@ -171,18 +171,24 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     bet_id = str(bet_history.get("BetId") or bet_history.get("Id"))
                     if not bet_id: continue
                     
-                    # 1. State Mapping & Filtering
+                    # 1. State Mapping from Raw JSON
+                    # Raw JSON shows: "StateName": "Lost" or "Won", "State": 3 or 4
                     state_name = bet_history.get("StateName", "").lower()
-                    state_id = bet_history.get("State", 0)
                     
                     mapped_state = "open"
-                    if "won" in state_name or state_id == 4: mapped_state = "won"
-                    elif "lost" in state_name or state_id == 3: mapped_state = "lost"
-                    elif "cashout" in state_name or state_id == 5 or state_id == 2: mapped_state = "cashout"
-                    elif "returned" in state_name or state_id == 6: mapped_state = "returned"
+                    if "won" in state_name: mapped_state = "won"
+                    elif "lost" in state_name: mapped_state = "lost"
+                    elif "cashout" in state_name: mapped_state = "cashout"
+                    elif "returned" in state_name: mapped_state = "returned"
                     
-                    # USER REQUEST: "sadece sonuçlananları listele" (pending/open hariç)
-                    # GÜNCELLEME: "Cashout" da istenmiyor. Sadece Won/Lost.
+                    # Fallback to State ID if name is empty
+                    if mapped_state == "open":
+                        sid = bet_history.get("State", 0)
+                        if sid == 4: mapped_state = "won"
+                        elif sid == 3: mapped_state = "lost"
+                        elif sid == 2 or sid == 5: mapped_state = "cashout"
+                    
+                    # USER REQUEST: Exclude Cashout & Open. Only Won/Lost.
                     if mapped_state not in ["won", "lost"]:
                         continue
 
