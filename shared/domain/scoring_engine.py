@@ -212,17 +212,55 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
 
                     if not eligible_for_events: continue
 
-                    # 3. Selections fetching (if actually necessary for strict league validation)
-                    # For performance, we might skip this if rules don't mandate league checks
-                    # But let's keep it safe.
-                    # ... (Simplified logic here to avoid re-fetching if not needed)
-                    # Assuming we trust the bet header for now, or re-fetch if strict
+                    # 3. Selections fetching (Lig/Sport Kontrolü)
+                    # Rules içinde 'allowed_league_ids' veya 'allowed_sport_ids' varsa detay çekmemiz şart.
+                    # Performance: Sadece gerekirse çekelim.
                     
-                    # To align with code structure, let's just proceed with eligible_for_events
-                    possible_events = eligible_for_events
+                    details_fetched = False
+                    selections = []
                     
+                    final_events = []
+                    
+                    for event in eligible_for_events:
+                        rules = event.rules or {}
+                        allowed_leagues = rules.get("allowed_league_ids", [])
+                        # allowed_sports eklenebilir: rules.get("allowed_sport_ids", [])
+                        
+                        # Eğer kural yoksa direkt geçir
+                        if not allowed_leagues:
+                            final_events.append(event)
+                            continue
+                            
+                        # Kural var, detay çekildi mi?
+                        if not details_fetched:
+                            try:
+                                sel_data = await fetch_bet_selections(bet_id) # API çağrısı
+                                selections = sel_data.get("Selections", [])
+                                details_fetched = True
+                            except Exception as e:
+                                logger.error(f"Selections fetch error {bet_id}: {e}")
+                                continue # Detay çekemezsek riske atma, bu eventi geç
+                        
+                        # Seçimlerin HEPSİ izin verilen liglerde mi?
+                        # (Kombine kuponda tek maç bile yasaklı ligdne olsa kupon geçersiz sayılır - Kural tercihi)
+                        all_valid = True
+                        if not selections:
+                            all_valid = False # Detay boşsa geçersiz
+                        else:
+                            for sel in selections:
+                                # API: 'CompetitionId' (18291932)
+                                comp_id = sel.get("CompetitionId")
+                                if comp_id not in allowed_leagues:
+                                    all_valid = False
+                                    break
+                        
+                        if all_valid:
+                            final_events.append(event)
+                    
+                    if not final_events: continue
+
                     # 4. Save to DB
-                    for event in possible_events:
+                    for event in final_events:
                         # Check existence (using explicit bet_id string)
                         exists_coupon = db.query(Coupon).filter(
                              Coupon.bet_id == bet_id,
