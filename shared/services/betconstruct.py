@@ -36,24 +36,24 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str) -> D
         start_str = start_date
         end_str = end_date
 
-        # ÖNEMLİ: API'nin beklediği TÜM alanlar (Null olsa bile gönderilmeli)
-        body = {
-            "BetId": None,
-            "CalcEndDateLocal": None,
-            "CalcStartDateLocal": None,
-            "ClientId": client_id,
-            "CurrencyId": "TRY",
-            "EndDateLocal": end_str,
-            "IsBonusBet": None,
-            "IsLive": None,
-            "MaxRows": 50,
-            "SkeepRows": 0,
-            "StartDateLocal": start_str,
-            "State": None, 
-            "ToCurrencyId": "TRY"
-        }
-        
-        async with httpx.AsyncClient(timeout=30) as client:
+    # ÖNEMLİ: API'nin beklediği TÜM alanlar (Null olsa bile gönderilmeli)
+    body = {
+        "BetId": None,
+        "CalcEndDateLocal": None,
+        "CalcStartDateLocal": None,
+        "ClientId": client_id,
+        "CurrencyId": "TRY",
+        "EndDateLocal": end_str,
+        "IsBonusBet": None,
+        "IsLive": None,
+        "MaxRows": 50,
+        "SkeepRows": 0,
+        "StartDateLocal": start_str,
+        "State": None,
+        "ToCurrencyId": "TRY"
+    }
+
+    async with httpx.AsyncClient(timeout=30) as client:
         r = await client.post(settings.BAPI_BET_HISTORY_URL, headers=get_headers(), json=body)
         r.raise_for_status()
         data = r.json()
