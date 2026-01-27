@@ -36,45 +36,46 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str) -> D
         start_str = start_date
         end_str = end_date
 
-    # ÖNEMLİ: API'nin beklediği TÜM alanlar (Null olsa bile gönderilmeli)
-    body = {
-        "BetId": None,
-        "CalcEndDateLocal": None,
-        "CalcStartDateLocal": None,
-        "ClientId": client_id,
-        "CurrencyId": "TRY",
-        "EndDateLocal": end_str,
-        "IsBonusBet": None,
-        "IsLive": None,
-        "MaxRows": 50,
-        "SkeepRows": 0,
-        "StartDateLocal": start_str,
-        "State": None,
-        "ToCurrencyId": "TRY"
-    }
+    try:
+        # ÖNEMLİ: API'nin beklediği TÜM alanlar (Null olsa bile gönderilmeli)
+        body = {
+            "BetId": None,
+            "CalcEndDateLocal": None,
+            "CalcStartDateLocal": None,
+            "ClientId": client_id,
+            "CurrencyId": "TRY",
+            "EndDateLocal": end_str,
+            "IsBonusBet": None,
+            "IsLive": None,
+            "MaxRows": 50,
+            "SkeepRows": 0,
+            "StartDateLocal": start_str,
+            "State": None,
+            "ToCurrencyId": "TRY"
+        }
 
-    async with httpx.AsyncClient(timeout=30) as client:
-        r = await client.post(settings.BAPI_BET_HISTORY_URL, headers=get_headers(), json=body)
-        r.raise_for_status()
-        data = r.json()
-        
-        # --- Parsing Logic Verified with Raw Response ---
-        # Structure: Data -> BetData -> Objects (List of bets)
-        if "Data" in data and isinstance(data["Data"], dict):
-            inner_data = data["Data"]
-            if "BetData" in inner_data and isinstance(inner_data["BetData"], dict):
-                    return { "Bets": inner_data["BetData"].get("Objects", []) }
-
-        # Fallback patterns
-        if "BetData" in data:
-            bet_data = data["BetData"]
-            if isinstance(bet_data, dict):
-                    return { "Bets": bet_data.get("Objects", []) }
-        
-        if "Data" in data:
-            return data["Data"]
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.post(settings.BAPI_BET_HISTORY_URL, headers=get_headers(), json=body)
+            r.raise_for_status()
+            data = r.json()
             
-        return data
+            # --- Parsing Logic Verified with Raw Response ---
+            # Structure: Data -> BetData -> Objects (List of bets)
+            if "Data" in data and isinstance(data["Data"], dict):
+                inner_data = data["Data"]
+                if "BetData" in inner_data and isinstance(inner_data["BetData"], dict):
+                        return { "Bets": inner_data["BetData"].get("Objects", []) }
+
+            # Fallback patterns
+            if "BetData" in data:
+                bet_data = data["BetData"]
+                if isinstance(bet_data, dict):
+                        return { "Bets": bet_data.get("Objects", []) }
+            
+            if "Data" in data:
+                return data["Data"]
+                
+            return data
     except Exception as e:
         logger.error(f"Error fetching bet history for {client_id}: {e}")
         return {}
