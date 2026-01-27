@@ -15,7 +15,7 @@ import openpyxl
 from io import BytesIO
 from fastapi.responses import StreamingResponse
 
-router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(verify_api_token)])
+router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(verify_api_token)])
 
 
 class ConfigUpdate(BaseModel):

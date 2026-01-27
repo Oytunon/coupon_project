@@ -17,7 +17,7 @@ from shared.models.participant import Participant
 from shared.models.enrollment import EventParticipant
 from backend_api.app.security import get_current_admin
 
-router = APIRouter(prefix="/admin/events", tags=["admin-events"])
+router = APIRouter(prefix="/api/admin/events", tags=["admin-events"])
 
 
 # === Pydantic Schemas ===

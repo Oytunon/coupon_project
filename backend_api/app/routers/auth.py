@@ -22,7 +22,7 @@ from shared.services.email import send_magic_link_email
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 # Centralized limiter is imported from shared.core.limiter
 
