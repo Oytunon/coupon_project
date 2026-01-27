@@ -36,45 +36,46 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str) -> D
         start_str = start_date
         end_str = end_date
 
-    body = {
-        "BetId": None,
-        "CalcEndDateLocal": None,
-        "CalcStartDateLocal": None,
-        "ClientId": client_id,
-        "CurrencyId": "TRY",
-        "EndDateLocal": end_str,
-        "IsBonusBet": None,
-        "IsLive": None,
-        "MaxRows": 20,
-        "SkeepRows": 0,
-        "StartDateLocal": start_str,
-        "State": None,
-        "ToCurrencyId": "TRY"
-    }
-    
-    # MOCK logic removed during cleanup
-    
-    try:
+        # ÖNEMLİ: API'nin beklediği TÜM alanlar (Null olsa bile gönderilmeli)
+        body = {
+            "BetId": None,
+            "CalcEndDateLocal": None,
+            "CalcStartDateLocal": None,
+            "ClientId": client_id,
+            "CurrencyId": "TRY",
+            "EndDateLocal": end_str,
+            "IsBonusBet": None,
+            "IsLive": None,
+            "MaxRows": 50,
+            "SkeepRows": 0,
+            "StartDateLocal": start_str,
+            "State": None, 
+            "ToCurrencyId": "TRY"
+        }
+        
         async with httpx.AsyncClient(timeout=30) as client:
             r = await client.post(settings.BAPI_BET_HISTORY_URL, headers=get_headers(), json=body)
             r.raise_for_status()
             data = r.json()
             
-            # 1. Try standard "Data" key
-            if "Data" in data:
-                return data["Data"]
-                
-            # 2. Try "BetData" -> "Objects" (Actual API structure)
+            # --- Parsing Logic Fix ---
+            # 1. Data -> BetData -> Objects (En yaygın başarılı yapı)
+            if "Data" in data and isinstance(data["Data"], dict):
+                if "BetData" in data["Data"]:
+                    bet_data = data["Data"]["BetData"]
+                    if isinstance(bet_data, dict):
+                        return { "Bets": bet_data.get("Objects", []) }
+
+            # 2. Direkt BetData -> Objects (Bazen root seviyesinde gelebilir)
             if "BetData" in data:
                 bet_data = data["BetData"]
                 if isinstance(bet_data, dict):
-                     # Return standardized format or just the list
-                     # Let's return the list directly, or a dict wrapper if we want to preserve metadata
-                     # For simplicity, let's return a Text dict compatible with worker expectance if we can,
-                     # BUT worker expects "Bets" key. 
-                     # Let's Normalize to: { "Bets": [list] }
                      return { "Bets": bet_data.get("Objects", []) }
-                     
+            
+            # 3. Direkt Data listesi
+            if "Data" in data:
+                return data["Data"]
+                
             return data
     except Exception as e:
         logger.error(f"Error fetching bet history for {client_id}: {e}")
