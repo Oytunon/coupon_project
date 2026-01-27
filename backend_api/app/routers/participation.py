@@ -46,7 +46,7 @@ async def get_leaderboard(
     # Map to rank format for public UI
     return [{
         "rank": i + 1,
-        "username": r["username"][:3] + "***" if r["username"] and len(r["username"]) > 3 else r["username"],
+        "username": r["username"],
         "score": r["points"]
     } for i, r in enumerate(results[:limit])]
 
