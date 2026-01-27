@@ -182,14 +182,9 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     elif "returned" in state_name or state_id == 6: mapped_state = "returned"
                     
                     # USER REQUEST: "sadece sonuçlananları listele" (pending/open hariç)
+                    # GÜNCELLEME: "Cashout" da istenmiyor. Sadece Won/Lost.
                     if mapped_state not in ["won", "lost"]:
-                        # Cashout genelde puan vermez ama sonuçlanmıştır. Döngüden geçirelim, puanı 0 olur.
-                        # Returned (iade) de sonuçlanmıştır.
-                        # Ancak "Open" ise kesinlikle atla.
-                        if "cashout" in mapped_state:
-                             pass # İşlensin (Puanı 0 olur)
-                        else:
-                             continue
+                        continue
 
                     # 2. Eligible Event Check
                     eligible_for_events = []
