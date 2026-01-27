@@ -273,19 +273,47 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         # Price/Odds might come from Selections sum or header "Price"
                         price = float(bet_history.get("Price", 1.0) or 1.0)
                         
-                        logger.info(f"✅ Kupon Eklendi: {bet_id} | Durum: {mapped_state} | Event: {event.name}")
+                        # Parse Bet Date (Created)
+                        # API Date: "2026-01-27T16:44:41.243" or similar
+                        # We try "Created" (UTC-like usually) first, then "CreatedLocal"
+                        created_str = bet_history.get("Created") or bet_history.get("CreatedLocal")
+                        created_dt = datetime.utcnow() # Default fallback
+                        if created_str:
+                            try:
+                                # Clean up potential timezone offset for simple datetime parsing
+                                # ex: 2026-01-27T16:44:41.243+03:00 -> remove +...
+                                if "+" in created_str:
+                                    created_str = created_str.split("+")[0]
+                                elif "Z" in created_str:
+                                    created_str = created_str.replace("Z", "")
+                                
+                                # Try parsing with milliseconds
+                                try:
+                                    created_dt = datetime.strptime(created_str, "%Y-%m-%dT%H:%M:%S.%f")
+                                except ValueError:
+                                    # Fallback without milliseconds
+                                    created_dt = datetime.strptime(created_str, "%Y-%m-%dT%H:%M:%S")
+                            except Exception:
+                                pass # Keep default utcnow if parsing fails completely
+
+                        # Winning Amount
+                        # API: "WinAmount" or "Payout"
+                        winning_amount = float(bet_history.get("WinAmount") or bet_history.get("Payout") or 0.0)
+
+                        logger.info(f"✅ Kupon Eklendi: {bet_id} | Durum: {mapped_state} | Tarih: {created_dt}")
                         
                         new_coupon = Coupon(
-                            client_id=user.client_id, # Correct Field
+                            client_id=user.client_id, 
                             bet_id=bet_id,
                             event_id=event.id,
-                            stake=amount,             # Correct Field
-                            odds=price,               # Correct Field
+                            stake=amount,             
+                            odds=price,               
                             combination_count=sel_count,
-                            state=mapped_state,       # Correct Field (won/lost/cashout)
+                            state=mapped_state,       
                             is_live=bool(bet_history.get("IsLive", False)),
                             bet_data=bet_history,
-                            created_at=datetime.utcnow(),
+                            created_at=created_dt,    # FIXED: Real bet date
+                            winning=winning_amount,   # NEW: Winning amount
                             is_processed=True,
                             processed_at=datetime.utcnow()
                         )
