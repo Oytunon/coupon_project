@@ -29,10 +29,10 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str) -> D
              s_dt = datetime.strptime(start_date, "%Y-%m-%d")
              e_dt = datetime.strptime(end_date, "%Y-%m-%d")
 
-        start_str = s_dt.strftime("%d-%m-%y - %H:%M:%S")
-        end_str = e_dt.strftime("%d-%m-%y - %H:%M:%S")
+        start_str = s_dt.strftime("%Y-%m-%dT%H:%M:%S")
+        end_str = e_dt.strftime("%Y-%m-%dT%H:%M:%S")
     except ValueError:
-        # Fallback to direct use if parsing fails (unlikely with current flow)
+        # Fallback to direct use if parsing fails
         start_str = start_date
         end_str = end_date
 
