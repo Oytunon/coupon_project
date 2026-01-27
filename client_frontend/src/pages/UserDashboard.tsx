@@ -278,7 +278,7 @@ export default function UserDashboard() {
                             <CardContent>
                                 {!username ? (
                                     <div className="text-center p-8 text-muted-foreground bg-secondary/20 rounded-lg border-dashed border-2">
-                                        Kuponlarınızı görmek için giriş yapmalısınız (Linkinizde username parametresi olmalı).
+                                        Kuponlarınızı görmek için lütfen kampanya linki üzerinden giriş yapınız.
                                     </div>
                                 ) : loadingCoupons ? (
                                     <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
