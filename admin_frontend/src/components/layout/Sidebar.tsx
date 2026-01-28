@@ -70,9 +70,7 @@ export function Sidebar({ activeTab, setActiveTab, logout }: SidebarProps) {
                     <LogOut className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
                     Çıkış Yap
                 </Button>
-                <div className="text-xs text-center text-muted-foreground/30 font-mono pt-2">
-                    VX.2.0 • Build 2402
-                </div>
+
             </div>
         </aside>
     )
