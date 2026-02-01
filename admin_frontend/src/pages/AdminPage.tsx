@@ -153,7 +153,7 @@ export default function AdminPage() {
     const [showAddEvent, setShowAddEvent] = useState(false)
     const [newEvent, setNewEvent] = useState({
         name: "",
-        slug: "",
+        slug: "", // Kept in state but hidden/unused in UI
         description: "",
         start_date: "",
         end_date: "",
@@ -166,7 +166,7 @@ export default function AdminPage() {
             max_combination: null as number | null,
             allowed_league_ids: [] as number[],
             scoring_formula: "stake_times_odds",
-            min_deposit: 1000
+            min_deposit: 0
         }
     })
     const [leagueIdsInput, setLeagueIdsInput] = useState("")  // Lig ID'leri için text input
@@ -785,10 +785,7 @@ export default function AdminPage() {
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-muted-foreground">Event Key / Slug (URL)</label>
-                                                    <Input value={newEvent.slug} onChange={e => setNewEvent({ ...newEvent, slug: e.target.value })} required placeholder="Örn: kis-turnuvasi-2025" className="bg-black/20 font-mono" />
-                                                </div>
+                                                {/* Slug is auto-generated */}
                                                 <div className="space-y-3 bg-white/5 p-3 rounded-lg border border-white/5">
                                                     <div className="space-y-2">
                                                         <div className="flex justify-between items-center">
@@ -846,17 +843,19 @@ export default function AdminPage() {
                                                 <div className="space-y-3 bg-amber-500/5 p-3 rounded-lg border border-amber-500/10">
                                                     <div className="flex justify-between items-center mb-1">
                                                         <label className="text-[10px] font-bold text-amber-500 uppercase flex items-center gap-1">
-                                                            <Shield className="h-3 w-3" /> Min Yatırım (1K+)
+                                                            <Shield className="h-3 w-3" /> Min Yatırım
                                                         </label>
-                                                        <span className="text-xs font-bold text-amber-400">{newEvent.rules.min_deposit?.toLocaleString() || "1.000"} TL</span>
+                                                        <span className="text-xs font-bold text-amber-400">{newEvent.rules.min_deposit?.toLocaleString() || "0"} TL</span>
                                                     </div>
-                                                    <input
-                                                        type="range" min="1000" max="50000" step="500"
-                                                        value={newEvent.rules.min_deposit || 1000}
+                                                    <Input
+                                                        type="number"
+                                                        min="0"
+                                                        step="100"
+                                                        value={newEvent.rules.min_deposit}
                                                         onChange={e => setNewEvent({ ...newEvent, rules: { ...newEvent.rules, min_deposit: parseInt(e.target.value) } })}
-                                                        className="w-full h-1.5 bg-amber-500/20 rounded-lg appearance-none cursor-pointer accent-amber-500 hover:accent-amber-400 transition-all"
+                                                        className="bg-black/20 border-amber-500/20 text-amber-500"
                                                     />
-                                                    <p className="text-[9px] text-amber-500/60 leading-tight">Yalnızca bu tutar ve üzeri yatırım yapanlar katılabilir.</p>
+                                                    <p className="text-[9px] text-amber-500/60 leading-tight">Yalnızca bu tutar ve üzeri yatırım yapanlar katılabilir (0 = Herkes).</p>
                                                 </div>
                                             </div>
 
@@ -989,16 +988,19 @@ export default function AdminPage() {
                                                 <div className="space-y-3 bg-amber-500/5 p-3 rounded-lg border border-amber-500/10">
                                                     <div className="flex justify-between items-center mb-1">
                                                         <label className="text-[10px] font-bold text-amber-500 uppercase flex items-center gap-1">
-                                                            <Shield className="h-3 w-3" /> Min Yatırım (1K+)
+                                                            <Shield className="h-3 w-3" /> Min Yatırım
                                                         </label>
-                                                        <span className="text-xs font-bold text-amber-400">{editingEvent.rules.min_deposit?.toLocaleString() || "1.000"} TL</span>
+                                                        <span className="text-xs font-bold text-amber-400">{editingEvent.rules.min_deposit?.toLocaleString() || "0"} TL</span>
                                                     </div>
-                                                    <input
-                                                        type="range" min="1000" max="50000" step="500"
-                                                        value={editingEvent.rules.min_deposit || 1000}
+                                                    <Input
+                                                        type="number"
+                                                        min="0"
+                                                        step="100"
+                                                        value={editingEvent.rules.min_deposit}
                                                         onChange={e => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, min_deposit: parseInt(e.target.value) } })}
-                                                        className="w-full h-1.5 bg-amber-500/20 rounded-lg appearance-none cursor-pointer accent-amber-500 hover:accent-amber-400 transition-all"
+                                                        className="bg-black/20 border-amber-500/20 text-amber-500"
                                                     />
+                                                    <p className="text-[9px] text-amber-500/60 leading-tight">Yalnızca bu tutar ve üzeri yatırım yapanlar katılabilir (0 = Herkes).</p>
                                                 </div>
                                             </div>
 

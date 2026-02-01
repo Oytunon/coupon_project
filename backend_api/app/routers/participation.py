@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from datetime import datetime
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -18,6 +18,7 @@ async def get_leaderboard(
     request: Request,
     event_id: Optional[int] = None,
     slug: Optional[str] = None,
+    viewer_username: Optional[str] = Query(None), # For masking logic
     limit: int = 50,
     db: Session = Depends(get_db)
 ):
@@ -43,10 +44,18 @@ async def get_leaderboard(
 
 
     results = get_event_leaderboard(db, target_event.id)
+    
+    def mask_username(u: str, viewer: Optional[str]) -> str:
+        if viewer and u == viewer:
+            return u
+        if len(u) <= 2:
+            return u[0] + "***"
+        return u[:2] + "***"
+
     # Map to rank format for public UI
     return [{
         "rank": i + 1,
-        "username": r["username"],
+        "username": mask_username(r["username"], viewer_username),
         "score": r["points"]
     } for i, r in enumerate(results[:limit])]
 
@@ -121,3 +130,74 @@ async def join_tournament_api(
     """Turnuvaya katıl."""
     from shared.domain.participation import join_event
     return await join_event(db, username, client_id, event_id, slug)
+
+@router.get("/my-enrollments")
+async def get_my_enrollments(
+    username: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Kullanıcının katıldığı turnuvaları ve bu turnuvalardaki sıralamasını getirir.
+    """
+    from sqlalchemy import func, desc
+    from shared.models.participant import Participant
+    
+    # Check participant exists
+    participant = db.query(Participant).filter(Participant.username == username).first()
+    if not participant:
+        return []
+
+    # Calculate rank for each event participant using a window function logic
+    # Since SQLAlchemy + generic DB might complicate window functions syntax across dialects, 
+    # and we want it simple, we can use a subquery or python-side processing if N is small.
+    # But for correctness, let's try a native query methodology or simpler approach:
+    # Fetch all participants for events user is in, calculate rank? No, too heavy.
+    
+    # Better: Use a raw SQL or complex ORM query for Rank.
+    # rank() over (partition by event_id order by total_points desc)
+    
+    # PostgreSQL/SQLite compatible window function:
+    # We need the user's rank in EACH event they joined.
+    
+    # 1. Get List of EventIDs user joined.
+    user_event_ids = [ep.event_id for ep in db.query(EventParticipant.event_id).filter(EventParticipant.participant_id == participant.id).all()]
+    
+    if not user_event_ids:
+        return []
+        
+    # 2. For each event, finding rank efficiently 
+    # If we don't have a materialized rank, we count how many have > points
+    
+    results = []
+    from shared.models.event import Event
+    
+    for eid in user_event_ids:
+        event = db.query(Event).get(eid)
+        if not event: continue
+        
+        # Get user stats
+        my_stats = db.query(EventParticipant).filter(
+            EventParticipant.participant_id == participant.id,
+            EventParticipant.event_id == eid
+        ).first()
+        
+        if not my_stats: continue
+        
+        # Count rank: count(p) where points > my_points + 1
+        # Handling ties: same points = share rank? usually yes.
+        # rank = 1 + count(participants with points > my_points)
+        rank = db.query(EventParticipant).filter(
+            EventParticipant.event_id == eid,
+            EventParticipant.total_points > my_stats.total_points
+        ).count() + 1
+        
+        results.append({
+            "event_id": event.id,
+            "event_name": event.name,
+            "status": event.status,
+            "score": my_stats.total_points,
+            "rank": rank,
+            "slug": event.slug
+        })
+        
+    return results

@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+
 export function getUsernameFromUrl(): string | null {
   try {
     // URL'deki query parametrelerini al
@@ -5,15 +7,15 @@ export function getUsernameFromUrl(): string | null {
     // Eğer URL encode edilmişse decode et
     const decodedSearch = decodeURIComponent(search)
     const params = new URLSearchParams(decodedSearch)
-    
+
     // Önce playerUsername kontrol et (extrabet formatı)
     const playerUsername = params.get("playerUsername")
     if (playerUsername) {
       return playerUsername
     }
-    
+
     // Fallback: username parametresi
-  return params.get("username")
+    return params.get("username")
   } catch (error) {
     console.error("URL parsing error:", error)
     // Fallback: direkt search string'den al
@@ -24,4 +26,15 @@ export function getUsernameFromUrl(): string | null {
     const usernameMatch = window.location.search.match(/[?&]username=([^&]*)/)
     return usernameMatch ? usernameMatch[1] : null
   }
+}
+
+export function useUsername(): string | null {
+  const [username, setUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    const u = getUsernameFromUrl();
+    setUsername(u);
+  }, []);
+
+  return username;
 }

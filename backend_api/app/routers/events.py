@@ -38,7 +38,7 @@ class EventRules(BaseModel):
 
 class EventCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
-    slug: str = Field(..., min_length=1, max_length=50)
+    slug: Optional[str] = Field(None, min_length=1, max_length=50)
     description: Optional[str] = None
     start_date: datetime
     end_date: datetime
@@ -114,22 +114,34 @@ async def create_event(
         if event_data.end_date <= event_data.start_date:
             raise HTTPException(400, "End date must be after start date")
         
-        # Slug uniqueness
-        existing = db.query(Event).filter(Event.slug == event_data.slug).first()
+        # Auto-generate slug if not provided
+        slug_to_use = event_data.slug
+        if not slug_to_use:
+            from slugify import slugify
+            import uuid
+            base_slug = slugify(event_data.name)
+            slug_to_use = f"{base_slug}-{uuid.uuid4().hex[:6]}"
+
+        # Slug uniqueness ensure
+        existing = db.query(Event).filter(Event.slug == slug_to_use).first()
         if existing:
-            raise HTTPException(400, "Slug already in use")
+             # Retry once with different random suffix if collision (rare)
+             import uuid
+             from slugify import slugify
+             base_slug = slugify(event_data.name)
+             slug_to_use = f"{base_slug}-{uuid.uuid4().hex[:6]}"
 
         event = Event(
             name=event_data.name,
-            slug=event_data.slug,
+            slug=slug_to_use,
             description=event_data.description,
             start_date=event_data.start_date,
-            end_date=event_data.end_date,
+            end_date=event.end_date,
             won_point_multiplier=event_data.won_point_multiplier,
             loss_point_multiplier=event_data.loss_point_multiplier,
             rules=event_data.rules.dict(),
             created_by=current_admin.id,
-            status="draft" # Default is draft but user wants active? Admin panel usually has a status switch or update later.
+            status="draft" 
         )
         
         db.add(event)

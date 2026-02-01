@@ -18,6 +18,7 @@ from backend_api.app.routers.admin import router as admin_router
 from backend_api.app.routers.auth import router as auth_router
 from backend_api.app.routers.events import router as events_router
 from backend_api.app.routers.user_stats import router as user_stats_router
+from backend_api.app.routers.client import router as client_router
 from backend_api.app.middleware import SecurityHeadersMiddleware
 
 # Setup Logging
@@ -163,6 +164,7 @@ app.include_router(participation_router)
 app.include_router(admin_router)
 app.include_router(events_router)
 app.include_router(user_stats_router)
+app.include_router(client_router)
 
 # Startup event
 @app.on_event("startup")

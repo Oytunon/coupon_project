@@ -9,6 +9,30 @@ export const apiClient = axios.create({
     },
 })
 
+export type PublicEvent = {
+    id: number
+    name: string
+    description: string
+    status: "active" | "ended" | "paused"
+    start_date: string
+    end_date: string
+    participant_count: number
+    image_url?: string
+    rules?: {
+        min_stake?: number
+        min_odd?: number
+        min_combination?: number
+        min_deposit?: number
+        [key: string]: any
+    }
+}
+
+
+export async function getPublicEvents() {
+    const res = await apiClient.get<PublicEvent[]>('/client/events')
+    return res.data
+}
+
 // Request interceptor: Attach Token
 apiClient.interceptors.request.use(
     (config) => {

@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react"
-import { getParticipationStatus, joinCampaign, getLeaderboard, getMyCoupons } from "../api/participation"
+import { getParticipationStatus, joinCampaign, getLeaderboard, getMyCoupons, getMyEnrollments } from "../api/participation"
+import { getPublicEvents, PublicEvent } from "../api/client"
 import { getUsernameFromUrl } from "../utils/useUsername"
 import {
     Trophy, Loader2, FileText, Award,
-    TrendingUp, ArrowUpRight, CheckCircle2, Ticket
+    TrendingUp, ArrowUpRight, CheckCircle2, Ticket, List, History, PlayCircle
 } from "lucide-react"
 import tournamentBanner from "../assets/tournament-banner.jpg"
 import { Button } from "@/components/ui/button"
@@ -27,11 +28,15 @@ export default function UserDashboard() {
     const [userRank, setUserRank] = useState<number>(0)
     const [eventId, setEventId] = useState<number | null>(null)
     const [slug, setSlug] = useState<string | null>(null)
+    const [publicEvents, setPublicEvents] = useState<PublicEvent[]>([])
+    const [activeTab, setActiveTab] = useState("leaderboard")
 
     // Tab Data States
     const [leaderboard, setLeaderboard] = useState<any[]>([])
+    const [myEnrollments, setMyEnrollments] = useState<any[]>([])
     const [myCoupons, setMyCoupons] = useState<any[]>([])
     const [loadingLeaderboard, setLoadingLeaderboard] = useState(false)
+    const [loadingEnrollments, setLoadingEnrollments] = useState(false)
     const [loadingCoupons, setLoadingCoupons] = useState(false)
 
     const { toast } = useToast()
@@ -72,7 +77,7 @@ export default function UserDashboard() {
             // 1. Leaderboard (Public)
             setLoadingLeaderboard(true)
             try {
-                const lb = await getLeaderboard(sl || undefined, parsedEid || undefined)
+                const lb = await getLeaderboard(sl || undefined, parsedEid || undefined, 50, u || null)
                 setLeaderboard(lb)
             } catch (e) {
                 console.error("Leaderboard error", e)
@@ -97,6 +102,17 @@ export default function UserDashboard() {
                 setLoadingCoupons(true)
                 const coupons = await getMyCoupons(u, sl || undefined, parsedEid || undefined)
                 setMyCoupons(coupons)
+
+                // Fetch My Enrollments (Rankings across tournaments)
+                setLoadingEnrollments(true)
+                try {
+                    const enrolls = await getMyEnrollments(u)
+                    setMyEnrollments(enrolls)
+                } catch (e) {
+                    console.error("Enrollments error", e)
+                } finally {
+                    setLoadingEnrollments(false)
+                }
             } catch (err) {
                 console.error("User data error", err)
             } finally {
@@ -106,7 +122,46 @@ export default function UserDashboard() {
         }
 
         fetchData()
+    }, [paramEventId, paramUsername]) // Re-run when params change
+
+    // Fetch Public Events for the Tournaments Tab and Auto-Selection
+    useEffect(() => {
+        const loadEvents = async () => {
+            try {
+                const events = await getPublicEvents()
+                if (Array.isArray(events)) {
+                    setPublicEvents(events)
+
+                    // If no eventId is set yet (root path), auto-select the first active valid event
+                    if (!eventId && !slug && !paramEventId) {
+                        const latestActive = events.find(e => e.status === 'active') || events[0]
+                        if (latestActive) {
+                            // Correctly set state to trigger data fetch? 
+                            // Using window.location to force full reload/redirect is safer for context switch
+                            // But here we might just want to setEventId if we change the architecture to reactive.
+                            // For now, let's just let the user pick or default to empty?
+                            // Better: default to latestActive for Hero/Leaderboard display
+                            setEventId(latestActive.id)
+                            // We should also trigger fetch data for this event... 
+                            // Ideally existing useEffect handles changes if we add [eventId] dep? 
+                            // But existing useEffect runs once on mount. 
+                            // Let's reload page if at root? No, that loops.
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Failed events fetch", e)
+            }
+        }
+        loadEvents()
     }, [])
+
+    const handleSwitchEvent = (id: number) => {
+        let url = `/event/${id}`
+        if (username) url += `?username=${username}`
+        // Use standard navigation to reload context
+        window.location.href = url
+    }
 
     const handleJoin = async () => {
         if (!username) return
@@ -207,10 +262,13 @@ export default function UserDashboard() {
                 </section>
 
                 {/* Main Tabs */}
-                <Tabs defaultValue="leaderboard" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 bg-card/50 p-1 h-auto">
+                <Tabs defaultValue="leaderboard" className="w-full" value={activeTab} onValueChange={setActiveTab}>
+                    <TabsList className="grid w-full grid-cols-4 bg-card/50 p-1 h-auto">
                         <TabsTrigger value="leaderboard" className="py-3 font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                            <Award className="w-4 h-4 mr-2" /> Sıralama
+                            <Award className="w-4 h-4 mr-2" /> Sıralamalarım
+                        </TabsTrigger>
+                        <TabsTrigger value="tournaments" className="py-3 font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                            <List className="w-4 h-4 mr-2" /> Turnuvalar
                         </TabsTrigger>
                         <TabsTrigger value="my-coupons" className="py-3 font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                             <Ticket className="w-4 h-4 mr-2" /> Kuponlarım
@@ -220,44 +278,44 @@ export default function UserDashboard() {
                         </TabsTrigger>
                     </TabsList>
 
-                    {/* Leaderboard Tab */}
+                    {/* My Rankings / Leaderboard Tab */}
                     <TabsContent value="leaderboard" className="mt-6">
                         <Card className="border-white/10 bg-card/30">
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Trophy className="h-5 w-5 text-yellow-500" /> Liderlik Tablosu</CardTitle>
-                                <CardDescription>Turnuvanın en yüksek puanlı 50 katılımcısı.</CardDescription>
+                                <CardTitle className="flex items-center gap-2"><Trophy className="h-5 w-5 text-yellow-500" /> Sıralamalarım</CardTitle>
+                                <CardDescription>Katıldığınız turnuvalardaki anlık durumunuz.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                {loadingLeaderboard ? (
+                                {loadingEnrollments ? (
                                     <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
-                                ) : leaderboard.length === 0 ? (
-                                    <div className="text-center p-8 text-muted-foreground">Henüz sıralama oluşmadı.</div>
+                                ) : myEnrollments.length === 0 ? (
+                                    <div className="text-center p-8 text-muted-foreground">Henüz hiçbir turnuvaya katılmadınız.</div>
                                 ) : (
                                     <Table>
                                         <TableHeader>
                                             <TableRow className="hover:bg-transparent border-white/10">
-                                                <TableHead className="w-[100px]">Sıra</TableHead>
-                                                <TableHead>Kullanıcı</TableHead>
+                                                <TableHead>Turnuva</TableHead>
+                                                <TableHead>Durum</TableHead>
                                                 <TableHead className="text-right">Puan</TableHead>
+                                                <TableHead className="text-right">Sıralama</TableHead>
+                                                <TableHead className="text-right">İşlem</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {leaderboard.map((user) => (
-                                                <TableRow
-                                                    key={user.rank}
-                                                    className={`border-white/5 ${user.username === username ? "bg-primary/10 border-primary/20" : ""}`}
-                                                >
-                                                    <TableCell className="font-bold">
-                                                        {user.rank === 1 && <Trophy className="h-4 w-4 text-yellow-500 inline mr-1" />}
-                                                        {user.rank === 2 && <Trophy className="h-4 w-4 text-gray-400 inline mr-1" />}
-                                                        {user.rank === 3 && <Trophy className="h-4 w-4 text-amber-700 inline mr-1" />}
-                                                        #{user.rank}
+                                            {myEnrollments.map((enr) => (
+                                                <TableRow key={enr.event_id} className="border-white/5 hover:bg-white/5">
+                                                    <TableCell className="font-bold text-white">{enr.event_name}</TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={enr.status === 'active' ? 'default' : 'secondary'} className="uppercase text-[10px]">
+                                                            {enr.status === 'active' ? 'Aktif' : 'Tamamlandı'}
+                                                        </Badge>
                                                     </TableCell>
-                                                    <TableCell className={user.username === username ? "text-primary font-bold" : ""}>
-                                                        {user.username} {user.username === username && "(Sen)"}
-                                                    </TableCell>
-                                                    <TableCell className="text-right font-mono font-bold text-lg">
-                                                        {user.score.toLocaleString()}
+                                                    <TableCell className="text-right font-mono">{enr.score.toLocaleString()}</TableCell>
+                                                    <TableCell className="text-right font-bold text-lg text-primary">#{enr.rank}</TableCell>
+                                                    <TableCell className="text-right">
+                                                        <Button size="sm" variant="ghost" onClick={() => handleSwitchEvent(enr.event_id)}>
+                                                            Git <ArrowUpRight className="ml-1 h-3 w-3" />
+                                                        </Button>
                                                     </TableCell>
                                                 </TableRow>
                                             ))}
@@ -326,50 +384,70 @@ export default function UserDashboard() {
                         <Card className="border-white/10 bg-card/30">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-green-500" /> Turnuva Kuralları</CardTitle>
-                                <CardDescription>Katılım ve puanlama şartları.</CardDescription>
+                                <CardDescription>
+                                    Aktif turnuvalar ve katılım şartları.
+                                </CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div className="grid md:grid-cols-2 gap-4">
-                                    <div className="p-4 bg-background rounded-lg border border-white/5 flex gap-3 items-start">
-                                        <div className="mt-1 bg-primary/20 p-1 rounded">
-                                            <TrendingUp className="h-4 w-4 text-primary" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-sm mb-1">Yatırım Şartı</h4>
-                                            <p className="text-xs text-muted-foreground">Bu ay içerisinde tek seferde minimum <strong className="text-foreground">1000 TL</strong> yatırım yapmış olmanız gerekmektedir.</p>
-                                        </div>
-                                    </div>
+                            <CardContent className="space-y-8">
+                                {publicEvents.filter(e => e.status === 'active').length === 0 ? (
+                                    <div className="text-center text-muted-foreground p-8">Aktif turnuva bulunmuyor.</div>
+                                ) : (
+                                    publicEvents.filter(e => e.status === 'active').map(event => {
+                                        const rules = event.rules || {}
+                                        return (
+                                            <div key={event.id} className="space-y-4 border-b border-white/5 pb-8 last:border-0 last:pb-0">
+                                                <div className="flex items-center gap-3 mb-4">
+                                                    <Badge className="bg-primary text-primary-foreground hover:bg-primary/90">
+                                                        {event.name}
+                                                    </Badge>
+                                                    <span className="text-sm text-muted-foreground">Turnuva Kuralları</span>
+                                                </div>
 
-                                    <div className="p-4 bg-background rounded-lg border border-white/5 flex gap-3 items-start">
-                                        <div className="mt-1 bg-yellow-500/20 p-1 rounded">
-                                            <ArrowUpRight className="h-4 w-4 text-yellow-500" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-sm mb-1">Minimum Oran</h4>
-                                            <p className="text-xs text-muted-foreground">Kupon başına toplam oran en az <strong className="text-foreground">1.50</strong> olmalıdır.</p>
-                                        </div>
-                                    </div>
+                                                <div className="grid md:grid-cols-2 gap-4">
+                                                    <div className="p-4 bg-background rounded-lg border border-white/5 flex gap-3 items-start">
+                                                        <div className="mt-1 bg-primary/20 p-1 rounded">
+                                                            <TrendingUp className="h-4 w-4 text-primary" />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-bold text-sm mb-1">Yatırım Şartı</h4>
+                                                            <p className="text-xs text-muted-foreground">Bu ay içerisinde tek seferde minimum <strong className="text-foreground">{rules.min_deposit ?? 1000} TL</strong> yatırım yapmış olmanız gerekmektedir.</p>
+                                                        </div>
+                                                    </div>
 
-                                    <div className="p-4 bg-background rounded-lg border border-white/5 flex gap-3 items-start">
-                                        <div className="mt-1 bg-blue-500/20 p-1 rounded">
-                                            <Ticket className="h-4 w-4 text-blue-500" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-sm mb-1">Kombine Şartı</h4>
-                                            <p className="text-xs text-muted-foreground">Her kupon en az <strong className="text-foreground">2 maç</strong> (kombine) içermelidir.</p>
-                                        </div>
-                                    </div>
+                                                    <div className="p-4 bg-background rounded-lg border border-white/5 flex gap-3 items-start">
+                                                        <div className="mt-1 bg-yellow-500/20 p-1 rounded">
+                                                            <ArrowUpRight className="h-4 w-4 text-yellow-500" />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-bold text-sm mb-1">Minimum Oran</h4>
+                                                            <p className="text-xs text-muted-foreground">Kupon başına toplam oran en az <strong className="text-foreground">{(rules.min_odd || 1.5).toFixed(2)}</strong> olmalıdır.</p>
+                                                        </div>
+                                                    </div>
 
-                                    <div className="p-4 bg-background rounded-lg border border-white/5 flex gap-3 items-start">
-                                        <div className="mt-1 bg-purple-500/20 p-1 rounded">
-                                            <Award className="h-4 w-4 text-purple-500" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-sm mb-1">Kupon Tutarı</h4>
-                                            <p className="text-xs text-muted-foreground">Kupon tutarı en az <strong className="text-foreground">100 TL</strong> olmalıdır.</p>
-                                        </div>
-                                    </div>
-                                </div>
+                                                    <div className="p-4 bg-background rounded-lg border border-white/5 flex gap-3 items-start">
+                                                        <div className="mt-1 bg-blue-500/20 p-1 rounded">
+                                                            <Ticket className="h-4 w-4 text-blue-500" />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-bold text-sm mb-1">Kombine Şartı</h4>
+                                                            <p className="text-xs text-muted-foreground">Her kupon en az <strong className="text-foreground">{rules.min_combination || 2} maç</strong> (kombine) içermelidir.</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="p-4 bg-background rounded-lg border border-white/5 flex gap-3 items-start">
+                                                        <div className="mt-1 bg-purple-500/20 p-1 rounded">
+                                                            <Award className="h-4 w-4 text-purple-500" />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-bold text-sm mb-1">Kupon Tutarı</h4>
+                                                            <p className="text-xs text-muted-foreground">Kupon tutarı en az <strong className="text-foreground">{rules.min_stake || 100} TL</strong> olmalıdır.</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )
+                                    })
+                                )}
                             </CardContent>
                         </Card>
                     </TabsContent>

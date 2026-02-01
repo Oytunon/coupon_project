@@ -34,12 +34,15 @@ export async function joinCampaign(username: string, eventId?: number, slug?: st
   return res.data
 }
 
-export async function getLeaderboard(slug?: string, eventId?: number, limit: number = 50) {
+export async function getLeaderboard(slug?: string, eventId?: number, limit: number = 50, viewerUsername?: string | null) {
   let url = `/api/leaderboard?limit=${limit}`
   if (slug) {
     url += `&slug=${encodeURIComponent(slug)}`
   } else if (eventId) {
     url += `&event_id=${eventId}`
+  }
+  if (viewerUsername) {
+    url += `&viewer_username=${encodeURIComponent(viewerUsername)}`
   }
 
   const res = await apiClient.get(url)
@@ -55,5 +58,12 @@ export async function getMyCoupons(username: string, slug?: string, eventId?: nu
   }
 
   const res = await apiClient.get(url)
+  return res.data
+}
+
+export async function getMyEnrollments(username: string) {
+  const res = await apiClient.get<any[]>(`/api/my-enrollments`, {
+    params: { username }
+  })
   return res.data
 }
