@@ -311,7 +311,7 @@ export default function UserDashboard() {
                         <Card className="border-white/10 bg-card/30">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2"><Ticket className="h-5 w-5 text-blue-500" /> Kuponlarım</CardTitle>
-                                <CardDescription>Katılım sağladığınız turnuvaya dahil olan kuponlarınız.</CardDescription>
+                                <CardDescription>Katılım sağlanan turnuvalara dahil olan kuponlarınız.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 {!username ? (
