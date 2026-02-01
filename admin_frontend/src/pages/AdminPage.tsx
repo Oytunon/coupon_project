@@ -287,6 +287,7 @@ export default function AdminPage() {
         try {
             const payload = {
                 ...newEvent,
+                slug: newEvent.slug || null,
                 start_date: new Date(newEvent.start_date).toISOString(),
                 end_date: new Date(newEvent.end_date).toISOString()
             }
@@ -448,7 +449,7 @@ export default function AdminPage() {
             console.log("Preparing payload for event:", editingEvent.id)
             const payload = {
                 name: editingEvent.name,
-                slug: editingEvent.slug,
+                slug: editingEvent.slug || null,
                 description: editingEvent.description || "",
                 start_date: new Date(editingEvent.start_date).toISOString(),
                 end_date: new Date(editingEvent.end_date).toISOString(),
@@ -461,7 +462,7 @@ export default function AdminPage() {
                     min_odd: Number(editingEvent.rules.min_odd),
                     min_combination: Number(editingEvent.rules.min_combination),
                     max_combination: editingEvent.rules.max_combination ? Number(editingEvent.rules.max_combination) : null,
-                    min_deposit: Number(editingEvent.rules.min_deposit)
+                    min_deposit: isNaN(editingEvent.rules.min_deposit) ? 0 : Number(editingEvent.rules.min_deposit)
                 }
             }
             console.log("Sending payload:", payload)
