@@ -163,6 +163,7 @@ export default function AdminPage() {
             min_stake: 100,
             min_odd: 1.5,
             min_combination: 2,
+            max_combination: null as number | null,
             allowed_league_ids: [] as number[],
             scoring_formula: "stake_times_odds",
             min_deposit: 1000
