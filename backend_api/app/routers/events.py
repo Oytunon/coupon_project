@@ -136,7 +136,7 @@ async def create_event(
             slug=slug_to_use,
             description=event_data.description,
             start_date=event_data.start_date,
-            end_date=event.end_date,
+            end_date=event_data.end_date,
             won_point_multiplier=event_data.won_point_multiplier,
             loss_point_multiplier=event_data.loss_point_multiplier,
             rules=event_data.rules.dict(),

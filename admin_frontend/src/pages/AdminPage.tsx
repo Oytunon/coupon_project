@@ -296,10 +296,18 @@ export default function AdminPage() {
             const e = await fetchEvents()
             setEvents(e)
         } catch (err: any) {
-            setMessage({ type: "error", text: err.response?.data?.detail || "Kampanya oluşturulamadı." })
+            console.error("Create Event Error:", err)
+            let msg = "Kampanya oluşturulamadı."
+            if (err.response?.data?.detail) {
+                const d = err.response.data.detail
+                if (typeof d === "string") msg = d
+                else if (Array.isArray(d)) msg = d.map((e: any) => `${e.loc.join('.')} : ${e.msg}`).join(' | ')
+                else msg = JSON.stringify(d)
+            }
+            setMessage({ type: "error", text: msg })
         } finally {
             setSaving(null)
-            setTimeout(() => setMessage(null), 3000)
+            setTimeout(() => setMessage(null), 5000)
         }
     }
 
@@ -836,7 +844,10 @@ export default function AdminPage() {
                                                         min="0"
                                                         step="100"
                                                         value={newEvent.rules.min_deposit}
-                                                        onChange={e => setNewEvent({ ...newEvent, rules: { ...newEvent.rules, min_deposit: parseInt(e.target.value) } })}
+                                                        onChange={e => {
+                                                            const val = parseInt(e.target.value)
+                                                            setNewEvent({ ...newEvent, rules: { ...newEvent.rules, min_deposit: isNaN(val) ? 0 : val } })
+                                                        }}
                                                         className="bg-black/20 border-amber-500/20 text-amber-500"
                                                     />
                                                     <p className="text-[9px] text-amber-500/60 leading-tight">Yalnızca bu tutar ve üzeri yatırım yapanlar katılabilir (0 = Herkes).</p>
@@ -981,7 +992,10 @@ export default function AdminPage() {
                                                         min="0"
                                                         step="100"
                                                         value={editingEvent.rules.min_deposit}
-                                                        onChange={e => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, min_deposit: parseInt(e.target.value) } })}
+                                                        onChange={e => {
+                                                            const val = parseInt(e.target.value)
+                                                            setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, min_deposit: isNaN(val) ? 0 : val } })
+                                                        }}
                                                         className="bg-black/20 border-amber-500/20 text-amber-500"
                                                     />
                                                     <p className="text-[9px] text-amber-500/60 leading-tight">Yalnızca bu tutar ve üzeri yatırım yapanlar katılabilir (0 = Herkes).</p>
