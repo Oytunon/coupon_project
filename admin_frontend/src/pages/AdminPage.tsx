@@ -40,7 +40,6 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { apiClient } from "../api/client"
 
-// Admin API functions
 const fetchAdminStats = async () => {
     const res = await apiClient.get('/admin/stats')
     return res.data
@@ -76,7 +75,6 @@ const deleteAdminUser = async (userId: number) => {
     return res.data
 }
 
-// Event API functions
 const fetchEvents = async () => {
     const res = await apiClient.get('/admin/events')
     return res.data
@@ -130,7 +128,6 @@ export default function AdminPage() {
 
     const [stats, setStats] = useState<any>(null)
 
-    // Participants State
     const [participants, setParticipants] = useState<any[]>([])
     const [totalParticipants, setTotalParticipants] = useState(0)
     const [page, setPage] = useState(1)
@@ -145,15 +142,13 @@ export default function AdminPage() {
     const [saving, setSaving] = useState<string | null>(null)
     const [message, setMessage] = useState<{ type: "success" | "error", text: string } | null>(null)
 
-    // User creation state
     const [showAddUser, setShowAddUser] = useState(false)
     const [newUser, setNewUser] = useState({ username: "", password: "", email: "", role: "admin" })
 
-    // Event creation state
     const [showAddEvent, setShowAddEvent] = useState(false)
     const [newEvent, setNewEvent] = useState({
         name: "",
-        slug: "", // Kept in state but hidden/unused in UI
+        slug: "",
         description: "",
         start_date: "",
         end_date: "",
@@ -169,12 +164,11 @@ export default function AdminPage() {
             min_deposit: 0
         }
     })
-    const [leagueIdsInput, setLeagueIdsInput] = useState("")  // Lig ID'leri için text input
+    const [leagueIdsInput, setLeagueIdsInput] = useState("")
 
     const [showEditEvent, setShowEditEvent] = useState(false)
     const [editingEvent, setEditingEvent] = useState<any>(null)
 
-    // Event Details state
     const [viewEventId, setViewEventId] = useState<number | null>(null)
     const [eventStats, setEventStats] = useState<any>(null)
 
@@ -189,7 +183,6 @@ export default function AdminPage() {
         }
     }, [selectedEventId, couponPage])
 
-    // Search Debouncer
     useEffect(() => {
         const timer = setTimeout(() => {
             setDebouncedSearch(searchQuery)
@@ -209,12 +202,10 @@ export default function AdminPage() {
             ])
             setStats(s)
 
-            // Handle new response format { total, items }
             if (p.items) {
                 setParticipants(p.items)
                 setTotalParticipants(p.total)
             } else {
-                // Fallback for old API just in case
                 setParticipants(p)
                 setTotalParticipants(p.length)
             }
@@ -249,7 +240,7 @@ export default function AdminPage() {
 
     const handleSelectParticipant = async (p: any) => {
         if (selectedParticipant?.id !== p.id) {
-            setCouponPage(1) // Reset page if new participant selected
+            setCouponPage(1)
         }
 
         setSelectedParticipant(p)
@@ -294,7 +285,6 @@ export default function AdminPage() {
         e.preventDefault()
         setSaving("create_event")
         try {
-            // Format dates
             const payload = {
                 ...newEvent,
                 start_date: new Date(newEvent.start_date).toISOString(),
@@ -303,7 +293,6 @@ export default function AdminPage() {
             await createEvent(payload)
             setMessage({ type: "success", text: "Kampanya taslağı oluşturuldu." })
             setShowAddEvent(false)
-            // Reset form could be here
             const e = await fetchEvents()
             setEvents(e)
         } catch (err: any) {
@@ -339,7 +328,7 @@ export default function AdminPage() {
     }
 
     const handleRunWorker = async (id: number) => {
-        if (!confirm("Worker'ı manuel olarak çalıştırmak istediğinize emin misiniz? Arka planda kupon taraması başlatılacak.")) return
+        if (!confirm("Worker'ı manuel olarak çalıştırmak istediğinize emin misiniz?")) return
         try {
             const res = await runEventWorker(id)
             const jobId = res.job_id
@@ -349,7 +338,6 @@ export default function AdminPage() {
                 description: "Tarama arka planda devam ediyor...",
             })
 
-            // Polling başlat
             const checkStatus = setInterval(async () => {
                 try {
                     const statusRes = await apiClient.get(`/admin/worker-jobs/${jobId}`)
@@ -382,7 +370,7 @@ export default function AdminPage() {
                     console.error("Status check failed", e)
                     clearInterval(checkStatus)
                 }
-            }, 2000) // 2 saniyede bir kontrol
+            }, 2000)
 
         } catch (err: any) {
             setMessage({ type: "error", text: err.response?.data?.detail || "Worker tetiklenemedi" })
@@ -394,7 +382,6 @@ export default function AdminPage() {
         setEditingEvent({
             ...event,
             description: event.description || "",
-            // Format for datetime-local input (YYYY-MM-DDThh:mm)
             start_date: new Date(event.start_date).toISOString().slice(0, 16),
             end_date: new Date(event.end_date).toISOString().slice(0, 16),
             rules: {
@@ -406,7 +393,6 @@ export default function AdminPage() {
                 ...rules
             }
         })
-        // Join league IDs if they exist
         setLeagueIdsInput(rules.allowed_league_ids ? rules.allowed_league_ids.join(", ") : "")
         setShowEditEvent(true)
     }
@@ -452,7 +438,6 @@ export default function AdminPage() {
         setSaving("update_event")
         try {
             console.log("Preparing payload for event:", editingEvent.id)
-            // Explicitly convert numeric fields and filter payload
             const payload = {
                 name: editingEvent.name,
                 slug: editingEvent.slug,
@@ -515,7 +500,6 @@ export default function AdminPage() {
             const stats = await getEventStats(event.id)
             setEventStats(stats)
             setViewEventId(event.id)
-            // Fetch participants for this event (Leaderboard) using the specialized endpoint
             const partsData = await fetchEventParticipants(event.id)
             if (partsData.items) {
                 setParticipants(partsData.items)
@@ -534,7 +518,7 @@ export default function AdminPage() {
     const handleBackToEvents = async () => {
         setViewEventId(null)
         setEventStats(null)
-        loadData() // Reloads global data
+        loadData()
     }
 
     const handleDeleteUser = async (id: number) => {

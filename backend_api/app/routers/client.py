@@ -31,14 +31,11 @@ async def get_public_events(
 ):
     """
     Public endpoint to list all events for the Lobby.
-    Sorted by status (Active first) and then date.
     """
     
-    # 1. Fetch events
     events = db.query(Event).filter(
         Event.status.in_(["active", "ended", "paused"])
     ).order_by(
-        # Custom ordering: Active first, then by end_date desc
         func.case(
            (Event.status == 'active', 1),
            (Event.status == 'paused', 2),
@@ -50,7 +47,6 @@ async def get_public_events(
 
     results = []
     for event in events:
-        # 2. Count participants for each event
         p_count = db.query(func.count(EventParticipant.id)).filter(
             EventParticipant.event_id == event.id
         ).scalar()

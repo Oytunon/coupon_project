@@ -31,7 +31,6 @@ export default function UserDashboard() {
     const [publicEvents, setPublicEvents] = useState<PublicEvent[]>([])
     const [activeTab, setActiveTab] = useState("leaderboard")
 
-    // Tab Data States
     const [leaderboard, setLeaderboard] = useState<any[]>([])
     const [myEnrollments, setMyEnrollments] = useState<any[]>([])
     const [myCoupons, setMyCoupons] = useState<any[]>([])
@@ -42,10 +41,8 @@ export default function UserDashboard() {
     const { toast } = useToast()
 
     useEffect(() => {
-        // Priority: Route Params > URL Query Params > Utilities
 
         let u = paramUsername || getUsernameFromUrl()
-        // If route has username, prefer it
         if (paramUsername) u = paramUsername
 
         setUsername(u)
@@ -54,8 +51,6 @@ export default function UserDashboard() {
 
         // Event ID logic
         let rawEid = paramEventId || params.get("event_id")
-        // If paramEventId is a slug (not a number), handle it? 
-        // Backend supports slug in the same endpoint now, but let's check parsing.
 
         let parsedEid: number | null = null
         let sl: string | null = params.get("slug") || params.get("key")
@@ -72,9 +67,7 @@ export default function UserDashboard() {
         setEventId(parsedEid)
         setSlug(sl)
 
-        // Parallel Fetching
         const fetchData = async () => {
-            // 1. Leaderboard (Public)
             setLoadingLeaderboard(true)
             try {
                 const lb = await getLeaderboard(sl || undefined, parsedEid || undefined, 50, u || null)
@@ -90,7 +83,6 @@ export default function UserDashboard() {
                 return
             }
 
-            // 2. User specific data
             try {
                 const status = await getParticipationStatus(u, parsedEid || undefined, sl || undefined)
                 setCanJoin(status.can_join)
@@ -98,12 +90,10 @@ export default function UserDashboard() {
                 if (status.score !== undefined) setUserScore(status.score || 0)
                 if (status.rank !== undefined) setUserRank(status.rank)
 
-                // Fetch coupons if user is known
                 setLoadingCoupons(true)
                 const coupons = await getMyCoupons(u, sl || undefined, parsedEid || undefined)
                 setMyCoupons(coupons)
 
-                // Fetch My Enrollments (Rankings across tournaments)
                 setLoadingEnrollments(true)
                 try {
                     const enrolls = await getMyEnrollments(u)
@@ -122,9 +112,8 @@ export default function UserDashboard() {
         }
 
         fetchData()
-    }, [paramEventId, paramUsername]) // Re-run when params change
+    }, [paramEventId, paramUsername])
 
-    // Fetch Public Events for the Tournaments Tab and Auto-Selection
     useEffect(() => {
         const loadEvents = async () => {
             try {
@@ -136,16 +125,7 @@ export default function UserDashboard() {
                     if (!eventId && !slug && !paramEventId) {
                         const latestActive = events.find(e => e.status === 'active') || events[0]
                         if (latestActive) {
-                            // Correctly set state to trigger data fetch? 
-                            // Using window.location to force full reload/redirect is safer for context switch
-                            // But here we might just want to setEventId if we change the architecture to reactive.
-                            // For now, let's just let the user pick or default to empty?
-                            // Better: default to latestActive for Hero/Leaderboard display
                             setEventId(latestActive.id)
-                            // We should also trigger fetch data for this event... 
-                            // Ideally existing useEffect handles changes if we add [eventId] dep? 
-                            // But existing useEffect runs once on mount. 
-                            // Let's reload page if at root? No, that loops.
                         }
                     }
                 }
@@ -159,7 +139,7 @@ export default function UserDashboard() {
     const handleSwitchEvent = (id: number) => {
         let url = `/event/${id}`
         if (username) url += `?username=${username}`
-        // Use standard navigation to reload context
+        if (username) url += `?username=${username}`
         window.location.href = url
     }
 
@@ -331,7 +311,7 @@ export default function UserDashboard() {
                         <Card className="border-white/10 bg-card/30">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2"><Ticket className="h-5 w-5 text-blue-500" /> Kuponlarım</CardTitle>
-                                <CardDescription>Bu turnuvaya dahil olan kuponlarınız.</CardDescription>
+                                <CardDescription>Katılım sağladığınız turnuvaya dahil olan kuponlarınız.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 {!username ? (
