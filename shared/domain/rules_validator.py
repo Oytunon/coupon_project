@@ -39,6 +39,10 @@ def is_valid_for_event(bet_history: dict, selections_data: dict, event: Event) -
     min_combination = rules.get("min_combination", 2)
     if bet_type < min_combination:
         return False
+        
+    max_combination = rules.get("max_combination")
+    if max_combination is not None and bet_type > max_combination:
+        return False
     
     # 2. Minimum stake kontrolü
     stake = bet_history.get("EquivalentAmount", 0.0)
