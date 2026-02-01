@@ -462,9 +462,11 @@ export default function AdminPage() {
                 loss_point_multiplier: Number(editingEvent.loss_point_multiplier),
                 rules: {
                     ...editingEvent.rules,
+                    min_stock: undefined,
                     min_stake: Number(editingEvent.rules.min_stake),
                     min_odd: Number(editingEvent.rules.min_odd),
                     min_combination: Number(editingEvent.rules.min_combination),
+                    max_combination: editingEvent.rules.max_combination ? Number(editingEvent.rules.max_combination) : null,
                     min_deposit: Number(editingEvent.rules.min_deposit)
                 }
             }
@@ -836,6 +838,10 @@ export default function AdminPage() {
                                                     <label className="text-xs font-bold text-primary">Min Kombine</label>
                                                     <Input type="number" value={newEvent.rules.min_combination} onChange={e => setNewEvent({ ...newEvent, rules: { ...newEvent.rules, min_combination: parseInt(e.target.value) } })} className="bg-black/20 border-primary/20" />
                                                 </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-primary">Max Kombine</label>
+                                                    <Input type="number" placeholder="Sınırsız" value={newEvent.rules.max_combination || ""} onChange={e => setNewEvent({ ...newEvent, rules: { ...newEvent.rules, max_combination: e.target.value ? parseInt(e.target.value) : null } })} className="bg-black/20 border-primary/20" />
+                                                </div>
                                                 <div className="space-y-3 bg-amber-500/5 p-3 rounded-lg border border-amber-500/10">
                                                     <div className="flex justify-between items-center mb-1">
                                                         <label className="text-[10px] font-bold text-amber-500 uppercase flex items-center gap-1">
@@ -974,6 +980,10 @@ export default function AdminPage() {
                                                 <div className="space-y-2">
                                                     <label className="text-xs font-bold text-primary">Min Kombine</label>
                                                     <Input type="number" value={editingEvent.rules.min_combination} onChange={e => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, min_combination: parseInt(e.target.value) } })} className="bg-black/20 border-primary/20" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-primary">Max Kombine</label>
+                                                    <Input type="number" placeholder="Sınırsız" value={editingEvent.rules.max_combination || ""} onChange={e => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, max_combination: e.target.value ? parseInt(e.target.value) : null } })} className="bg-black/20 border-primary/20" />
                                                 </div>
                                                 <div className="space-y-3 bg-amber-500/5 p-3 rounded-lg border border-amber-500/10">
                                                     <div className="flex justify-between items-center mb-1">

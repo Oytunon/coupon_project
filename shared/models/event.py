@@ -35,6 +35,7 @@ class Event(Base):
         "min_stake": 100,
         "min_odd": 1.5,
         "min_combination": 2,
+        "max_combination": None,
         "allowed_league_ids": [],  # Boş array = tüm ligler
         "max_coupons_per_user": None,  # None = limit yok
         "scoring_formula": "stake_times_odds",  # 'simple', 'stake_times_odds', 'combo_bonus'

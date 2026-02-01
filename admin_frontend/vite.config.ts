@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), '')
     const target = env.VITE_API_URL || 'http://localhost:8000'
 
-    console.log(`🚀 Proxy target set to: ${target}`)
+    console.log(` Proxy target set to: ${target}`)
 
     return {
         plugins: [react()],

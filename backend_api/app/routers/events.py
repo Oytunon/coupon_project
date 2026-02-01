@@ -27,6 +27,7 @@ class EventRules(BaseModel):
     min_stake: float = 100.0
     min_odd: float = 1.5
     min_combination: int = 2
+    max_combination: Optional[int] = None
     allowed_league_ids: List[int] = []
     max_coupons_per_user: Optional[int] = None
     scoring_formula: str = "stake_times_odds"  # 'simple', 'stake_times_odds', 'combo_bonus'
