@@ -258,6 +258,11 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             final_events.append(event)
                     
                     if not final_events: continue
+                    
+                    # MERGE Selections into bet_history for Frontend Display
+                    if selections:
+                         bet_history["Selections"] = selections
+
 
                     # 4. Save to DB
                     for event in final_events:
@@ -301,6 +306,11 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         winning_amount = float(bet_history.get("WinAmount") or bet_history.get("Payout") or 0.0)
 
                         logger.info(f"✅ Kupon Eklendi: {bet_id} | Durum: {mapped_state} | Tarih: {created_dt}")
+                        
+                        # Ensure bet_data has Selections (redundant check but safe)
+                        if "Selections" not in bet_history and selections:
+                             bet_history["Selections"] = selections
+
                         
                         new_coupon = Coupon(
                             client_id=user.client_id, 
