@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import { useEffect, useState, Fragment } from "react"
 import { getParticipationStatus, joinCampaign, getLeaderboard, getMyCoupons, getMyEnrollments } from "../api/participation"
 import { getPublicEvents, PublicEvent } from "../api/client"
 import { getUsernameFromUrl } from "../utils/useUsername"
@@ -287,7 +287,7 @@ export default function UserDashboard() {
                                         </TableHeader>
                                         <TableBody>
                                             {myEnrollments.map((enr) => (
-                                                <React.Fragment key={enr.event_id}>
+                                                <Fragment key={enr.event_id}>
                                                     <TableRow className="border-white/5 hover:bg-white/5">
                                                         <TableCell className="font-bold text-white">{enr.event_name}</TableCell>
                                                         <TableCell>
@@ -316,7 +316,9 @@ export default function UserDashboard() {
                                                                             </TableRow>
                                                                         </TableHeader>
                                                                         <TableBody>
-                                                                            {expandedLeaderboard.length === 0 ? (
+                                                                            {loadingLeaderboard ? (
+                                                                                <TableRow><TableCell colSpan={3} className="text-center py-4"><Loader2 className="animate-spin h-5 w-5 mx-auto" /></TableCell></TableRow>
+                                                                            ) : expandedLeaderboard.length === 0 ? (
                                                                                 <TableRow><TableCell colSpan={3} className="text-center py-4">Veri yok</TableCell></TableRow>
                                                                             ) : (
                                                                                 expandedLeaderboard.map((user, idx) => (
@@ -333,7 +335,7 @@ export default function UserDashboard() {
                                                             </TableCell>
                                                         </TableRow>
                                                     )}
-                                                </React.Fragment>
+                                                </Fragment>
                                             ))}
                                         </TableBody>
                                     </Table>
