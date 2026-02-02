@@ -134,12 +134,13 @@ export default function UserDashboard() {
                     }
                 }
             }
-            } catch (e: any) {
-            console.error("Failed events fetch", e)
-            setFetchError(e.message || "Turnuvalar yüklenirken hata oluştu")
-        }
+                }
+    } catch (e: any) {
+        console.error("Failed events fetch", e)
+        setFetchError(e.message || "Turnuvalar yüklenirken hata oluştu")
     }
-        loadEvents()
+}
+loadEvents()
     }, [])
 
 const handleSwitchEvent = (id: number) => {

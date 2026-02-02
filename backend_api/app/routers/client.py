@@ -44,8 +44,6 @@ async def get_public_events(
         ),
         Event.end_date.desc()
     ).all()
-        Event.end_date.desc()
-    ).all()
 
     results = []
     for event in events:
