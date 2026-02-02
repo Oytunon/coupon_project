@@ -1202,6 +1202,7 @@ export default function AdminPage() {
                                                 <tr className="border-b border-white/5 text-muted-foreground text-xs uppercase tracking-wider">
                                                     <th className="px-4 py-3 font-bold">Bet ID</th>
                                                     <th className="px-4 py-3 font-bold">Tarih</th>
+                                                    <th className="px-4 py-3 font-bold">Maç Detayları</th>
                                                     <th className="px-4 py-3 font-bold text-right">Miktar</th>
                                                     <th className="px-4 py-3 font-bold text-center">Oran</th>
                                                     <th className="px-4 py-3 font-bold text-center">Durum</th>
@@ -1217,6 +1218,24 @@ export default function AdminPage() {
                                                                 <Clock className="h-3 w-3" />
                                                                 {new Date(c.created_at).toLocaleString("tr-TR")}
                                                             </div>
+                                                        </td>
+                                                        <td className="px-4 py-4 text-xs max-w-[300px]">
+                                                            {c.bet_data?.Selections && c.bet_data.Selections.length > 0 ? (
+                                                                <div className="space-y-1">
+                                                                    {c.bet_data.Selections.slice(0, 3).map((sel: any, i: number) => (
+                                                                        <div key={i} className="truncate" title={`${sel.MatchName} - ${sel.SelectionName}`}>
+                                                                            <span className="text-white/80">{sel.MatchName}</span>
+                                                                            <span className="mx-1 text-muted-foreground">→</span>
+                                                                            <span className="text-blue-400">{sel.SelectionName}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                    {c.bet_data.Selections.length > 3 && (
+                                                                        <div className="text-muted-foreground italic">+{c.bet_data.Selections.length - 3} daha...</div>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-muted-foreground italic">Detay yok</span>
+                                                            )}
                                                         </td>
                                                         <td className="px-4 py-4 font-bold text-right">{c.stake} TL</td>
                                                         <td className="px-4 py-4 text-center">
