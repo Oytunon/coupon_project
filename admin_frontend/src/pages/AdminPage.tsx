@@ -124,6 +124,7 @@ export default function AdminPage() {
     const [totalUserCoupons, setTotalUserCoupons] = useState(0)
     const [loadingCoupons, setLoadingCoupons] = useState(false)
     const [couponPage, setCouponPage] = useState(1)
+    const [expandedCouponId, setExpandedCouponId] = useState<number | null>(null)
     const COUPON_LIMIT = 20
 
     const [stats, setStats] = useState<any>(null)
@@ -1206,7 +1207,6 @@ export default function AdminPage() {
                                                     <th className="px-4 py-3 font-bold text-right">Miktar</th>
                                                     <th className="px-4 py-3 font-bold text-center">Oran</th>
                                                     <th className="px-4 py-3 font-bold text-center">Durum</th>
-                                                    <th className="px-4 py-3 font-bold text-right">Kazanç</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-white/5">
@@ -1219,18 +1219,35 @@ export default function AdminPage() {
                                                                 {new Date(c.created_at).toLocaleString("tr-TR")}
                                                             </div>
                                                         </td>
-                                                        <td className="px-4 py-4 text-xs max-w-[300px]">
+                                                        <td className="px-4 py-4 text-xs max-w-[350px]">
                                                             {c.bet_data?.Selections && c.bet_data.Selections.length > 0 ? (
-                                                                <div className="space-y-1">
-                                                                    {c.bet_data.Selections.slice(0, 3).map((sel: any, i: number) => (
-                                                                        <div key={i} className="truncate" title={`${sel.MatchName} - ${sel.DisplaySelectionName || sel.SelectionName}`}>
-                                                                            <span className="text-white/80">{sel.MatchName}</span>
-                                                                            <span className="mx-1 text-muted-foreground">→</span>
-                                                                            <span className="text-blue-400">{sel.DisplaySelectionName || sel.SelectionName}</span>
+                                                                <div>
+                                                                    {/* Detay Button */}
+                                                                    <button
+                                                                        onClick={() => setExpandedCouponId(expandedCouponId === c.id ? null : c.id)}
+                                                                        className="w-full flex items-center justify-between text-left hover:bg-white/5 rounded px-2 py-1 transition-colors"
+                                                                    >
+                                                                        <span className="text-muted-foreground">
+                                                                            {c.bet_data.Selections.length} maç
+                                                                        </span>
+                                                                        <span className="text-primary text-[10px] flex items-center gap-1">
+                                                                            {expandedCouponId === c.id ? '▲ Gizle' : '▼ Detay'}
+                                                                        </span>
+                                                                    </button>
+
+                                                                    {/* Expanded Details */}
+                                                                    {expandedCouponId === c.id && (
+                                                                        <div className="mt-2 space-y-2 border-t border-white/10 pt-2">
+                                                                            {c.bet_data.Selections.map((sel: any, i: number) => (
+                                                                                <div key={i} className="border-b border-white/5 last:border-0 pb-1 last:pb-0">
+                                                                                    <div className="text-white/80 font-medium text-[11px]">{sel.MatchName}</div>
+                                                                                    <div className="flex justify-between items-center text-[10px]">
+                                                                                        <span className="text-blue-400">→ {sel.DisplaySelectionName || sel.SelectionName}</span>
+                                                                                        <span className="text-muted-foreground">{sel.DisplayMarketName || sel.MarketName}</span>
+                                                                                    </div>
+                                                                                </div>
+                                                                            ))}
                                                                         </div>
-                                                                    ))}
-                                                                    {c.bet_data.Selections.length > 3 && (
-                                                                        <div className="text-muted-foreground italic">+{c.bet_data.Selections.length - 3} daha...</div>
                                                                     )}
                                                                 </div>
                                                             ) : (
@@ -1249,9 +1266,6 @@ export default function AdminPage() {
                                                             ) : (
                                                                 <Badge className="bg-yellow-500/10 text-yellow-500 border-none">Bekliyor</Badge>
                                                             )}
-                                                        </td>
-                                                        <td className="px-4 py-4 font-black italic text-right text-emerald-500">
-                                                            {c.winning > 0 ? `+${c.winning} TL` : '-'}
                                                         </td>
                                                     </tr>
                                                 ))}
