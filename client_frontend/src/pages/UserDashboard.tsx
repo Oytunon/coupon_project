@@ -325,7 +325,7 @@ export default function UserDashboard() {
                                                                                     <TableRow key={idx} className={user.username === username ? "bg-primary/10" : ""}>
                                                                                         <TableCell className="font-mono font-bold">#{idx + 1}</TableCell>
                                                                                         <TableCell>{user.username === username ? `${user.username} (Sen)` : user.username}</TableCell>
-                                                                                        <TableCell className="text-right font-mono">{user.total_score.toLocaleString()}</TableCell>
+                                                                                        <TableCell className="text-right font-mono">{(user.score || 0).toLocaleString()}</TableCell>
                                                                                     </TableRow>
                                                                                 ))
                                                                             )}
@@ -563,7 +563,7 @@ export default function UserDashboard() {
                                                                                             <TableRow key={idx} className={user.username === username ? "bg-primary/10" : ""}>
                                                                                                 <TableCell className="font-mono font-bold">#{idx + 1}</TableCell>
                                                                                                 <TableCell>{user.username === username ? `${user.username} (Sen)` : user.username}</TableCell>
-                                                                                                <TableCell className="text-right font-mono">{user.total_score.toLocaleString()}</TableCell>
+                                                                                                <TableCell className="text-right font-mono">{(user.score || 0).toLocaleString()}</TableCell>
                                                                                             </TableRow>
                                                                                         ))
                                                                                     )}
