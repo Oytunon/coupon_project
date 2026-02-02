@@ -289,20 +289,9 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
 
                     # 4. Save to DB
                     for event in final_events:
-                        # Check GLOBAL existence first (Schema limitation hotfix)
-                        # coupon.bet_id is UNIQUE globally. Cannot insert same bet for multiple events.
-                        try:
-                           existing_global = db.query(Coupon).filter(Coupon.bet_id == bet_id).first()
-                           if existing_global:
-                               if existing_global.event_id != event.id:
-                                   logger.warning(f"Bet {bet_id} already exists for Event {existing_global.event_id}. Cannot reuse in Event {event.id} due to DB Schema.")
-                                   continue
-                               else:
-                                   logger.debug(f"Bet {bet_id} already processed for event {event.id}")
-                                   continue
-                        except Exception as e:
-                           logger.error(f"Global check error: {e}")
-                           continue
+                        # Reverted Global Check: We WANT multi-event support.
+                        # User will drop the unique constraint on DB side.
+
 
                         # Check existence (using explicit bet_id string)
                         exists_coupon = db.query(Coupon).filter(
