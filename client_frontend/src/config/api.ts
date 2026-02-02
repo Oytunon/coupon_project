@@ -3,7 +3,7 @@
  * Production'da VITE_API_URL environment variable'ından alınır
  * Development'ta varsayılan olarak localhost kullanılır
  */
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export { API_URL };
 
