@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ClientLayout } from "@/components/layout/ClientLayout"
 
 import { useParams } from "react-router-dom"
@@ -349,11 +350,28 @@ export default function UserDashboard() {
                         <Card className="border-white/10 bg-card/30">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2"><Ticket className="h-5 w-5 text-blue-500" /> Kuponlarım</CardTitle>
-                                <CardDescription>
-                                    {publicEvents.find(e => e.id === eventId)?.name ?
-                                        <span className="text-primary font-bold">Seçili Turnuva: {publicEvents.find(e => e.id === eventId)?.name}</span>
-                                        : "Katılım sağlanan turnuvalara dahil olan kuponlarınız."}
-                                </CardDescription>
+                                <div className="flex items-center gap-4 mt-2">
+                                    <div className="text-sm text-muted-foreground whitespace-nowrap">Turnuva Seçin:</div>
+                                    <Select value={eventId ? eventId.toString() : ""} onValueChange={(val) => {
+                                        setEventId(Number(val))
+                                        setSlug(null)
+                                    }}>
+                                        <SelectTrigger className="w-[280px]">
+                                            <SelectValue placeholder="Turnuva Seçiniz" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {myEnrollments.length > 0 ? (
+                                                myEnrollments.map((enr) => (
+                                                    <SelectItem key={enr.event_id} value={enr.event_id.toString()}>
+                                                        {enr.event_name}
+                                                    </SelectItem>
+                                                ))
+                                            ) : (
+                                                <SelectItem value="none" disabled>Katıldığınız turnuva yok</SelectItem>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 {!username ? (
