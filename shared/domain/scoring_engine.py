@@ -164,12 +164,21 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     bets = bet_history_data
                 
                 if not bets:
+                    logger.info(f"User {user.username}: No bets found in history.")
                     continue
+                
+                logger.info(f"User {user.username}: Found {len(bets)} bets raw.")
+
                     
                 for bet_history in bets:
                     user_processed_count += 1
                     bet_id = str(bet_history.get("BetId") or bet_history.get("Id"))
-                    if not bet_id: continue
+                    if str(bet_id) == "6004498485":
+                        logger.info(f"🔍 SERVER DEBUG - RAW BET DATA: {bet_history}")
+                    if not bet_id: 
+                        logger.debug(f"Skipping bet with no ID")
+                        continue
+
                     
                     # 1. State Mapping from Raw JSON
                     # Raw JSON shows: "StateName": "Lost" or "Won", "State": 3 or 4
@@ -188,9 +197,11 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         elif sid == 3: mapped_state = "lost"
                         elif sid == 2 or sid == 5: mapped_state = "cashout"
                     
-                    # USER REQUEST: Exclude Cashout & Open. Only Won/Lost.
                     if mapped_state not in ["won", "lost"]:
+                        logger.info(f"Bet {bet_id} skipped: State {mapped_state}")
                         continue
+
+
 
                     # 2. Eligible Event Check
                     eligible_for_events = []
@@ -210,7 +221,11 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             
                         eligible_for_events.append(target_event)
 
-                    if not eligible_for_events: continue
+                    if not eligible_for_events: 
+                         logger.info(f"Bet {bet_id} not eligible for any active events (Stake/SelectCount)")
+                         continue
+
+
 
                     # 3. Selections fetching (Lig/Sport Kontrolü)
                     # Rules içinde 'allowed_league_ids' veya 'allowed_sport_ids' varsa detay çekmemiz şart.
@@ -257,7 +272,11 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         if all_valid:
                             final_events.append(event)
                     
-                    if not final_events: continue
+                    if not final_events: 
+                        logger.info(f"Bet {bet_id} filtered out after league validations.")
+                        continue
+
+
                     
                     # MERGE Selections into bet_history for Frontend Display
                     if selections:
@@ -272,7 +291,10 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                              Coupon.event_id == event.id
                         ).first()
 
-                        if exists_coupon: continue
+                        if exists_coupon: 
+                            logger.debug(f"Bet {bet_id} already processed for event {event.id}")
+                            continue
+
                         
                         # Prepare Coupon
                         # Price/Odds might come from Selections sum or header "Price"
