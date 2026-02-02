@@ -120,8 +120,10 @@ export default function UserDashboard() {
         const loadEvents = async () => {
             try {
                 const events = await getPublicEvents()
+                console.log("DEBUG: Events fetched:", events)
                 if (Array.isArray(events)) {
                     setPublicEvents(events)
+                    console.log("DEBUG: Public events state updated:", events.length)
 
                     // If no eventId is set yet (root path), auto-select the first active valid event
                     if (!eventId && !slug && !paramEventId) {
