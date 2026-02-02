@@ -29,7 +29,7 @@ export type PublicEvent = {
 
 
 export async function getPublicEvents() {
-    const res = await apiClient.get<PublicEvent[]>('/client/events')
+    const res = await apiClient.get<PublicEvent[]>('/api/client/events')
     return res.data
 }
 
