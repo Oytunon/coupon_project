@@ -4,7 +4,7 @@ import { getPublicEvents, PublicEvent } from "../api/client"
 import { getUsernameFromUrl } from "../utils/useUsername"
 import {
     Trophy, Loader2, FileText, Award,
-    TrendingUp, ArrowUpRight, CheckCircle2, Ticket, List, History, PlayCircle
+    TrendingUp, ArrowUpRight, CheckCircle2, Ticket, List as ListIcon, LayoutGrid, PlayCircle
 } from "lucide-react"
 import tournamentBanner from "../assets/tournament-banner.jpg"
 import { Button } from "@/components/ui/button"
@@ -30,6 +30,7 @@ export default function UserDashboard() {
     const [slug, setSlug] = useState<string | null>(null)
     const [publicEvents, setPublicEvents] = useState<PublicEvent[]>([])
     const [activeTab, setActiveTab] = useState("leaderboard")
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
     const [leaderboard, setLeaderboard] = useState<any[]>([])
     const [myEnrollments, setMyEnrollments] = useState<any[]>([])
@@ -248,7 +249,7 @@ export default function UserDashboard() {
                             <Award className="w-4 h-4 mr-2" /> Sıralamalarım
                         </TabsTrigger>
                         <TabsTrigger value="tournaments" className="py-3 font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                            <List className="w-4 h-4 mr-2" /> Turnuvalar
+                            <ListIcon className="w-4 h-4 mr-2" /> Turnuvalar
                         </TabsTrigger>
                         <TabsTrigger value="my-coupons" className="py-3 font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                             <Ticket className="w-4 h-4 mr-2" /> Kuponlarım
@@ -354,6 +355,135 @@ export default function UserDashboard() {
                                             </div>
                                         ))}
                                     </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    {/* Tournaments Tab */}
+                    <TabsContent value="tournaments" className="mt-6">
+                        <Card className="border-white/10 bg-card/30">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <div className="space-y-1">
+                                    <CardTitle className="flex items-center gap-2"><ListIcon className="h-5 w-5 text-purple-500" /> Turnuvalar</CardTitle>
+                                    <CardDescription>Aktif ve tamamlanmış tüm turnuvalar.</CardDescription>
+                                </div>
+                                <div className="flex bg-background/50 p-1 rounded-lg border border-white/5">
+                                    <Button
+                                        variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                                        size="sm"
+                                        className="h-8 w-8 p-0"
+                                        onClick={() => setViewMode('grid')}
+                                    >
+                                        <LayoutGrid className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                                        size="sm"
+                                        className="h-8 w-8 p-0"
+                                        onClick={() => setViewMode('list')}
+                                    >
+                                        <ListIcon className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                {publicEvents.length === 0 ? (
+                                    <div className="text-center p-12 text-muted-foreground">
+                                        Hiçbir turnuva bulunamadı.
+                                    </div>
+                                ) : (
+                                    <>
+                                        {viewMode === 'grid' ? (
+                                            <div className="grid gap-4 md:grid-cols-2">
+                                                {publicEvents.map((event) => (
+                                                    <div key={event.id} className="group relative overflow-hidden rounded-xl border border-white/5 bg-background/40 hover:border-primary/50 transition-all duration-300">
+                                                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                        <div className="p-5 flex flex-col gap-4 relative z-10">
+                                                            <div className="flex justify-between items-start">
+                                                                <div>
+                                                                    <div className="flex items-center gap-2 mb-2">
+                                                                        <Badge variant={event.status === 'active' ? 'default' : 'secondary'} className="uppercase text-[10px]">
+                                                                            {event.status === 'active' ? 'Aktif' : 'Tamamlandı'}
+                                                                        </Badge>
+                                                                        {event.status === 'active' &&
+                                                                            <span className="flex items-center text-[10px] text-green-500 font-bold animate-pulse">
+                                                                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1" /> CANLI
+                                                                            </span>
+                                                                        }
+                                                                    </div>
+                                                                    <h3 className="font-bold text-xl leading-tight group-hover:text-primary transition-colors">{event.name}</h3>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <div className="text-xs text-muted-foreground font-mono">Katılımcı</div>
+                                                                    <div className="font-bold text-lg">{event.participant_count > 0 ? event.participant_count : 0}</div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="space-y-1 text-sm text-muted-foreground">
+                                                                <div className="flex justify-between">
+                                                                    <span>Başlangıç:</span>
+                                                                    <span className="text-foreground">{new Date(event.start_date).toLocaleDateString('tr-TR')}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span>Bitiş:</span>
+                                                                    <span className="text-foreground">{new Date(event.end_date).toLocaleDateString('tr-TR')}</span>
+                                                                </div>
+                                                            </div>
+
+                                                            <Button variant="secondary" className="w-full mt-2 font-bold group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                                                                onClick={() => handleSwitchEvent(event.id)}>
+                                                                {event.status === 'active' ? 'İNCELE & KATIL' : 'SONUÇLARI GÖR'}
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow className="hover:bg-transparent border-white/10">
+                                                        <TableHead>Turnuva Adı</TableHead>
+                                                        <TableHead>Durum</TableHead>
+                                                        <TableHead className="text-right">Katılımcı</TableHead>
+                                                        <TableHead className="text-right">Tarihler</TableHead>
+                                                        <TableHead className="text-right">İşlem</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {publicEvents.map((event) => (
+                                                        <TableRow key={event.id} className="border-white/5 hover:bg-white/5">
+                                                            <TableCell className="font-bold text-white">
+                                                                {event.name}
+                                                                {event.status === 'active' &&
+                                                                    <span className="ml-2 inline-flex items-center text-[10px] text-green-500 font-bold">
+                                                                        CANLI
+                                                                    </span>
+                                                                }
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Badge variant={event.status === 'active' ? 'default' : 'secondary'} className="uppercase text-[10px]">
+                                                                    {event.status === 'active' ? 'Aktif' : 'Tamamlandı'}
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell className="text-right font-mono">{event.participant_count}</TableCell>
+                                                            <TableCell className="text-right text-xs text-muted-foreground">
+                                                                <div>{new Date(event.start_date).toLocaleDateString('tr-TR')}</div>
+                                                                <div>{new Date(event.end_date).toLocaleDateString('tr-TR')}</div>
+                                                            </TableCell>
+                                                            <TableCell className="text-right">
+                                                                <Button size="sm" variant={event.status === 'active' ? "default" : "secondary"}
+                                                                    className="font-bold text-xs"
+                                                                    onClick={() => handleSwitchEvent(event.id)}>
+                                                                    {event.status === 'active' ? 'KATIL' : 'İNCELE'} <ArrowUpRight className="ml-1 h-3 w-3" />
+                                                                </Button>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        )}
+                                    </>
                                 )}
                             </CardContent>
                         </Card>
