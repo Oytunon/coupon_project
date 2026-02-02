@@ -95,7 +95,27 @@ async def get_my_coupons(
         return []
 
     total, coupons = get_user_coupon_history(db, client_id, target_event_id)
-    return [c for c in coupons if c.state.lower() in ["won", "lost"]]
+    
+    # Properly serialize coupon objects including bet_data
+    result = []
+    for c in coupons:
+        if c.state and c.state.lower() in ["won", "lost"]:
+            result.append({
+                "id": c.id,
+                "bet_id": c.bet_id,
+                "client_id": c.client_id,
+                "event_id": c.event_id,
+                "stake": c.stake,
+                "odds": c.odds,
+                "state": c.state,
+                "winning": c.winning,
+                "calculation": c.calculation,
+                "is_live": c.is_live,
+                "inserted_at": c.inserted_at.isoformat() if c.inserted_at else None,
+                "created_at": c.created_at.isoformat() if c.created_at else None,
+                "bet_data": c.bet_data  # JSONB field - properly included
+            })
+    return result
 
 
 @router.get("/has-joined")

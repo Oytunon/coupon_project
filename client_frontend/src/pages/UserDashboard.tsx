@@ -119,6 +119,24 @@ export default function UserDashboard() {
         fetchData()
     }, [paramEventId, paramUsername])
 
+    // Reload coupons when user selects a different tournament from dropdown
+    useEffect(() => {
+        if (!username || !eventId) return
+
+        const reloadCoupons = async () => {
+            setLoadingCoupons(true)
+            try {
+                const coupons = await getMyCoupons(username, undefined, eventId)
+                setMyCoupons(coupons)
+            } catch (e) {
+                console.error("Coupons reload error", e)
+            } finally {
+                setLoadingCoupons(false)
+            }
+        }
+        reloadCoupons()
+    }, [eventId, username])
+
     useEffect(() => {
         const loadEvents = async () => {
             try {
