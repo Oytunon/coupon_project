@@ -1223,10 +1223,10 @@ export default function AdminPage() {
                                                             {c.bet_data?.Selections && c.bet_data.Selections.length > 0 ? (
                                                                 <div className="space-y-1">
                                                                     {c.bet_data.Selections.slice(0, 3).map((sel: any, i: number) => (
-                                                                        <div key={i} className="truncate" title={`${sel.MatchName} - ${sel.SelectionName}`}>
+                                                                        <div key={i} className="truncate" title={`${sel.MatchName} - ${sel.DisplaySelectionName || sel.SelectionName}`}>
                                                                             <span className="text-white/80">{sel.MatchName}</span>
                                                                             <span className="mx-1 text-muted-foreground">→</span>
-                                                                            <span className="text-blue-400">{sel.SelectionName}</span>
+                                                                            <span className="text-blue-400">{sel.DisplaySelectionName || sel.SelectionName}</span>
                                                                         </div>
                                                                     ))}
                                                                     {c.bet_data.Selections.length > 3 && (

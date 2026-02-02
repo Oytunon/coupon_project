@@ -433,10 +433,10 @@ export default function UserDashboard() {
                                                                     <div className="flex-1 truncate pr-2" title={sel.MatchName}>
                                                                         <span className="text-white/80 font-medium">{sel.MatchName}</span>
                                                                         <span className="mx-1 text-muted-foreground">-</span>
-                                                                        <span className="text-blue-400">{sel.SelectionName}</span>
+                                                                        <span className="text-blue-400">{sel.DisplaySelectionName || sel.SelectionName}</span>
                                                                     </div>
                                                                     <div className="text-muted-foreground text-[10px] whitespace-nowrap">
-                                                                        {sel.MarketName}
+                                                                        {sel.DisplayMarketName || sel.MarketName}
                                                                     </div>
                                                                 </div>
                                                             ))}
