@@ -36,15 +36,6 @@ async def get_public_events(
     events = db.query(Event).filter(
         Event.status.in_(["active", "ended", "paused"])
     ).order_by(
-    ).order_by(
-        case(
-           [
-               (Event.status == 'active', 1),
-               (Event.status == 'paused', 2),
-               (Event.status == 'ended', 3),
-           ],
-           else_=4
-        ),
         Event.end_date.desc()
     ).all()
 
@@ -66,4 +57,8 @@ async def get_public_events(
             rules=event.rules or {}
         ))
 
+    # Python-side sorting: Active(1) > Paused(2) > Ended(3) > Other(4)
+    status_priority = {"active": 1, "paused": 2, "ended": 3}
+    results.sort(key=lambda x: status_priority.get(x.status, 4))
+    
     return results
