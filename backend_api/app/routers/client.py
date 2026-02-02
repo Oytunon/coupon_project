@@ -1,7 +1,7 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, case
 
 from shared.database import get_db_session
 from shared.models.event import Event
@@ -36,12 +36,14 @@ async def get_public_events(
     events = db.query(Event).filter(
         Event.status.in_(["active", "ended", "paused"])
     ).order_by(
-        func.case(
+        case(
            (Event.status == 'active', 1),
            (Event.status == 'paused', 2),
            (Event.status == 'ended', 3),
            else_=4
         ),
+        Event.end_date.desc()
+    ).all()
         Event.end_date.desc()
     ).all()
 
