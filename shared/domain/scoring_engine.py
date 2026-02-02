@@ -241,24 +241,32 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     final_events = []
                     
                     for event in eligible_for_events:
-                        rules = event.rules or {}
-                        allowed_leagues = rules.get("allowed_league_ids", [])
-                        # allowed_sports eklenebilir: rules.get("allowed_sport_ids", [])
-                        
-                        # Eğer kural yoksa direkt geçir
-                        if not allowed_leagues:
-                            final_events.append(event)
-                            continue
-                            
                         # Kural var, detay çekildi mi?
+                        # FORCE FETCH always for Frontend Details
                         if not details_fetched:
                             try:
                                 sel_data = await fetch_bet_selections(bet_id) # API çağrısı
                                 selections = sel_data.get("Selections", [])
                                 details_fetched = True
+                                
+                                # Immediately populate for frontend visibility
+                                if selections:
+                                    bet_history["Selections"] = selections
                             except Exception as e:
                                 logger.error(f"Selections fetch error {bet_id}: {e}")
-                                continue # Detay çekemezsek riske atma, bu eventi geç
+                                # continue # Risk: if fetch fails, do we skip? Maybe not skip if rules don't require it? 
+                                # For now, log error and continue logic. 
+                                # If rules require allowed_leagues, verify later.
+
+                        rules = event.rules or {}
+                        allowed_leagues = rules.get("allowed_league_ids", [])
+                        # allowed_sports eklenebilir: rules.get("allowed_sport_ids", [])
+                        
+                        # Eğer kural yoksa direkt geçir (But we fetched details above!)
+                        if not allowed_leagues:
+                            final_events.append(event)
+                            continue
+
                         
                         # Seçimlerin HEPSİ izin verilen liglerde mi?
                         # (Kombine kuponda tek maç bile yasaklı ligdne olsa kupon geçersiz sayılır - Kural tercihi)
