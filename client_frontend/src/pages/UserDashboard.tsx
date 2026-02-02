@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { getParticipationStatus, joinCampaign, getLeaderboard, getMyCoupons, getMyEnrollments } from "../api/participation"
 import { getPublicEvents, PublicEvent } from "../api/client"
 import { getUsernameFromUrl } from "../utils/useUsername"
@@ -39,6 +39,8 @@ export default function UserDashboard() {
     const [loadingEnrollments, setLoadingEnrollments] = useState(false)
     const [loadingCoupons, setLoadingCoupons] = useState(false)
     const [fetchError, setFetchError] = useState<string | null>(null)
+    const [expandedEventId, setExpandedEventId] = useState<number | null>(null)
+    const [expandedLeaderboard, setExpandedLeaderboard] = useState<any[]>([])
 
     const { toast } = useToast()
 
@@ -147,12 +149,15 @@ export default function UserDashboard() {
         window.location.href = url
     }
 
-    const handleJoin = async () => {
+    const handleJoin = async (specificEventId?: number) => {
         if (!username) return
+
+        const targetId = specificEventId || eventId
+        if (!targetId) return
 
         setJoining(true)
         try {
-            await joinCampaign(username, eventId === null ? undefined : eventId, slug || undefined)
+            await joinCampaign(username, targetId, undefined)
             setCanJoin(false)
             toast({
                 title: "Katılım Başarılı! 🎉",
@@ -173,6 +178,23 @@ export default function UserDashboard() {
             }
         } finally {
             setJoining(false)
+        }
+    }
+    const toggleLeaderboard = async (eventId: number) => {
+        if (expandedEventId === eventId) {
+            setExpandedEventId(null)
+            return
+        }
+
+        setLoadingLeaderboard(true)
+        try {
+            const lb = await getLeaderboard(undefined, eventId, 50, username)
+            setExpandedLeaderboard(lb)
+            setExpandedEventId(eventId)
+        } catch (e) {
+            toast({ variant: "destructive", title: "Hata", description: "Sıralama yüklenemedi." })
+        } finally {
+            setLoadingLeaderboard(false)
         }
     }
 
@@ -220,18 +242,7 @@ export default function UserDashboard() {
                                 </Card>
                             </div>
 
-                            {/* Join Button */}
-                            <div className="pt-2">
-                                {isJoined ? (
-                                    <Button size="lg" className="w-full md:w-auto h-12 font-bold bg-green-600/20 text-green-500 hover:bg-green-600/30 border border-green-600/50" disabled>
-                                        <CheckCircle2 className="mr-2 h-5 w-5" /> KATILIM SAĞLANDI
-                                    </Button>
-                                ) : (
-                                    <Button onClick={handleJoin} disabled={joining || !canJoin} size="lg" className="w-full md:w-auto h-12 font-bold bg-primary hover:bg-primary/90">
-                                        {joining ? "İşleniyor..." : "HEMEN KATIL"}
-                                    </Button>
-                                )}
-                            </div>
+
                         </div>
                         {/* Right Side Image */}
                         <div className="hidden md:flex justify-center md:absolute md:right-0 md:bottom-0 md:h-full md:w-1/2 items-end">
@@ -287,21 +298,53 @@ export default function UserDashboard() {
                                         </TableHeader>
                                         <TableBody>
                                             {myEnrollments.map((enr) => (
-                                                <TableRow key={enr.event_id} className="border-white/5 hover:bg-white/5">
-                                                    <TableCell className="font-bold text-white">{enr.event_name}</TableCell>
-                                                    <TableCell>
-                                                        <Badge variant={enr.status === 'active' ? 'default' : 'secondary'} className="uppercase text-[10px]">
-                                                            {enr.status === 'active' ? 'Aktif' : 'Tamamlandı'}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-right font-mono">{enr.score.toLocaleString()}</TableCell>
-                                                    <TableCell className="text-right font-bold text-lg text-primary">#{enr.rank}</TableCell>
-                                                    <TableCell className="text-right">
-                                                        <Button size="sm" variant="ghost" onClick={() => handleSwitchEvent(enr.event_id)}>
-                                                            Git <ArrowUpRight className="ml-1 h-3 w-3" />
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
+                                                <React.Fragment key={enr.event_id}>
+                                                    <TableRow className="border-white/5 hover:bg-white/5">
+                                                        <TableCell className="font-bold text-white">{enr.event_name}</TableCell>
+                                                        <TableCell>
+                                                            <Badge variant={enr.status === 'active' ? 'default' : 'secondary'} className="uppercase text-[10px]">
+                                                                {enr.status === 'active' ? 'Aktif' : 'Tamamlandı'}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-right font-mono">{enr.score.toLocaleString()}</TableCell>
+                                                        <TableCell className="text-right font-bold text-lg text-primary">#{enr.rank}</TableCell>
+                                                        <TableCell className="text-right">
+                                                            <Button size="sm" variant="ghost" onClick={() => toggleLeaderboard(enr.event_id)}>
+                                                                {expandedEventId === enr.event_id ? 'Kapat' : 'Sıralamayı Göster'} <ListIcon className="ml-1 h-3 w-3" />
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                    {expandedEventId === enr.event_id && (
+                                                        <TableRow className="bg-black/20 hover:bg-black/20">
+                                                            <TableCell colSpan={5} className="p-4">
+                                                                <div className="rounded-lg border border-white/10 overflow-hidden">
+                                                                    <Table>
+                                                                        <TableHeader className="bg-black/40">
+                                                                            <TableRow>
+                                                                                <TableHead className="w-[80px]">Sıra</TableHead>
+                                                                                <TableHead>Kullanıcı</TableHead>
+                                                                                <TableHead className="text-right">Puan</TableHead>
+                                                                            </TableRow>
+                                                                        </TableHeader>
+                                                                        <TableBody>
+                                                                            {expandedLeaderboard.length === 0 ? (
+                                                                                <TableRow><TableCell colSpan={3} className="text-center py-4">Veri yok</TableCell></TableRow>
+                                                                            ) : (
+                                                                                expandedLeaderboard.map((user, idx) => (
+                                                                                    <TableRow key={idx} className={user.username === username ? "bg-primary/10" : ""}>
+                                                                                        <TableCell className="font-mono font-bold">#{idx + 1}</TableCell>
+                                                                                        <TableCell>{user.username === username ? `${user.username} (Sen)` : user.username}</TableCell>
+                                                                                        <TableCell className="text-right font-mono">{user.total_score.toLocaleString()}</TableCell>
+                                                                                    </TableRow>
+                                                                                ))
+                                                                            )}
+                                                                        </TableBody>
+                                                                    </Table>
+                                                                </div>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    )}
+                                                </React.Fragment>
                                             ))}
                                         </TableBody>
                                     </Table>
@@ -443,8 +486,8 @@ export default function UserDashboard() {
                                                             </div>
 
                                                             <Button variant="secondary" className="w-full mt-2 font-bold group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                                                                onClick={() => handleSwitchEvent(event.id)}>
-                                                                {event.status === 'active' ? 'İNCELE & KATIL' : 'SONUÇLARI GÖR'}
+                                                                onClick={() => event.status === 'active' ? handleJoin(event.id) : handleSwitchEvent(event.id)}>
+                                                                {event.status === 'active' ? (joining ? 'İŞLENİYOR...' : 'HEMEN KATIL') : 'SONUÇLARI GÖR'}
                                                             </Button>
                                                         </div>
                                                     </div>
@@ -485,8 +528,8 @@ export default function UserDashboard() {
                                                             <TableCell className="text-right">
                                                                 <Button size="sm" variant={event.status === 'active' ? "default" : "secondary"}
                                                                     className="font-bold text-xs"
-                                                                    onClick={() => handleSwitchEvent(event.id)}>
-                                                                    {event.status === 'active' ? 'KATIL' : 'İNCELE'} <ArrowUpRight className="ml-1 h-3 w-3" />
+                                                                    onClick={() => event.status === 'active' ? handleJoin(event.id) : handleSwitchEvent(event.id)}>
+                                                                    {event.status === 'active' ? (joining ? 'KATIL' : 'HEMEN KATIL') : 'İNCELE'} <ArrowUpRight className="ml-1 h-3 w-3" />
                                                                 </Button>
                                                             </TableCell>
                                                         </TableRow>
@@ -574,6 +617,6 @@ export default function UserDashboard() {
                     </TabsContent>
                 </Tabs>
             </main>
-        </ClientLayout>
+        </ClientLayout >
     )
 }
