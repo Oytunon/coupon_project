@@ -426,20 +426,26 @@ export default function UserDashboard() {
 
                                                 {/* Center: Match Details */}
                                                 <div className="col-span-6 bg-black/20 rounded p-2 text-xs h-full flex flex-col justify-center">
-                                                    {coupon.bet_data?.Selections ? (
+                                                    {coupon.bet_data?.Selections && coupon.bet_data.Selections.length > 0 ? (
                                                         <div className="space-y-1">
-                                                            {coupon.bet_data.Selections.map((sel: any, i: number) => (
-                                                                <div key={i} className="flex justify-between items-center border-b border-white/5 last:border-0 pb-1 last:pb-0">
-                                                                    <div className="flex-1 truncate pr-2" title={sel.MatchName}>
-                                                                        <span className="text-white/80 font-medium">{sel.MatchName}</span>
-                                                                        <span className="mx-1 text-muted-foreground">-</span>
-                                                                        <span className="text-blue-400">{sel.DisplaySelectionName || sel.SelectionName}</span>
-                                                                    </div>
-                                                                    <div className="text-muted-foreground text-[10px] whitespace-nowrap">
-                                                                        {sel.DisplayMarketName || sel.MarketName}
-                                                                    </div>
+                                                            {/* Show first match only, compact */}
+                                                            <div
+                                                                className="truncate cursor-help"
+                                                                title={`${coupon.bet_data.Selections[0].MatchName} → ${coupon.bet_data.Selections[0].DisplaySelectionName || coupon.bet_data.Selections[0].SelectionName}`}
+                                                            >
+                                                                <span className="text-white/80">{coupon.bet_data.Selections[0].MatchName}</span>
+                                                                <span className="mx-1 text-muted-foreground">→</span>
+                                                                <span className="text-blue-400">{coupon.bet_data.Selections[0].DisplaySelectionName || coupon.bet_data.Selections[0].SelectionName}</span>
+                                                            </div>
+                                                            {/* Show remaining count if more than 1 */}
+                                                            {coupon.bet_data.Selections.length > 1 && (
+                                                                <div
+                                                                    className="text-muted-foreground text-[10px] cursor-pointer hover:text-primary transition-colors"
+                                                                    title={coupon.bet_data.Selections.slice(1).map((s: any) => `${s.MatchName} → ${s.DisplaySelectionName || s.SelectionName}`).join('\n')}
+                                                                >
+                                                                    +{coupon.bet_data.Selections.length - 1} maç daha (üzerine gel)
                                                                 </div>
-                                                            ))}
+                                                            )}
                                                         </div>
                                                     ) : (
                                                         <div className="text-muted-foreground italic text-center">Detay bulunamadı.</div>
