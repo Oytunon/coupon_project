@@ -1170,16 +1170,6 @@ export default function AdminPage() {
 
                         <Card className="bg-card/50 border-white/5 backdrop-blur-xl">
                             <CardHeader>
-                                <header className="flex h-16 items-center gap-4 border-b bg-background px-6">
-                                    <LayoutDashboard className="h-6 w-6 text-primary" />
-                                    <h1 className="text-lg font-semibold">Admin Paneli</h1>
-                                    <div className="ml-auto flex items-center gap-4">
-                                        <span className="text-sm text-muted-foreground mr-2">Admin</span>
-                                        <Button variant="outline" size="sm" onClick={logout} className="gap-2 text-red-500 hover:text-red-600 hover:bg-red-50">
-                                            <ArrowLeft className="h-4 w-4" /> Çıkış Yap
-                                        </Button>
-                                    </div>
-                                </header>
                                 <CardTitle className="flex items-center gap-2">
                                     <History className="h-5 w-5 text-primary" />
                                     Bahis Geçmişi
