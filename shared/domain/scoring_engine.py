@@ -385,7 +385,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     update_job_status("running", processed=user_processed_count, saved=user_saved_count)
 
                 if i < len(participants) - 1:
-                    await asyncio.sleep(0.1)
+                    await asyncio.sleep(4)
 
             except Exception as e:
                 logger.error(f"Error processing user {user.username}: {e}")
