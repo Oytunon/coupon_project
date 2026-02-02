@@ -42,6 +42,7 @@ export default function UserDashboard() {
     const [fetchError, setFetchError] = useState<string | null>(null)
     const [expandedEventId, setExpandedEventId] = useState<number | null>(null)
     const [expandedLeaderboard, setExpandedLeaderboard] = useState<any[]>([])
+    const [expandedCouponId, setExpandedCouponId] = useState<number | null>(null)
 
     const { toast } = useToast()
 
@@ -424,26 +425,35 @@ export default function UserDashboard() {
                                                     {coupon.is_live && <Badge variant="outline" className="text-[10px] border-red-500/50 text-red-400">CANLI</Badge>}
                                                 </div>
 
-                                                {/* Center: Match Details */}
-                                                <div className="col-span-6 bg-black/20 rounded p-2 text-xs h-full flex flex-col justify-center">
+                                                {/* Center: Match Details with Expand Button */}
+                                                <div className="col-span-6 bg-black/20 rounded p-2 text-xs">
                                                     {coupon.bet_data?.Selections && coupon.bet_data.Selections.length > 0 ? (
-                                                        <div className="space-y-1">
-                                                            {/* Show first match only, compact */}
-                                                            <div
-                                                                className="truncate cursor-help"
-                                                                title={`${coupon.bet_data.Selections[0].MatchName} → ${coupon.bet_data.Selections[0].DisplaySelectionName || coupon.bet_data.Selections[0].SelectionName}`}
+                                                        <div>
+                                                            {/* Detay Button */}
+                                                            <button
+                                                                onClick={() => setExpandedCouponId(expandedCouponId === coupon.id ? null : coupon.id)}
+                                                                className="w-full flex items-center justify-between text-left hover:bg-white/5 rounded px-2 py-1 transition-colors"
                                                             >
-                                                                <span className="text-white/80">{coupon.bet_data.Selections[0].MatchName}</span>
-                                                                <span className="mx-1 text-muted-foreground">→</span>
-                                                                <span className="text-blue-400">{coupon.bet_data.Selections[0].DisplaySelectionName || coupon.bet_data.Selections[0].SelectionName}</span>
-                                                            </div>
-                                                            {/* Show remaining count if more than 1 */}
-                                                            {coupon.bet_data.Selections.length > 1 && (
-                                                                <div
-                                                                    className="text-muted-foreground text-[10px] cursor-pointer hover:text-primary transition-colors"
-                                                                    title={coupon.bet_data.Selections.slice(1).map((s: any) => `${s.MatchName} → ${s.DisplaySelectionName || s.SelectionName}`).join('\n')}
-                                                                >
-                                                                    +{coupon.bet_data.Selections.length - 1} maç daha (üzerine gel)
+                                                                <span className="text-muted-foreground">
+                                                                    {coupon.bet_data.Selections.length} maç
+                                                                </span>
+                                                                <span className="text-primary text-[10px] flex items-center gap-1">
+                                                                    {expandedCouponId === coupon.id ? '▲ Gizle' : '▼ Detay'}
+                                                                </span>
+                                                            </button>
+
+                                                            {/* Expanded Details */}
+                                                            {expandedCouponId === coupon.id && (
+                                                                <div className="mt-2 space-y-2 border-t border-white/10 pt-2">
+                                                                    {coupon.bet_data.Selections.map((sel: any, i: number) => (
+                                                                        <div key={i} className="border-b border-white/5 last:border-0 pb-1 last:pb-0">
+                                                                            <div className="text-white/80 font-medium text-[11px]">{sel.MatchName}</div>
+                                                                            <div className="flex justify-between items-center text-[10px]">
+                                                                                <span className="text-blue-400">→ {sel.DisplaySelectionName || sel.SelectionName}</span>
+                                                                                <span className="text-muted-foreground">{sel.DisplayMarketName || sel.MarketName}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
                                                                 </div>
                                                             )}
                                                         </div>
