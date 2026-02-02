@@ -506,39 +506,74 @@ export default function UserDashboard() {
                                                 </TableHeader>
                                                 <TableBody>
                                                     {publicEvents.map((event) => (
-                                                        <TableRow key={event.id} className="border-white/5 hover:bg-white/5">
-                                                            <TableCell className="font-bold text-white">
-                                                                {event.name}
-                                                                {event.status === 'active' &&
-                                                                    <span className="ml-2 inline-flex items-center text-[10px] text-green-500 font-bold">
-                                                                        CANLI
-                                                                    </span>
-                                                                }
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                <Badge variant={event.status === 'active' ? 'default' : 'secondary'} className="uppercase text-[10px]">
-                                                                    {event.status === 'active' ? 'Aktif' : 'Tamamlandı'}
-                                                                </Badge>
-                                                            </TableCell>
-                                                            <TableCell className="text-right font-mono">{event.participant_count}</TableCell>
-                                                            <TableCell className="text-right text-xs text-muted-foreground">
-                                                                <div>{new Date(event.start_date).toLocaleDateString('tr-TR')}</div>
-                                                                <div>{new Date(event.end_date).toLocaleDateString('tr-TR')}</div>
-                                                            </TableCell>
-                                                            <TableCell className="text-right">
-                                                                <Button size="sm" variant={event.status === 'active' ? "default" : "secondary"}
-                                                                    className="font-bold text-xs"
-                                                                    disabled={myEnrollments.some(e => e.event_id === event.id)}
-                                                                    onClick={() => event.status === 'active' ? handleJoin(event.id) : handleSwitchEvent(event.id)}>
-                                                                    {myEnrollments.some(e => e.event_id === event.id) ? (
-                                                                        <><CheckCircle2 className="mr-1 h-3 w-3" /> KATILDI</>
-                                                                    ) : (
-                                                                        event.status === 'active' ? (joining ? 'KATIL' : 'HEMEN KATIL') : 'İNCELE'
-                                                                    )}
-                                                                    {!myEnrollments.some(e => e.event_id === event.id) && <ArrowUpRight className="ml-1 h-3 w-3" />}
-                                                                </Button>
-                                                            </TableCell>
-                                                        </TableRow>
+                                                        <Fragment key={event.id}>
+                                                            <TableRow className="border-white/5 hover:bg-white/5">
+                                                                <TableCell className="font-bold text-white">
+                                                                    {event.name}
+                                                                    {event.status === 'active' &&
+                                                                        <span className="ml-2 inline-flex items-center text-[10px] text-green-500 font-bold">
+                                                                            CANLI
+                                                                        </span>
+                                                                    }
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <Badge variant={event.status === 'active' ? 'default' : 'secondary'} className="uppercase text-[10px]">
+                                                                        {event.status === 'active' ? 'Aktif' : 'Tamamlandı'}
+                                                                    </Badge>
+                                                                </TableCell>
+                                                                <TableCell className="text-right font-mono">{event.participant_count}</TableCell>
+                                                                <TableCell className="text-right text-xs text-muted-foreground">
+                                                                    <div>{new Date(event.start_date).toLocaleDateString('tr-TR')}</div>
+                                                                    <div>{new Date(event.end_date).toLocaleDateString('tr-TR')}</div>
+                                                                </TableCell>
+                                                                <TableCell className="text-right">
+                                                                    <Button size="sm" variant={event.status === 'active' ? "default" : "secondary"}
+                                                                        className="font-bold text-xs"
+                                                                        disabled={myEnrollments.some(e => e.event_id === event.id)}
+                                                                        onClick={() => event.status === 'active' ? handleJoin(event.id) : toggleLeaderboard(event.id)}>
+                                                                        {myEnrollments.some(e => e.event_id === event.id) ? (
+                                                                            <><CheckCircle2 className="mr-1 h-3 w-3" /> KATILDI</>
+                                                                        ) : (
+                                                                            event.status === 'active' ? (joining ? 'KATIL' : 'HEMEN KATIL') : (expandedEventId === event.id ? 'KAPAT' : 'SIRALAMA')
+                                                                        )}
+                                                                        {!myEnrollments.some(e => e.event_id === event.id) && event.status === 'active' && <ArrowUpRight className="ml-1 h-3 w-3" />}
+                                                                        {!myEnrollments.some(e => e.event_id === event.id) && event.status !== 'active' && <ListIcon className="ml-1 h-3 w-3" />}
+                                                                    </Button>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                            {expandedEventId === event.id && (
+                                                                <TableRow className="bg-black/20 hover:bg-black/20">
+                                                                    <TableCell colSpan={5} className="p-4">
+                                                                        <div className="rounded-lg border border-white/10 overflow-hidden">
+                                                                            <Table>
+                                                                                <TableHeader className="bg-black/40">
+                                                                                    <TableRow>
+                                                                                        <TableHead className="w-[80px]">Sıra</TableHead>
+                                                                                        <TableHead>Kullanıcı</TableHead>
+                                                                                        <TableHead className="text-right">Puan</TableHead>
+                                                                                    </TableRow>
+                                                                                </TableHeader>
+                                                                                <TableBody>
+                                                                                    {loadingLeaderboard ? (
+                                                                                        <TableRow><TableCell colSpan={3} className="text-center py-4"><Loader2 className="animate-spin h-5 w-5 mx-auto" /></TableCell></TableRow>
+                                                                                    ) : expandedLeaderboard.length === 0 ? (
+                                                                                        <TableRow><TableCell colSpan={3} className="text-center py-4">Veri yok</TableCell></TableRow>
+                                                                                    ) : (
+                                                                                        expandedLeaderboard.map((user, idx) => (
+                                                                                            <TableRow key={idx} className={user.username === username ? "bg-primary/10" : ""}>
+                                                                                                <TableCell className="font-mono font-bold">#{idx + 1}</TableCell>
+                                                                                                <TableCell>{user.username === username ? `${user.username} (Sen)` : user.username}</TableCell>
+                                                                                                <TableCell className="text-right font-mono">{user.total_score.toLocaleString()}</TableCell>
+                                                                                            </TableRow>
+                                                                                        ))
+                                                                                    )}
+                                                                                </TableBody>
+                                                                            </Table>
+                                                                        </div>
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            )}
+                                                        </Fragment>
                                                     ))}
                                                 </TableBody>
                                             </Table>
