@@ -191,6 +191,9 @@ export default function UserDashboard() {
             const lb = await getLeaderboard(undefined, eventId, 50, username)
             setExpandedLeaderboard(lb)
             setExpandedEventId(eventId)
+            // Sync global event context so Coupons tab shows this event
+            setEventId(eventId)
+            setSlug(null)
         } catch (e) {
             toast({ variant: "destructive", title: "Hata", description: "Sıralama yüklenemedi." })
         } finally {
@@ -226,21 +229,7 @@ export default function UserDashboard() {
                                 <p className="text-muted-foreground text-lg">Puan topla, sıralamada yüksel, ödülleri kazan.</p>
                             </div>
 
-                            {/* Stats */}
-                            <div className="flex gap-4">
-                                <Card className="bg-background/10 border-white/10 backdrop-blur flex-1">
-                                    <CardHeader className="p-4">
-                                        <CardDescription className="text-primary font-bold text-xs uppercase">Puanım</CardDescription>
-                                        <CardTitle className="text-2xl text-white">{userScore.toLocaleString()}</CardTitle>
-                                    </CardHeader>
-                                </Card>
-                                <Card className="bg-background/10 border-white/10 backdrop-blur flex-1">
-                                    <CardHeader className="p-4">
-                                        <CardDescription className="text-primary font-bold text-xs uppercase">Sıralamam</CardDescription>
-                                        <CardTitle className="text-2xl text-white">#{userRank > 0 ? userRank : '-'}</CardTitle>
-                                    </CardHeader>
-                                </Card>
-                            </div>
+
 
 
                         </div>
@@ -358,7 +347,11 @@ export default function UserDashboard() {
                         <Card className="border-white/10 bg-card/30">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2"><Ticket className="h-5 w-5 text-blue-500" /> Kuponlarım</CardTitle>
-                                <CardDescription>Katılım sağlanan turnuvalara dahil olan kuponlarınız.</CardDescription>
+                                <CardDescription>
+                                    {publicEvents.find(e => e.id === eventId)?.name ?
+                                        <span className="text-primary font-bold">Seçili Turnuva: {publicEvents.find(e => e.id === eventId)?.name}</span>
+                                        : "Katılım sağlanan turnuvalara dahil olan kuponlarınız."}
+                                </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 {!username ? (
@@ -486,8 +479,13 @@ export default function UserDashboard() {
                                                             </div>
 
                                                             <Button variant="secondary" className="w-full mt-2 font-bold group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                                                                disabled={myEnrollments.some(e => e.event_id === event.id)}
                                                                 onClick={() => event.status === 'active' ? handleJoin(event.id) : handleSwitchEvent(event.id)}>
-                                                                {event.status === 'active' ? (joining ? 'İŞLENİYOR...' : 'HEMEN KATIL') : 'SONUÇLARI GÖR'}
+                                                                {myEnrollments.some(e => e.event_id === event.id) ? (
+                                                                    <><CheckCircle2 className="mr-2 h-4 w-4" /> KATILDI</>
+                                                                ) : (
+                                                                    event.status === 'active' ? (joining ? 'İŞLENİYOR...' : 'HEMEN KATIL') : 'SONUÇLARI GÖR'
+                                                                )}
                                                             </Button>
                                                         </div>
                                                     </div>
@@ -528,8 +526,14 @@ export default function UserDashboard() {
                                                             <TableCell className="text-right">
                                                                 <Button size="sm" variant={event.status === 'active' ? "default" : "secondary"}
                                                                     className="font-bold text-xs"
+                                                                    disabled={myEnrollments.some(e => e.event_id === event.id)}
                                                                     onClick={() => event.status === 'active' ? handleJoin(event.id) : handleSwitchEvent(event.id)}>
-                                                                    {event.status === 'active' ? (joining ? 'KATIL' : 'HEMEN KATIL') : 'İNCELE'} <ArrowUpRight className="ml-1 h-3 w-3" />
+                                                                    {myEnrollments.some(e => e.event_id === event.id) ? (
+                                                                        <><CheckCircle2 className="mr-1 h-3 w-3" /> KATILDI</>
+                                                                    ) : (
+                                                                        event.status === 'active' ? (joining ? 'KATIL' : 'HEMEN KATIL') : 'İNCELE'
+                                                                    )}
+                                                                    {!myEnrollments.some(e => e.event_id === event.id) && <ArrowUpRight className="ml-1 h-3 w-3" />}
                                                                 </Button>
                                                             </TableCell>
                                                         </TableRow>
