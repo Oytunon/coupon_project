@@ -72,10 +72,12 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
     from shared.models.event import Event # Local import to avoid circular dependencies if any
     try:
         # Job Status güncelleme yardımcı fonksiyonu
+        # Job Status güncelleme yardımcı fonksiyonu
         def update_job_status(status: str, processed=0, saved=0, error=None):
             if not job_id: return
+            log_db = SessionLocal()
             try:
-                job = db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
+                job = log_db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
                 if job:
                     job.status = status
                     job.processed_count += processed
@@ -83,9 +85,11 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     if error: job.error_message = str(error)
                     if status in ["completed", "failed"]:
                         job.completed_at = datetime.utcnow()
-                    db.commit()
+                    log_db.commit()
             except Exception as ex:
                 logger.error(f"Job update error: {ex}")
+            finally:
+                log_db.close()
 
         if job_id:
             update_job_status("running")
@@ -381,7 +385,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     update_job_status("running", processed=user_processed_count, saved=user_saved_count)
 
                 if i < len(participants) - 1:
-                    await asyncio.sleep(4)
+                    await asyncio.sleep(0.1)
 
             except Exception as e:
                 logger.error(f"Error processing user {user.username}: {e}")
