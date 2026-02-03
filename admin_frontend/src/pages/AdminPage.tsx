@@ -817,8 +817,8 @@ export default function AdminPage() {
                                                         <SelectValue placeholder="Hesaplama Yöntemi Seç" />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="simple">Sadece Oran (Eski Usül)</SelectItem>
-                                                        <SelectItem value="stake_times_odds">Yatırım x Oran</SelectItem>
+                                                        <SelectItem value="simple">Sadece Oran (kupon oranı ile belirlenen kaybeden ve kazanan çarpanı ile çalışır)</SelectItem>
+                                                        <SelectItem value="stake_times_odds">Yatırım x Oran (yatırım miktarı ile kupon oranı çarpılır kazanç çarpanı 1 kaybeden çarpanı 0 olarak seçiniz)</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                                 <p className="text-xs text-muted-foreground">
@@ -989,8 +989,8 @@ export default function AdminPage() {
                                                         <SelectValue placeholder="Hesaplama Yöntemi Seç" />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="simple">Sadece Oran (Eski Usül)</SelectItem>
-                                                        <SelectItem value="stake_times_odds">Yatırım x Oran</SelectItem>
+                                                        <SelectItem value="simple">Sadece Oran (kupon oranı ile belirlenen kaybeden ve kazanan çarpanı ile çalışır)</SelectItem>
+                                                        <SelectItem value="stake_times_odds">Yatırım x Oran (yatırım miktarı ile kupon oranı çarpılır kazanç çarpanı 1 kaybeden çarpanı 0 olarak seçiniz)</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                                 <p className="text-xs text-muted-foreground">
