@@ -24,7 +24,8 @@ class Coupon(Base):
     bet_data = Column(JSONB, nullable=True)
     
     # Event Association - Multi-Event Support
-    event_id = Column(Integer, ForeignKey("events.id", ondelete="CASCADE"), nullable=True, index=True)
+    # Changed from CASCADE to SET NULL so deleting an event doesn't delete the shared Master Coupon
+    event_id = Column(Integer, ForeignKey("events.id", ondelete="SET NULL"), nullable=True, index=True)
 
     created_at = Column(DateTime, nullable=False)
 
