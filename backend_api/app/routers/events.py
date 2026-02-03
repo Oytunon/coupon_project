@@ -263,6 +263,35 @@ async def delete_event(
     if not event:
         raise HTTPException(404, "Event not found")
     
+    # Manually delete related records to bypass missing DB-level CASCADE
+    from shared.models.worker_log import WorkerLog
+    
+    # 1. Delete Worker Logs
+    db.query(WorkerLog).filter(WorkerLog.event_id == event_id).delete(synchronize_session=False)
+    
+    # 2. Delete Results
+    db.query(CouponEventResult).filter(CouponEventResult.event_id == event_id).delete(synchronize_session=False)
+
+    # 3. Delete Participants (Enrollment)
+    db.query(EventParticipant).filter(EventParticipant.event_id == event_id).delete(synchronize_session=False)
+
+    # 4. Detach coupons (or delete if you want). 
+    # Usually coupons belong to user history, but if they are specific to this event via rules...
+    # Coupon table has ondelete=CASCADE logic usually, but to be safe:
+    # If the coupon is ONLY significant because of this event, maybe delete? 
+    # But bets are historical. Let's just set event_id to Null if DB allows, OR delete if it's strictly linked.
+    # Looking at Coupon model: event_id is Nullable=True. So we can clear it.
+    # checking logic: event_id = Column(..., nullable=True)
+    # BUT if we delete event, and Coupon has CASCADE, it deletes coupon? 
+    # Better to keep coupon data but remove event link if we want history?
+    # Actually, user wants cleanup. If event is gone, points are gone.
+    # Let's try to simple delete the event. If that failed before, it means CASCADE is missing directly.
+    # So we manually delete dependent "children" that are meaningless without event.
+    # Coupons are meaningful (Bet History). So SET NULL is better.
+    
+    db.query(Coupon).filter(Coupon.event_id == event_id).update({Coupon.event_id: None}, synchronize_session=False)
+    
+    # Now delete event
     db.delete(event)
     db.commit()
     return None
