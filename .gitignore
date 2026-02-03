@@ -44,3 +44,11 @@ Dockerfile
 
 # Sensitive Tools
 tools/create_owner_admin.py
+
+# Local Dev & Test Scripts
+check_*.py
+deploy_*.py
+verify_*.py
+fetch_*.py
+force_*.py
+debug_*.py
