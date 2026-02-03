@@ -382,7 +382,8 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             # 2. Selections Backfill (Fix "No Details" issue)
                             if selections:
                                 current_data = existing_coupon.bet_data or {}
-                                if "Selections" not in current_data:
+                                # Check if Missing OR Empty
+                                if not current_data.get("Selections"):
                                     logger.info(f"   [DEBUG_UPDATE] Backfilling Selections for Bet {bet_id}")
                                     # bet_history already has Selections merged at this point
                                     existing_coupon.bet_data = bet_history 
