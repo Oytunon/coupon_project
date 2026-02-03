@@ -371,12 +371,25 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             logger.info(f"✅ Yeni Kupon Eklendi: {bet_id} | User: {user.username}")
                         else:
                             # Update existing coupon state/winning if changed
+                            should_update = False
+                            
+                            # 1. State/Winning
                             if existing_coupon.state != mapped_state or existing_coupon.winning != winning_amount:
                                 existing_coupon.state = mapped_state
                                 existing_coupon.winning = winning_amount
+                                should_update = True
+                            
+                            # 2. Selections Backfill (Fix "No Details" issue)
+                            if selections:
+                                current_data = existing_coupon.bet_data or {}
+                                if "Selections" not in current_data:
+                                    logger.info(f"   [DEBUG_UPDATE] Backfilling Selections for Bet {bet_id}")
+                                    # bet_history already has Selections merged at this point
+                                    existing_coupon.bet_data = bet_history 
+                                    should_update = True
+                                    
+                            if should_update:
                                 existing_coupon.processed_at = datetime.utcnow()
-                                # We don't update event_id to keep the 'original' source event logic if needed
-                                # or we can ignore it.
                         
                         # --- Event Specific Scoring (CouponEventResult) ---
                         from shared.models.coupon_event_result import CouponEventResult
