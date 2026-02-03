@@ -378,6 +378,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         ).first()
                         
                         if not cer:
+                            logger.info(f"   [DEBUG_MULTI] Creating NEW Result for Event {event.id} | Bet {bet_id}")
                             cer = CouponEventResult(
                                 coupon_id=existing_coupon.id,
                                 event_id=event.id,
@@ -392,11 +393,13 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             logger.info(f"   -> Event {event.id} ({event.name}) Puan: {calc_points}")
                         else:
                             # Update score if state changed
+                            logger.info(f"   [DEBUG_MULTI] Updating Result for Event {event.id} | Bet {bet_id}")
                             cer.coupon_state = mapped_state
                             cer.points_earned = calc_points
                             cer.points_calculation = calc_details
                             cer.evaluated_at = datetime.utcnow()
                             cer.last_checked_at = datetime.utcnow()
+
 
                         # Backwards compatibility: Update generic calculation on Coupon if it matches event_id
                         # (Optional, maybe remove later)
