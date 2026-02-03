@@ -303,92 +303,118 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                          bet_history["Selections"] = selections
 
 
+                    
                     # 4. Save to DB
                     for event in final_events:
-                        # Reverted Global Check: We WANT multi-event support.
-                        # User will drop the unique constraint on DB side.
-
-
-                        # Check existence (using explicit bet_id string)
-                        exists_coupon = db.query(Coupon).filter(
-                             Coupon.bet_id == bet_id,
-                             Coupon.event_id == event.id
-                        ).first()
-
-                        if exists_coupon: 
-                            logger.debug(f"Bet {bet_id} already processed for event {event.id}")
-                            continue
-
+                        # --- Multi-Event Support Refactor ---
+                        # 1. Ensure Coupon Exists (Master Record)
+                        # 2. Ensure CouponEventResult Exists (Event Specific Record)
                         
-                        # Prepare Coupon
-                        # Price/Odds might come from Selections sum or header "Price"
+                        existing_coupon = db.query(Coupon).filter(Coupon.bet_id == bet_id).first()
+                        
+                        # Prepare Data
                         price = float(bet_history.get("Price", 1.0) or 1.0)
+                        winning_amount = float(bet_history.get("WinAmount") or bet_history.get("Payout") or 0.0)
                         
-                        # Parse Bet Date (Created)
-                        # API Date: "2026-01-27T16:44:41.243" or similar
-                        # We try "Created" (UTC-like usually) first, then "CreatedLocal"
+                        # Parse Date
                         created_str = bet_history.get("Created") or bet_history.get("CreatedLocal")
-                        created_dt = datetime.utcnow() # Default fallback
+                        created_dt = datetime.utcnow()
                         if created_str:
                             try:
-                                # Clean up potential timezone offset for simple datetime parsing
-                                # ex: 2026-01-27T16:44:41.243+03:00 -> remove +...
-                                if "+" in created_str:
-                                    created_str = created_str.split("+")[0]
-                                elif "Z" in created_str:
-                                    created_str = created_str.replace("Z", "")
-                                
-                                # Try parsing with milliseconds
+                                if "+" in created_str: created_str = created_str.split("+")[0]
+                                elif "Z" in created_str: created_str = created_str.replace("Z", "")
                                 try:
                                     created_dt = datetime.strptime(created_str, "%Y-%m-%dT%H:%M:%S.%f")
                                 except ValueError:
-                                    # Fallback without milliseconds
                                     created_dt = datetime.strptime(created_str, "%Y-%m-%dT%H:%M:%S")
-                            except Exception:
-                                pass # Keep default utcnow if parsing fails completely
+                            except Exception: pass
 
-                        # Winning Amount
-                        # API: "WinAmount" or "Payout"
-                        winning_amount = float(bet_history.get("WinAmount") or bet_history.get("Payout") or 0.0)
+                        if not existing_coupon:
+                            # Create Master Coupon
+                            # We set event_id to the first event we find, just as a primary link (optional)
+                            # But logic should rely on CouponEventResult
+                            if "Selections" not in bet_history and selections:
+                                 bet_history["Selections"] = selections
+                            
+                            new_coupon = Coupon(
+                                client_id=user.client_id, 
+                                bet_id=bet_id,
+                                event_id=event.id, # Primary event (first one encountered)
+                                stake=amount,             
+                                odds=price,               
+                                combination_count=sel_count,
+                                state=mapped_state,       
+                                is_live=bool(bet_history.get("IsLive", False)),
+                                bet_data=bet_history,
+                                created_at=created_dt,
+                                winning=winning_amount,
+                                is_processed=True,
+                                processed_at=datetime.utcnow()
+                            )
+                            db.add(new_coupon)
+                            db.flush() # Get ID
+                            existing_coupon = new_coupon
+                            user_saved_count += 1
+                            logger.info(f"✅ Yeni Kupon Eklendi: {bet_id} | User: {user.username}")
+                        else:
+                            # Update existing coupon state/winning if changed
+                            if existing_coupon.state != mapped_state or existing_coupon.winning != winning_amount:
+                                existing_coupon.state = mapped_state
+                                existing_coupon.winning = winning_amount
+                                existing_coupon.processed_at = datetime.utcnow()
+                                # We don't update event_id to keep the 'original' source event logic if needed
+                                # or we can ignore it.
+                        
+                        # --- Event Specific Scoring (CouponEventResult) ---
+                        from shared.models.coupon_event_result import CouponEventResult
+                        
+                        # Calculate Points for THIS event
+                        calc_points, calc_details = calculate_points_for_event(existing_coupon, event)
+                        
+                        # Check existance of result
+                        cer = db.query(CouponEventResult).filter(
+                            CouponEventResult.coupon_id == existing_coupon.id,
+                            CouponEventResult.event_id == event.id
+                        ).first()
+                        
+                        if not cer:
+                            cer = CouponEventResult(
+                                coupon_id=existing_coupon.id,
+                                event_id=event.id,
+                                is_eligible=True,
+                                coupon_state=mapped_state,
+                                points_earned=calc_points,
+                                points_calculation=calc_details,
+                                evaluated_at=datetime.utcnow(),
+                                last_checked_at=datetime.utcnow()
+                            )
+                            db.add(cer)
+                            logger.info(f"   -> Event {event.id} ({event.name}) Puan: {calc_points}")
+                        else:
+                            # Update score if state changed
+                            cer.coupon_state = mapped_state
+                            cer.points_earned = calc_points
+                            cer.points_calculation = calc_details
+                            cer.evaluated_at = datetime.utcnow()
+                            cer.last_checked_at = datetime.utcnow()
 
-                        logger.info(f"✅ Kupon Eklendi: {bet_id} | Durum: {mapped_state} | Tarih: {created_dt}")
-                        
-                        # Ensure bet_data has Selections (redundant check but safe)
-                        if "Selections" not in bet_history and selections:
-                             bet_history["Selections"] = selections
-
-                        
-                        new_coupon = Coupon(
-                            client_id=user.client_id, 
-                            bet_id=bet_id,
-                            event_id=event.id,
-                            stake=amount,             
-                            odds=price,               
-                            combination_count=sel_count,
-                            state=mapped_state,       
-                            is_live=bool(bet_history.get("IsLive", False)),
-                            bet_data=bet_history,
-                            created_at=created_dt,    # FIXED: Real bet date
-                            winning=winning_amount,   # NEW: Winning amount
-                            is_processed=True,
-                            processed_at=datetime.utcnow()
-                        )
-                        db.add(new_coupon)
-                        user_saved_count += 1
-                        
-                        # Calculate Points (In-memory logic)
-                        calc_points, _ = calculate_points_for_event(new_coupon, event)
-                        new_coupon.calculation = calc_points
-                        
-                        logger.info(f"         ⭐️ Hesaplanan Puan: {calc_points}")
+                        # Backwards compatibility: Update generic calculation on Coupon if it matches event_id
+                        # (Optional, maybe remove later)
+                        if existing_coupon.event_id == event.id:
+                            existing_coupon.calculation = calc_points
 
                 db.commit() # Commit batch per user
                 
                 # Puanları güncelle (EventParticipant)
+                # Query Total points from CouponEventResult
                 for event in user_target_events:
-                     total_user_points = db.query(func.sum(Coupon.calculation)).filter(
-                         Coupon.client_id == user.client_id,
-                         Coupon.event_id == event.id
+                     total_user_points = db.query(func.sum(CouponEventResult.points_earned)).filter(
+                         CouponEventResult.event_id == event.id,
+                         CouponEventResult.coupon_id.in_(
+                             db.query(Coupon.id).filter(Coupon.client_id == user.client_id)
+                         ),
+                         # Ensure we only count active/valid results if needed
+                         CouponEventResult.is_eligible == True
                      ).scalar() or 0.0
                      
                      enrollment_record = db.query(EventParticipant).filter(
@@ -398,26 +424,25 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                      
                      if enrollment_record:
                          enrollment_record.total_points = total_user_points
-                db.commit()
-                
+                         
                 # Update job progress after *each user*
                 if job_id:
                     update_job_status("running", processed=user_processed_count, saved=user_saved_count)
 
                 if i < len(participants) - 1:
-                    await asyncio.sleep(4)
-
+                    await asyncio.sleep(0.05) # Yield to event loop
+                    
             except Exception as e:
                 logger.error(f"Error processing user {user.username}: {e}")
+                import traceback
+                traceback.print_exc()
                 db.rollback()
-                if job_id: update_job_status("running", error=str(e)) # Keep running but log error
-                continue
         
-        logger.info(f"İşlem tamamlandı.")
-        if job_id: update_job_status("completed")
-    
+        if job_id:
+             update_job_status("completed")
+             
     except Exception as e:
-        logger.error(f"Critical Worker Error: {e}")
+        logger.error(f"Worker process failed: {e}")
         if job_id: update_job_status("failed", error=str(e))
     finally:
         db.close()
