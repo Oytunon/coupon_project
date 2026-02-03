@@ -267,18 +267,66 @@ async def delete_event(
     try:
         # Manually delete related records to bypass missing DB-level CASCADE
         from shared.models.worker_log import WorkerLog
+        from sqlalchemy import exists, and_, tuple_
+
+        # 0. Identify coupons involved in this event (for potential cleanup)
+        # We want to delete coupons that become 'orphans' (no longer attached to any event)
+        # But we must ensure we don't delete coupons attached to OTHER events.
+        
+        # Get IDs of coupons that have a result for this event
+        involved_coupon_ids = [
+            cid for (cid,) in db.query(CouponEventResult.coupon_id)
+            .filter(CouponEventResult.event_id == event_id)
+            .all()
+        ]
+        
+        # Also consider coupons primarily linked via event_id (if any, though usually redundant)
+        primary_coupon_ids = [
+            cid for (cid,) in db.query(Coupon.id)
+            .filter(Coupon.event_id == event_id)
+            .all()
+        ]
+        
+        all_candidate_ids = set(involved_coupon_ids + primary_coupon_ids)
         
         # 1. Delete Worker Logs
         db.query(WorkerLog).filter(WorkerLog.event_id == event_id).delete(synchronize_session=False)
         
-        # 2. Delete Results
+        # 2. Delete Results (This removes the 'link' to this event)
         db.query(CouponEventResult).filter(CouponEventResult.event_id == event_id).delete(synchronize_session=False)
 
         # 3. Delete Participants (Enrollment)
         db.query(EventParticipant).filter(EventParticipant.event_id == event_id).delete(synchronize_session=False)
 
-        # 4. Detach coupons
-        # We use explicit dictionary for update to be safe and compatible
+        # 4. Smart Coupon Cleanup
+        # For the candidate coupons, check if they are still used by ANY other event
+        # definition of 'used': Has a CouponEventResult for another event
+        
+        # We can implement this as a bulk delete with subquery logic, 
+        # or iterate if the list is small. A query is safer/faster.
+        
+        if all_candidate_ids:
+            # Delete coupons that:
+            # 1. Are in our candidate list (involved in the deleted event)
+            # 2. Do NOT have any remaining CouponEventResult rows
+            
+            # Note: We already deleted the results for THIS event in step 2.
+            # So looking for CouponEventResult now effectively checks for "Other Events".
+            
+            orphaned_coupons_query = db.query(Coupon.id).filter(
+                Coupon.id.in_(all_candidate_ids),
+                ~exists().where(CouponEventResult.coupon_id == Coupon.id)
+            )
+            
+            # Execute delete
+            deleted_count = db.query(Coupon).filter(
+                Coupon.id.in_(orphaned_coupons_query)
+            ).delete(synchronize_session=False)
+            
+            print(f"DEBUG: Deleted {deleted_count} orphan coupons for event {event_id}")
+
+        # 5. For any remaining coupons that were primarily linked to this event but NOT deleted 
+        # (because they are shared), we must set event_id to Null to avoid FK issues if we didn't delete them.
         db.query(Coupon).filter(Coupon.event_id == event_id).update({"event_id": None}, synchronize_session=False)
         
         # Now delete event
