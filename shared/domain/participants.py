@@ -22,15 +22,33 @@ def list_participants_paginated(
     total = query.count()
     participants = query.offset(skip).limit(limit).all()
     
+    from shared.models.coupon_event_result import CouponEventResult
+    
     items = []
     for p in participants:
-        coupon_query = db.query(Coupon).filter(Coupon.client_id == p.client_id)
+        # Calculate stats correctly for the specific event
         if event_id:
-            coupon_query = coupon_query.filter(Coupon.event_id == event_id)
-            
-        coupons = coupon_query.all()
-        coupon_count = len(coupons)
-        total_points = sum(c.calculation or 0 for c in coupons)
+             # Count coupons for this event via Intersection table
+             coupon_count = db.query(CouponEventResult).filter(
+                 CouponEventResult.event_id == event_id,
+                 CouponEventResult.coupon_id.in_(
+                     db.query(Coupon.id).filter(Coupon.client_id == p.client_id)
+                 )
+             ).count()
+             
+             # Get points directly from enrollment (Computed by Worker)
+             enr = db.query(EventParticipant).filter(
+                 EventParticipant.event_id == event_id,
+                 EventParticipant.participant_id == p.id
+             ).first()
+             total_points = enr.total_points if enr else 0.0
+             
+        else:
+            # Fallback for Global View (Sum all master coupons)
+            coupon_query = db.query(Coupon).filter(Coupon.client_id == p.client_id)
+            coupons = coupon_query.all()
+            coupon_count = len(coupons)
+            total_points = sum(c.calculation or 0 for c in coupons)
         
         enrolled_events = db.query(Event).join(EventParticipant).filter(EventParticipant.participant_id == p.id).all()
         enrolled_event_names = [e.name for e in enrolled_events]
@@ -54,11 +72,28 @@ def get_user_coupon_history(
     skip: int = 0, 
     limit: int = 20
 ):
+    from shared.models.coupon_event_result import CouponEventResult
+    
     query = db.query(Coupon).filter(Coupon.client_id == client_id)
     if event_id:
-        query = query.filter(Coupon.event_id == event_id)
+        # Multi-Event Support: Filter by presence in CouponEventResult, not Master Coupon event_id
+        query = query.join(CouponEventResult, CouponEventResult.coupon_id == Coupon.id)\
+                     .filter(CouponEventResult.event_id == event_id)
         
     total = query.count()
     coupons = query.order_by(Coupon.inserted_at.desc()).offset(skip).limit(limit).all()
     
+    # Post-processing: Inject specific event points into 'calculation' field for display
+    if event_id and coupons:
+        coupon_ids = [c.id for c in coupons]
+        results = db.query(CouponEventResult).filter(
+            CouponEventResult.event_id == event_id,
+            CouponEventResult.coupon_id.in_(coupon_ids)
+        ).all()
+        result_map = {r.coupon_id: r.points_earned for r in results}
+        
+        for c in coupons:
+            if c.id in result_map:
+                c.calculation = result_map[c.id]
+
     return total, coupons
