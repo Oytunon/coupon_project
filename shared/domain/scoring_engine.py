@@ -224,8 +224,11 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         min_stake = rules.get("min_stake", 0)
                         if amount < min_stake: continue
 
-                        min_sel_count = rules.get("min_selection_count", 1)
-                        if sel_count < min_sel_count: continue
+                        min_combination = rules.get("min_combination") or rules.get("min_selection_count") or 1
+                        if sel_count < int(min_combination): continue
+
+                        max_combination = rules.get("max_combination")
+                        if max_combination and sel_count > int(max_combination): continue
                             
                         eligible_for_events.append(target_event)
 
