@@ -113,10 +113,20 @@ async def global_exception_handler(request: Request, exc: Exception):
         )
         
     logger.error(f"Global error at {request.url}: {exc}")
-    # DEBUG MODE: Expose the real error to the frontend
+    
+    error_str = str(exc)
+    
+    # Check for BAPI Rate Limit (403)
+    if "403" in error_str and "request limit" in error_str:
+        return JSONResponse(
+            status_code=429, # Too Many Requests
+            content={"message": "Sunucu Yoğunluğu", "detail": "Lütfen daha sonra tekrar deneyiniz."},
+        )
+
+    # Generic Error - Hide details from Production Frontend
     return JSONResponse(
         status_code=500,
-        content={"message": "Internal Server Error", "detail": f"Debug Error: {str(exc)}"},
+        content={"message": "Internal Server Error", "detail": "Beklenmeyen bir hata oluştu. Lütfen daha sonra tekrar deneyiniz."},
     )
 
 # CORS configuration - Hardened for security
