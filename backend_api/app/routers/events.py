@@ -256,8 +256,9 @@ async def delete_event(
     current_admin: AdminUser = Depends(get_current_admin)
 ):
     """Event'i sil."""
-    if current_admin.role != "superadmin":
-        raise HTTPException(403, "Only superadmin can delete events")
+    # Updated: Allow regular admins to delete events as well, since there is no UI to create superadmins easily yet.
+    if current_admin.role not in ["admin", "superadmin"]:
+        raise HTTPException(403, "Not authorized to delete events")
     
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
