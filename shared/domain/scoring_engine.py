@@ -252,6 +252,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         # FORCE FETCH always for Frontend Details
                         if not details_fetched:
                             try:
+                                await asyncio.sleep(0.3) # Throttle requests
                                 sel_data = await fetch_bet_selections(bet_id) # API çağrısı
                                 selections = sel_data.get("Selections", [])
                                 details_fetched = True
@@ -261,8 +262,8 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                                     bet_history["Selections"] = selections
                             except Exception as e:
                                 logger.error(f"Selections fetch error {bet_id}: {e}")
-                                # continue # Risk: if fetch fails, do we skip? Maybe not skip if rules don't require it? 
-                                # For now, log error and continue logic. 
+                                # Skip processing this bet to retry later
+                                continue 
                                 # If rules require allowed_leagues, verify later.
 
                         rules = event.rules or {}
