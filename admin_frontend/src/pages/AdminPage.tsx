@@ -745,7 +745,7 @@ export default function AdminPage() {
                                                 <span className="text-xs text-muted-foreground uppercase font-bold text-[10px] tracking-wider">Min Yatırım</span>
                                                 <div className="text-sm font-bold text-amber-500 flex items-center gap-1">
                                                     <Shield className="h-3.5 w-3.5" />
-                                                    {event.rules.min_deposit || 1000} TL+
+                                                    {event.rules.min_deposit ?? 0} TL+
                                                 </div>
                                             </div>
                                         </div>
