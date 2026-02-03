@@ -113,9 +113,10 @@ async def global_exception_handler(request: Request, exc: Exception):
         )
         
     logger.error(f"Global error at {request.url}: {exc}")
+    # DEBUG MODE: Expose the real error to the frontend
     return JSONResponse(
         status_code=500,
-        content={"message": "Internal Server Error", "detail": "An unexpected error occurred."},
+        content={"message": "Internal Server Error", "detail": f"Debug Error: {str(exc)}"},
     )
 
 # CORS configuration - Hardened for security
