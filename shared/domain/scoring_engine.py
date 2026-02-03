@@ -37,9 +37,13 @@ def calculate_points_for_event(
         multiplier = 0.0
     
     # Base points calculation
-    # Formula: Odds based
+    # Formula: Odds based or Stake * Odds
     base_points = coupon.odds
     formula_str = "odds"
+
+    if formula == "stake_times_odds":
+        base_points = coupon.stake * coupon.odds
+        formula_str = "stake * odds"
     
     # Combo Bonus Logic
     if formula == "combo_bonus":

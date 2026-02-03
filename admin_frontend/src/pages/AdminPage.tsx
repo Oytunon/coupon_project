@@ -463,7 +463,8 @@ export default function AdminPage() {
                     min_odd: Number(editingEvent.rules.min_odd),
                     min_combination: Number(editingEvent.rules.min_combination),
                     max_combination: editingEvent.rules.max_combination ? Number(editingEvent.rules.max_combination) : null,
-                    min_deposit: isNaN(editingEvent.rules.min_deposit) ? 0 : Number(editingEvent.rules.min_deposit)
+                    min_deposit: isNaN(editingEvent.rules.min_deposit) ? 0 : Number(editingEvent.rules.min_deposit),
+                    scoring_formula: editingEvent.rules.scoring_formula
                 }
             }
             console.log("Sending payload:", payload)
@@ -806,6 +807,27 @@ export default function AdminPage() {
                                                 </div>
                                             </div>
 
+                                            <div className="space-y-2 p-4 bg-blue-500/5 rounded-lg border border-blue-500/20">
+                                                <label className="text-xs font-bold text-blue-400">Puan Hesaplama Türü</label>
+                                                <Select
+                                                    value={newEvent.rules.scoring_formula || "simple"}
+                                                    onValueChange={(val) => setNewEvent({ ...newEvent, rules: { ...newEvent.rules, scoring_formula: val } })}
+                                                >
+                                                    <SelectTrigger className="bg-black/20 border-blue-500/20 text-white">
+                                                        <SelectValue placeholder="Hesaplama Yöntemi Seç" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="simple">Sadece Oran (Eski Usül)</SelectItem>
+                                                        <SelectItem value="stake_times_odds">Yatırım x Oran</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {newEvent.rules.scoring_formula === 'stake_times_odds' ?
+                                                        "Puan = Yatırım Miktarı * Kupon Oranı" :
+                                                        "Puan = Kupon Oranı"}
+                                                </p>
+                                            </div>
+
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-2">
                                                     <label className="text-xs font-bold text-muted-foreground">Başlangıç</label>
@@ -855,6 +877,8 @@ export default function AdminPage() {
                                                     <p className="text-[9px] text-amber-500/60 leading-tight">Yalnızca bu tutar ve üzeri yatırım yapanlar katılabilir (0 = Herkes).</p>
                                                 </div>
                                             </div>
+
+
 
                                             <div className="space-y-2 p-4 bg-emerald-500/5 rounded-lg border border-emerald-500/20">
                                                 <label className="text-xs font-bold text-emerald-400">İzin Verilen Lig ID'leri</label>
@@ -954,6 +978,28 @@ export default function AdminPage() {
                                                 </div>
                                             </div>
 
+
+                                            <div className="space-y-2 p-4 bg-blue-500/5 rounded-lg border border-blue-500/20">
+                                                <label className="text-xs font-bold text-blue-400">Puan Hesaplama Türü</label>
+                                                <Select
+                                                    value={editingEvent.rules.scoring_formula || "simple"}
+                                                    onValueChange={(val) => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, scoring_formula: val } })}
+                                                >
+                                                    <SelectTrigger className="bg-black/20 border-blue-500/20 text-white">
+                                                        <SelectValue placeholder="Hesaplama Yöntemi Seç" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="simple">Sadece Oran (Eski Usül)</SelectItem>
+                                                        <SelectItem value="stake_times_odds">Yatırım x Oran</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {editingEvent.rules.scoring_formula === 'stake_times_odds' ?
+                                                        "Puan = Yatırım Miktarı * Kupon Oranı" :
+                                                        "Puan = Kupon Oranı"}
+                                                </p>
+                                            </div>
+
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-2">
                                                     <label className="text-xs font-bold text-muted-foreground">Başlangıç</label>
@@ -1003,6 +1049,8 @@ export default function AdminPage() {
                                                     <p className="text-[9px] text-amber-500/60 leading-tight">Yalnızca bu tutar ve üzeri yatırım yapanlar katılabilir (0 = Herkes).</p>
                                                 </div>
                                             </div>
+
+
 
                                             <div className="space-y-2 p-4 bg-emerald-500/5 rounded-lg border border-emerald-500/20">
                                                 <label className="text-xs font-bold text-emerald-400">İzin Verilen Lig ID'leri</label>
