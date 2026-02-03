@@ -227,15 +227,22 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         rules = target_event.rules or {}
                         
                         min_stake = rules.get("min_stake", 0)
-                        if amount < min_stake: continue
+                        if amount < min_stake:
+                            logger.info(f"   [DEBUG_RULE] Bet {bet_id} SKIPPED Event {target_event.id}: Stake {amount} < Min {min_stake}")
+                            continue
 
                         min_combination = rules.get("min_combination") or rules.get("min_selection_count") or 1
-                        if sel_count < int(min_combination): continue
+                        if sel_count < int(min_combination):
+                            logger.info(f"   [DEBUG_RULE] Bet {bet_id} SKIPPED Event {target_event.id}: Combo {sel_count} < Min {min_combination}")
+                            continue
 
                         max_combination = rules.get("max_combination")
-                        if max_combination and sel_count > int(max_combination): continue
+                        if max_combination and sel_count > int(max_combination):
+                            logger.info(f"   [DEBUG_RULE] Bet {bet_id} SKIPPED Event {target_event.id}: Combo {sel_count} > Max {max_combination}")
+                            continue
                             
                         eligible_for_events.append(target_event)
+                        logger.info(f"   [DEBUG_RULE] Bet {bet_id} ELIGIBLE for Event {target_event.id} (Basic Checks Passed)")
 
                     if not eligible_for_events: 
                          logger.info(f"Bet {bet_id} not eligible for any active events (Stake/SelectCount)")
@@ -291,6 +298,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                                 # API: 'CompetitionId' (18291932)
                                 comp_id = sel.get("CompetitionId")
                                 if comp_id not in allowed_leagues:
+                                    logger.info(f"   [DEBUG_LEAGUE] Bet {bet_id} REJECTED by Event {event.id}: League {comp_id} not in allowed list")
                                     all_valid = False
                                     break
                         

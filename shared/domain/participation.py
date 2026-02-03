@@ -39,7 +39,14 @@ async def check_user_enrollment(
             resolved_client_id = await fetch_client_id_by_login(username)
             if not resolved_client_id:
                  return {"can_join": True, "joined": False, "event_name": target_event.name}
+            
+            # Optimization: Persist immediately to prevent repetitive BAPI calls (403 fix)
+            new_p = Participant(client_id=resolved_client_id, username=username, joined_at=datetime.utcnow())
+            db.add(new_p)
+            db.commit()
+            
             client_id = resolved_client_id
+            existing_participant = new_p # Set for later use
     elif not client_id:
         return {"can_join": False, "reason": "missing_client_id"}
 
