@@ -157,9 +157,14 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                 user_target_events = [event_info_map[eid]["object"] for eid in user_enrolled_event_ids if eid in event_info_map]
                 
                 if not user_target_events:
+                    logger.info(f"User {user.username}: No active enrollments.")
                     continue
 
+                logger.info(f"User {user.username} is enrolled in events: {[e.id for e in user_target_events]}")
+
                 # logger.info(f"Kullanıcı taranıyor: {user.username} (Client ID: {user.client_id})")
+                
+                # ... fetch history ...
 
                 start_date, end_date = get_date_range()
                 bet_history_data = await fetch_bet_history(user.client_id, start_date, end_date)
@@ -390,6 +395,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                                 last_checked_at=datetime.utcnow()
                             )
                             db.add(cer)
+                            user_saved_count += 1 # Count as saved result
                             logger.info(f"   -> Event {event.id} ({event.name}) Puan: {calc_points}")
                         else:
                             # Update score if state changed
