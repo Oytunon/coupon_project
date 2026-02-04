@@ -11,11 +11,24 @@ def get_event_leaderboard(db: Session, event_id: int):
         
     result = []
     for p in participants:
-        total_points = db.query(func.coalesce(func.sum(Coupon.calculation), 0.0))\
-            .filter(Coupon.client_id == p.client_id, Coupon.event_id == event_id).scalar()
+        # FIX: Query CouponEventResult for accurate points
+        # A coupon might be associated with this event via CouponEventResult even if Coupon.event_id is different.
+        from shared.models.coupon_event_result import CouponEventResult
         
-        coupon_count = db.query(func.count(Coupon.id))\
-            .filter(Coupon.client_id == p.client_id, Coupon.event_id == event_id).scalar()
+        total_points = db.query(func.coalesce(func.sum(CouponEventResult.points_earned), 0.0)).join(
+             Coupon, Coupon.id == CouponEventResult.coupon_id
+        ).filter(
+            Coupon.client_id == p.client_id, 
+            CouponEventResult.event_id == event_id,
+            CouponEventResult.is_eligible == True
+        ).scalar()
+        
+        coupon_count = db.query(func.count(CouponEventResult.coupon_id)).join(
+             Coupon, Coupon.id == CouponEventResult.coupon_id
+        ).filter(
+            Coupon.client_id == p.client_id, 
+            CouponEventResult.event_id == event_id
+        ).scalar()
         
         result.append({
             "id": p.id,
