@@ -253,6 +253,10 @@ export default function AdminPage() {
             if (data.items) {
                 setUserCoupons(data.items)
                 setTotalUserCoupons(data.total)
+                // Update participant points with context-aware total
+                if (data.total_points !== undefined) {
+                    setSelectedParticipant((prev: any) => ({ ...prev, points: data.total_points }))
+                }
             } else {
                 setUserCoupons(data)
                 setTotalUserCoupons(data.length)
