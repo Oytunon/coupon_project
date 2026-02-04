@@ -218,19 +218,30 @@ async def get_event_participants_api(event_id: int, db: Session = Depends(get_db
     from shared.models.enrollment import EventParticipant
     from shared.models.participant import Participant
     from shared.models.coupon_event_result import CouponEventResult
+    from shared.models.coupon import Coupon
+    from sqlalchemy import func
     
+    # Fetch basic participant info
     results = (
         db.query(EventParticipant, Participant.username, Participant.client_id)
         .join(Participant, EventParticipant.participant_id == Participant.id)
         .filter(EventParticipant.event_id == event_id)
-        .order_by(EventParticipant.total_points.desc())
         .all()
     )
     
     items = []
     for ep, uname, cid in results:
-        # Get count of coupons for this user in this event via CouponEventResult
+        # Get count of coupons via CouponEventResult
         c_count = db.query(func.count(CouponEventResult.id)).join(
+             Coupon, Coupon.id == CouponEventResult.coupon_id
+        ).filter(
+            CouponEventResult.event_id == event_id,
+            Coupon.client_id == cid,
+            CouponEventResult.is_eligible == True
+        ).scalar()
+        
+        # Get live points via CouponEventResult (Fix for discrepancy)
+        live_points = db.query(func.coalesce(func.sum(CouponEventResult.points_earned), 0.0)).join(
              Coupon, Coupon.id == CouponEventResult.coupon_id
         ).filter(
             CouponEventResult.event_id == event_id,
@@ -242,10 +253,13 @@ async def get_event_participants_api(event_id: int, db: Session = Depends(get_db
             "id": ep.participant_id,
             "username": uname,
             "client_id": cid,
-            "points": ep.total_points,
+            "points": live_points, # Use live points
             "coupon_count": c_count,
             "joined_at": ep.joined_at
         })
+    
+    # Sort by points in memory (since we calculate live)
+    items.sort(key=lambda x: x["points"], reverse=True)
         
     return {
          "total": len(items),
