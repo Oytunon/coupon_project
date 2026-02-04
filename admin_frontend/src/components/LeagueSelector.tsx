@@ -3,8 +3,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { CheckCircle2, Search, X, Check, Trash2, ListFilter } from "lucide-react"
-import { apiClient } from "../api/client"
+import { CheckCircle2, Search, X, Check, ListFilter, Plus } from "lucide-react"
+import { staticLeagues } from "../data/staticLeagues"
 
 interface LeagueSelectorProps {
     selectedIds: number[]
@@ -18,55 +18,52 @@ export function LeagueSelector({
     const [open, setOpen] = useState(false)
     const [search, setSearch] = useState("")
     const [leagues, setLeagues] = useState<any[]>([])
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
 
     // Internal state for pending changes
     const [tempSelected, setTempSelected] = useState<number[]>([])
 
     useEffect(() => {
         if (open) {
-            // Reset temp state to match props when opening
             setTempSelected([...selectedIds])
             loadLeagues()
         }
     }, [open])
 
-    const fetchLeagues = async (search = "") => {
-        // Fetch more to ensure we have a good list for selection
-        const res = await apiClient.get('/leagues', { params: { search, limit: 1000 } })
-        return res.data
-    }
-
-    const loadLeagues = async () => {
-        setLoading(true)
-        setError(null)
-        try {
-            // Fetch all leagues initially or filtered by search
-            const data = await fetchLeagues(search)
-            setLeagues(data)
-        } catch (e: any) {
-            console.error(e)
-            setError(e.message || "Ligler yüklenirken bir hata oluştu.")
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    // Debounced search effect
     useEffect(() => {
-        if (!open) return
-        const timer = setTimeout(() => {
-            loadLeagues()
-        }, 300)
-        return () => clearTimeout(timer)
+        loadLeagues()
     }, [search])
+
+    const loadLeagues = () => {
+        let filtered = staticLeagues;
+
+        if (search) {
+            const lowerSearch = search.toLowerCase();
+            filtered = staticLeagues.filter(l =>
+                l.name.toLowerCase().includes(lowerSearch) ||
+                l.id.toString().includes(search)
+            );
+        }
+
+        setLeagues(filtered);
+    }
 
     const toggleLeague = (id: number) => {
         if (tempSelected.includes(id)) {
             setTempSelected(tempSelected.filter(i => i !== id))
         } else {
             setTempSelected([...tempSelected, id])
+        }
+    }
+
+    const handleManualAdd = () => {
+        if (search && /^\d+$/.test(search)) {
+            const id = parseInt(search);
+            if (!tempSelected.includes(id)) {
+                setTempSelected([...tempSelected, id]);
+                // If not in static list, we could temporarily add it to display, 
+                // but for now we rely on the component just handling the ID.
+                setSearch("");
+            }
         }
     }
 
@@ -80,9 +77,11 @@ export function LeagueSelector({
     }
 
     const getLeagueName = (id: number) => {
-        const l = leagues.find(x => x.id === id)
+        const l = staticLeagues.find(x => x.id === id)
         return l ? l.name : `Lig #${id}`
     }
+
+    const isManualAddable = search && /^\d+$/.test(search) && !leagues.some(l => l.id.toString() === search);
 
     return (
         <div className="space-y-2">
@@ -141,33 +140,31 @@ export function LeagueSelector({
                         </CardHeader>
 
                         <div className="p-4 border-b border-zinc-800 bg-zinc-900/50">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Lig adı veya ID ile ara..."
-                                    value={search}
-                                    onChange={e => setSearch(e.target.value)}
-                                    className="pl-9 bg-zinc-950 border-zinc-800"
-                                    autoFocus
-                                />
+                            <div className="relative flex gap-2">
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Lig adı veya ID ile ara..."
+                                        value={search}
+                                        onChange={e => setSearch(e.target.value)}
+                                        className="pl-9 bg-zinc-950 border-zinc-800"
+                                        autoFocus
+                                    />
+                                </div>
+                                {isManualAddable && (
+                                    <Button size="sm" onClick={handleManualAdd} className="bg-blue-600 hover:bg-blue-500 text-white gap-1">
+                                        <Plus size={16} />
+                                        Ekle ({search})
+                                    </Button>
+                                )}
                             </div>
                         </div>
 
                         <CardContent className="flex-1 overflow-y-auto p-2 custom-scrollbar">
-                            {loading ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
-                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                                    <span className="text-xs">Ligler yükleniyor...</span>
-                                </div>
-                            ) : error ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-red-500 gap-2 text-center">
-                                    <span className="font-bold">Hata Oluştu</span>
-                                    <span className="text-xs max-w-[200px]">{error}</span>
-                                    <Button variant="outline" size="sm" onClick={loadLeagues}>Tekrar Dene</Button>
-                                </div>
-                            ) : leagues.length === 0 ? (
+                            {leagues.length === 0 ? (
                                 <div className="text-center py-12 text-muted-foreground">
                                     <p>Sonuç bulunamadı.</p>
+                                    {search && <p className="text-xs mt-2">ID girerek yukarıdaki mavi butondan ekleyebilirsiniz.</p>}
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 gap-1">
