@@ -434,10 +434,9 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         if existing_coupon.event_id == event.id:
                             existing_coupon.calculation = calc_points
 
-                db.commit() # Commit batch per user
-                
                 # Puanları güncelle (EventParticipant)
                 # Query Total points from CouponEventResult
+                # NOTE: This must be done BEFORE commit to ensure it is saved!
                 for event in user_target_events:
                      total_user_points = db.query(func.sum(CouponEventResult.points_earned)).filter(
                          CouponEventResult.event_id == event.id,
@@ -455,6 +454,8 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                      
                      if enrollment_record:
                          enrollment_record.total_points = total_user_points
+
+                db.commit() # Commit batch per user
                          
                 # Update job progress after *each user*
                 if job_id:
