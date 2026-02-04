@@ -31,7 +31,10 @@ async def list_leagues(
     query = db.query(League)
     
     if search:
-        query = query.filter(League.name.ilike(f"%{search}%"))
+        filters = [League.name.ilike(f"%{search}%")]
+        if search.isdigit():
+            filters.append(League.id == int(search))
+        query = query.filter(or_(*filters))
         
     return query.order_by(League.name).offset(skip).limit(limit).all()
 

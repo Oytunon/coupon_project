@@ -2,7 +2,8 @@ import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { CheckCircle2, ChevronRight, Trash2 } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { CheckCircle2, Search, X, Check, Trash2, ListFilter } from "lucide-react"
 import { apiClient } from "../api/client"
 
 interface LeagueSelectorProps {
@@ -19,20 +20,27 @@ export function LeagueSelector({
     const [leagues, setLeagues] = useState<any[]>([])
     const [loading, setLoading] = useState(false)
 
+    // Internal state for pending changes
+    const [tempSelected, setTempSelected] = useState<number[]>([])
+
     useEffect(() => {
         if (open) {
+            // Reset temp state to match props when opening
+            setTempSelected([...selectedIds])
             loadLeagues()
         }
-    }, [open, search])
+    }, [open])
 
     const fetchLeagues = async (search = "") => {
-        const res = await apiClient.get('/leagues', { params: { search, limit: 100 } })
+        // Fetch more to ensure we have a good list for selection
+        const res = await apiClient.get('/leagues', { params: { search, limit: 1000 } })
         return res.data
     }
 
     const loadLeagues = async () => {
         setLoading(true)
         try {
+            // Fetch all leagues initially or filtered by search
             const data = await fetchLeagues(search)
             setLeagues(data)
         } catch (e) {
@@ -42,66 +50,171 @@ export function LeagueSelector({
         }
     }
 
+    // Debounced search effect
+    useEffect(() => {
+        if (!open) return
+        const timer = setTimeout(() => {
+            loadLeagues()
+        }, 300)
+        return () => clearTimeout(timer)
+    }, [search])
+
     const toggleLeague = (id: number) => {
-        if (selectedIds.includes(id)) {
-            onChange(selectedIds.filter(i => i !== id))
+        if (tempSelected.includes(id)) {
+            setTempSelected(tempSelected.filter(i => i !== id))
         } else {
-            onChange([...selectedIds, id])
+            setTempSelected([...tempSelected, id])
         }
+    }
+
+    const handleSave = () => {
+        onChange(tempSelected)
+        setOpen(false)
+    }
+
+    const handleRemove = (id: number) => {
+        onChange(selectedIds.filter(i => i !== id))
+    }
+
+    const getLeagueName = (id: number) => {
+        const l = leagues.find(x => x.id === id)
+        return l ? l.name : `Lig #${id}`
     }
 
     return (
         <div className="space-y-2">
-            <label className="text-xs font-bold text-muted-foreground">İzin Verilen Ligler</label>
-            <div className="flex flex-wrap gap-2 mb-2 min-h-[30px] p-2 bg-black/20 rounded-md border border-white/5">
-                {selectedIds.length === 0 && <span className="text-xs text-muted-foreground italic p-1">Tüm ligler açık (Kısıtlama yok)</span>}
+            <div className="flex justify-between items-center">
+                <label className="text-xs font-bold text-muted-foreground">İzin Verilen Ligler</label>
+                <span className="text-[10px] text-muted-foreground">{selectedIds.length} lig seçili</span>
+            </div>
+
+            {/* Summary View */}
+            <div className="flex flex-wrap gap-2 mb-2 p-3 bg-black/20 rounded-lg border border-white/5 min-h-[50px] items-start content-start max-h-[120px] overflow-y-auto">
+                {selectedIds.length === 0 && (
+                    <span className="text-xs text-muted-foreground italic w-full text-center py-2">
+                        Kısıtlama yok, tüm ligler aktif.
+                    </span>
+                )}
                 {selectedIds.map(id => (
-                    <Badge key={id} variant="outline" className="gap-1 bg-primary/10 border-primary/20 text-primary">
-                        {leagues.find(l => l.id === id)?.name || id}
-                        <button type="button" onClick={() => toggleLeague(id)} className="ml-1 hover:text-red-500"><Trash2 size={12} /></button>
+                    <Badge key={id} variant="secondary" className="gap-1 bg-emerald-500/10 border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/20 transition-colors pl-2 pr-1 py-1">
+                        <span className="truncate max-w-[150px]">{getLeagueName(id)}</span>
+                        <button
+                            type="button"
+                            onClick={() => handleRemove(id)}
+                            className="ml-1 p-0.5 hover:bg-red-500/20 hover:text-red-500 rounded-full transition-colors"
+                        >
+                            <X size={12} />
+                        </button>
                     </Badge>
                 ))}
             </div>
 
-            <div className="relative">
-                <Button type="button" variant="outline" className="w-full justify-between" onClick={() => setOpen(!open)}>
-                    {selectedIds.length > 0 ? `${selectedIds.length} Lig Seçili` : "Lig Seç (Opsiyonel)"}
-                    <ChevronRight className={`h-4 w-4 transition-transform ${open ? "rotate-90" : ""}`} />
-                </Button>
+            <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-between bg-card hover:bg-accent border-dashed border-2 font-medium"
+                onClick={() => setOpen(true)}
+            >
+                <span className="flex items-center gap-2">
+                    <ListFilter className="h-4 w-4 text-muted-foreground" />
+                    Lig Seç / Düzenle
+                </span>
+                <Badge variant="secondary" className="ml-2 font-normal">
+                    {selectedIds.length}
+                </Badge>
+            </Button>
 
-                {open && (
-                    <div className="absolute z-10 top-full mt-1 w-full bg-popover border rounded-md shadow-lg max-h-60 overflow-y-auto">
-                        <div className="p-2 sticky top-0 bg-popover border-b">
-                            <Input
-                                placeholder="Lig ara..."
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                                className="h-8"
-                                autoFocus
-                            />
+            {/* Modal */}
+            {open && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <Card className="w-full max-w-lg bg-zinc-950 border-zinc-800 shadow-2xl flex flex-col max-h-[85vh]">
+                        <CardHeader className="border-b border-zinc-800 pb-4">
+                            <CardTitle className="text-lg font-bold flex items-center justify-between">
+                                Lig Seçimi
+                                <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => setOpen(false)}>
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </CardTitle>
+                        </CardHeader>
+
+                        <div className="p-4 border-b border-zinc-800 bg-zinc-900/50">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Lig adı veya ID ile ara..."
+                                    value={search}
+                                    onChange={e => setSearch(e.target.value)}
+                                    className="pl-9 bg-zinc-950 border-zinc-800"
+                                    autoFocus
+                                />
+                            </div>
                         </div>
-                        <div className="p-1">
+
+                        <CardContent className="flex-1 overflow-y-auto p-2 custom-scrollbar">
                             {loading ? (
-                                <div className="text-center p-2 text-xs text-muted-foreground">Yükleniyor...</div>
+                                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                                    <span className="text-xs">Ligler yükleniyor...</span>
+                                </div>
+                            ) : leagues.length === 0 ? (
+                                <div className="text-center py-12 text-muted-foreground">
+                                    <p>Sonuç bulunamadı.</p>
+                                </div>
                             ) : (
-                                leagues.map(league => (
-                                    <div
-                                        key={league.id}
-                                        className={`flex items-center gap-2 p-2 hover:bg-accent rounded-sm cursor-pointer text-sm ${selectedIds.includes(league.id) ? "bg-accent/50 text-accent-foreground" : ""}`}
-                                        onClick={() => toggleLeague(league.id)}
-                                    >
-                                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${selectedIds.includes(league.id) ? "bg-primary border-primary" : "border-muted-foreground"}`}>
-                                            {selectedIds.includes(league.id) && <CheckCircle2 className="h-3 w-3 text-primary-foreground" />}
-                                        </div>
-                                        <span>{league.name}</span>
-                                        <span className="ml-auto text-xs text-muted-foreground opacity-50">#{league.id}</span>
-                                    </div>
-                                ))
+                                <div className="grid grid-cols-1 gap-1">
+                                    {leagues.map(league => {
+                                        const isSelected = tempSelected.includes(league.id)
+                                        return (
+                                            <div
+                                                key={league.id}
+                                                onClick={() => toggleLeague(league.id)}
+                                                className={`
+                                                    flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border
+                                                    ${isSelected
+                                                        ? "bg-primary/10 border-primary/30"
+                                                        : "hover:bg-zinc-900 border-transparent hover:border-zinc-800"}
+                                                `}
+                                            >
+                                                <div className={`
+                                                    h-5 w-5 rounded border flex items-center justify-center transition-colors
+                                                    ${isSelected ? "bg-primary border-primary text-primary-foreground" : "border-zinc-700 bg-zinc-900"}
+                                                `}>
+                                                    {isSelected && <Check size={12} strokeWidth={3} />}
+                                                </div>
+
+                                                <div className="flex-1 min-w-0">
+                                                    <div className={`text-sm font-medium truncate ${isSelected ? "text-primary" : "text-zinc-300"}`}>
+                                                        {league.name}
+                                                    </div>
+                                                </div>
+
+                                                <Badge variant="outline" className="text-[10px] font-mono opacity-50 bg-zinc-950">
+                                                    #{league.id}
+                                                </Badge>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
                             )}
-                        </div>
-                    </div>
-                )}
-            </div>
+                        </CardContent>
+
+                        <CardFooter className="pt-4 border-t border-zinc-800 bg-zinc-900/50 flex justify-between">
+                            <div className="text-xs text-muted-foreground">
+                                <span className="font-bold text-primary">{tempSelected.length}</span> lig seçildi
+                            </div>
+                            <div className="flex gap-2">
+                                <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
+                                    İptal
+                                </Button>
+                                <Button size="sm" onClick={handleSave} className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
+                                    <CheckCircle2 className="h-4 w-4" />
+                                    Seçimi Kaydet
+                                </Button>
+                            </div>
+                        </CardFooter>
+                    </Card>
+                </div>
+            )}
         </div>
     )
 }
