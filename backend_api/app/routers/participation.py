@@ -183,10 +183,20 @@ async def get_my_enrollments(
         
         # Rank için cache kullanmaya devam ediyoruz (Performans için)
         # Not: Eğer cache güncel değilse rank hatalı olabilir ancak score doğrusunu gösterecek.
-        rank = db.query(EventParticipant).filter(
-            EventParticipant.event_id == eid,
-            EventParticipant.total_points > (live_score or 0) 
-        ).count() + 1
+        # Rank Calculation (Live Consistency Fix)
+        # We must count how many people have a higher score than me based on ACTUAL Coupon data
+        # NOT the cached EventParticipant table which might be lagging/empty for old data.
+        
+        # Subquery: Calculate total score for each participant in this event
+        higher_rank_count = db.query(func.count()).select_from(
+            db.query(Coupon.client_id, func.sum(Coupon.calculation).label('total_score'))
+            .filter(Coupon.event_id == eid)
+            .group_by(Coupon.client_id)
+            .having(func.sum(Coupon.calculation) > (live_score or 0))
+            .subquery()
+        ).scalar()
+
+        rank = (higher_rank_count or 0) + 1
         
         results.append({
             "event_id": event.id,
