@@ -357,6 +357,9 @@ export default function AdminPage() {
                         clearInterval(checkStatus)
                         if (job.status === 'completed') {
                             setMessage({ type: "success", text: `Tarama Bitti! ${job.processed} kupon tarandı, ${job.saved} yeni kupon eklendi.` })
+                            // Auto-clear message after 10 seconds
+                            setTimeout(() => setMessage(null), 10000)
+
                             toast({
                                 title: "İşlem Tamamlandı",
                                 description: `${job.processed} kupon incelendi, ${job.saved} adet yeni kupon kaydedildi.`,
