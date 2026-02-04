@@ -306,10 +306,16 @@ async def export_event_coupons(event_id: int, db: Session = Depends(get_db)):
     if not event:
         raise HTTPException(404, "Event not found")
 
+    from shared.models.coupon_event_result import CouponEventResult
+    
     # Sadece puan kazandıran kuponları çek (is_processed=True)
-    coupons = db.query(Coupon).filter(
-        Coupon.event_id == event_id,
-        Coupon.is_processed == True
+    # FIX: Use CouponEventResult to get accurate event-specific data
+    results = db.query(Coupon, CouponEventResult).join(
+        CouponEventResult, CouponEventResult.coupon_id == Coupon.id
+    ).filter(
+        CouponEventResult.event_id == event_id,
+        Coupon.is_processed == True,
+        CouponEventResult.is_eligible == True
     ).order_by(Coupon.processed_at.desc()).all()
 
     wb = openpyxl.Workbook()
@@ -317,11 +323,12 @@ async def export_event_coupons(event_id: int, db: Session = Depends(get_db)):
     ws.title = "Kuponlar"
     ws.append(["ID", "Client ID", "Bet ID", "Tarih", "Stake", "Odds", "State", "Puan", "Live?"])
 
-    for c in coupons:
+    for c, cer in results:
         ws.append([
             c.id, c.client_id, c.bet_id,
             c.created_at.strftime("%Y-%m-%d %H:%M:%S") if c.created_at else "-",
-            c.stake, c.odds, c.state, c.calculation,
+            c.stake, c.odds, c.state, 
+            cer.points_earned, # Use event-specific points
             "YES" if c.is_live else "NO"
         ])
 
