@@ -94,7 +94,8 @@ async def get_my_coupons(
     if not target_event_id:
         return []
 
-    total, coupons = get_user_coupon_history(db, client_id, target_event_id)
+    # Limit increased to 1000 to show 'all' coupons for the event as requested
+    total, coupons = get_user_coupon_history(db, client_id, target_event_id, limit=1000)
     
     # Properly serialize coupon objects including bet_data
     result = []
