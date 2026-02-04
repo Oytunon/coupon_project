@@ -183,11 +183,23 @@ app.include_router(admin_router)
 app.include_router(events_router)
 app.include_router(user_stats_router)
 app.include_router(client_router)
+from backend_api.app.routers.leagues import router as leagues_router
+app.include_router(leagues_router)
+
 
 # Startup event
 @app.on_event("startup")
 async def startup_event():
     logger.info("🚀 Kupon Turnuvası API başlatıldı")
+    
+    # Auto-create tables for new models (safe for existing tables)
+    try:
+        from shared.database import engine, Base
+        Base.metadata.create_all(bind=engine)
+        logger.info("✅ Database tables verified/created")
+    except Exception as e:
+        logger.error(f"❌ Table creation failed: {e}")
+
     
     # Mailgun yapılandırma kontrolü
     if settings.MAILGUN_API_KEY and settings.MAILGUN_DOMAIN:

@@ -29,12 +29,13 @@ def list_participants_paginated(
         # Calculate stats correctly for the specific event
         if event_id:
              # Count coupons for this event via Intersection table
-             coupon_count = db.query(CouponEventResult).filter(
+             coupon_count = db.query(func.count(CouponEventResult.id)).filter(
                  CouponEventResult.event_id == event_id,
                  CouponEventResult.coupon_id.in_(
                      db.query(Coupon.id).filter(Coupon.client_id == p.client_id)
-                 )
-             ).count()
+                 ),
+                 CouponEventResult.is_eligible == True
+             ).scalar()
              
              # Get points directly from CouponEventResult aggregation (Live consistency)
              # This ensures Admin Panel matches Client/Leaderboard exactly.
