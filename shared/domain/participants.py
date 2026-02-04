@@ -36,12 +36,15 @@ def list_participants_paginated(
                  )
              ).count()
              
-             # Get points directly from enrollment (Computed by Worker)
-             enr = db.query(EventParticipant).filter(
-                 EventParticipant.event_id == event_id,
-                 EventParticipant.participant_id == p.id
-             ).first()
-             total_points = enr.total_points if enr else 0.0
+             # Get points directly from CouponEventResult aggregation (Live consistency)
+             # This ensures Admin Panel matches Client/Leaderboard exactly.
+             total_points = db.query(func.coalesce(func.sum(CouponEventResult.points_earned), 0.0)).filter(
+                 CouponEventResult.event_id == event_id,
+                 CouponEventResult.coupon_id.in_(
+                     db.query(Coupon.id).filter(Coupon.client_id == p.client_id)
+                 ),
+                 CouponEventResult.is_eligible == True
+             ).scalar()
              
         else:
             # Fallback for Global View (Sum of points from all enrolled events)
