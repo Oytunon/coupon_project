@@ -173,17 +173,31 @@ async def get_worker_job_status(job_id: int, db: Session = Depends(get_db)):
 @router.get("/events/{event_id}/stats")
 async def get_event_stats_api(event_id: int, db: Session = Depends(get_db)):
     from shared.models.enrollment import EventParticipant
+    from shared.models.coupon_event_result import CouponEventResult
     from sqlalchemy import func
     from shared.models.event import Event
     
     total_participants = db.query(EventParticipant).filter(EventParticipant.event_id == event_id).count()
     
-    # Calculate total points
-    points = db.query(func.sum(EventParticipant.total_points)).filter(EventParticipant.event_id == event_id).scalar() or 0
+    # Calculate total points (Live from results for accuracy)
+    points = db.query(func.coalesce(func.sum(CouponEventResult.points_earned), 0.0)).filter(
+        CouponEventResult.event_id == event_id,
+        CouponEventResult.is_eligible == True
+    ).scalar()
     
-    # Calculate coupon stats
-    total_coupons = db.query(Coupon).filter(Coupon.event_id == event_id).count() 
-    total_stake = db.query(func.sum(Coupon.stake)).filter(Coupon.event_id == event_id).scalar() or 0
+    # Calculate coupon stats (Live from results)
+    total_coupons = db.query(func.count(CouponEventResult.id)).filter(
+        CouponEventResult.event_id == event_id,
+        CouponEventResult.is_eligible == True
+    ).scalar()
+    
+    # Calculate total stake (Live from results joined with Coupon)
+    total_stake = db.query(func.coalesce(func.sum(Coupon.stake), 0.0)).join(
+        CouponEventResult, Coupon.id == CouponEventResult.coupon_id
+    ).filter(
+        CouponEventResult.event_id == event_id,
+        CouponEventResult.is_eligible == True
+    ).scalar()
 
     return {
         "event_id": event_id,
@@ -203,6 +217,7 @@ async def get_event_participants_api(event_id: int, db: Session = Depends(get_db
     """
     from shared.models.enrollment import EventParticipant
     from shared.models.participant import Participant
+    from shared.models.coupon_event_result import CouponEventResult
     
     results = (
         db.query(EventParticipant, Participant.username, Participant.client_id)
@@ -214,8 +229,15 @@ async def get_event_participants_api(event_id: int, db: Session = Depends(get_db
     
     items = []
     for ep, uname, cid in results:
-        # Get count of coupons for this user in this event
-        c_count = db.query(Coupon).filter(Coupon.event_id == event_id, Coupon.client_id == cid).count()
+        # Get count of coupons for this user in this event via CouponEventResult
+        c_count = db.query(func.count(CouponEventResult.id)).join(
+             Coupon, Coupon.id == CouponEventResult.coupon_id
+        ).filter(
+            CouponEventResult.event_id == event_id,
+            Coupon.client_id == cid,
+            CouponEventResult.is_eligible == True
+        ).scalar()
+        
         items.append({
             "id": ep.participant_id,
             "username": uname,
