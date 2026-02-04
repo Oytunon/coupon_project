@@ -19,6 +19,7 @@ export function LeagueSelector({
     const [search, setSearch] = useState("")
     const [leagues, setLeagues] = useState<any[]>([])
     const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     // Internal state for pending changes
     const [tempSelected, setTempSelected] = useState<number[]>([])
@@ -39,12 +40,14 @@ export function LeagueSelector({
 
     const loadLeagues = async () => {
         setLoading(true)
+        setError(null)
         try {
             // Fetch all leagues initially or filtered by search
             const data = await fetchLeagues(search)
             setLeagues(data)
-        } catch (e) {
+        } catch (e: any) {
             console.error(e)
+            setError(e.message || "Ligler yüklenirken bir hata oluştu.")
         } finally {
             setLoading(false)
         }
@@ -155,6 +158,12 @@ export function LeagueSelector({
                                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
                                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                                     <span className="text-xs">Ligler yükleniyor...</span>
+                                </div>
+                            ) : error ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-red-500 gap-2 text-center">
+                                    <span className="font-bold">Hata Oluştu</span>
+                                    <span className="text-xs max-w-[200px]">{error}</span>
+                                    <Button variant="outline" size="sm" onClick={loadLeagues}>Tekrar Dene</Button>
                                 </div>
                             ) : leagues.length === 0 ? (
                                 <div className="text-center py-12 text-muted-foreground">
