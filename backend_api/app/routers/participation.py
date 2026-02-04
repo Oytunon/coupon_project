@@ -175,25 +175,29 @@ async def get_my_enrollments(
         if not event: continue
         
         # Cache yerine canlı hesaplama yap (Leaderboard ile tutarlı olması için)
-        # Leaderboard mantığı: shared/domain/leaderboard.py -> get_event_leaderboard
         from shared.models.coupon import Coupon
-        live_score = db.query(func.coalesce(func.sum(Coupon.calculation), 0.0)).filter(
+        from shared.models.coupon_event_result import CouponEventResult
+        
+        # FIX: Query CouponEventResult instead of Coupon directly. 
+        # A coupon might belong to multiple events or have a different primary event_id.
+        live_score = db.query(func.coalesce(func.sum(CouponEventResult.points_earned), 0.0)).join(
+            Coupon, Coupon.id == CouponEventResult.coupon_id
+        ).filter(
             Coupon.client_id == participant.client_id, 
-            Coupon.event_id == eid
+            CouponEventResult.event_id == eid,
+            CouponEventResult.is_eligible == True
         ).scalar()
         
-        # Rank için cache kullanmaya devam ediyoruz (Performans için)
-        # Not: Eğer cache güncel değilse rank hatalı olabilir ancak score doğrusunu gösterecek.
         # Rank Calculation (Live Consistency Fix)
         # We must count how many people have a higher score than me based on ACTUAL Coupon data
-        # NOT the cached EventParticipant table which might be lagging/empty for old data.
         
-        # Subquery: Calculate total score for each participant in this event
+        # Subquery: Calculate total score for each participant in this event using CouponEventResult
         higher_rank_count = db.query(func.count()).select_from(
-            db.query(Coupon.client_id, func.sum(Coupon.calculation).label('total_score'))
-            .filter(Coupon.event_id == eid)
+            db.query(Coupon.client_id, func.sum(CouponEventResult.points_earned).label('total_score'))
+            .join(CouponEventResult, Coupon.id == CouponEventResult.coupon_id)
+            .filter(CouponEventResult.event_id == eid, CouponEventResult.is_eligible == True)
             .group_by(Coupon.client_id)
-            .having(func.sum(Coupon.calculation) > (live_score or 0))
+            .having(func.sum(CouponEventResult.points_earned) > (live_score or 0))
             .subquery()
         ).scalar()
 
