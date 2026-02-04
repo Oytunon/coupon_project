@@ -44,11 +44,13 @@ def list_participants_paginated(
              total_points = enr.total_points if enr else 0.0
              
         else:
-            # Fallback for Global View (Sum all master coupons)
-            coupon_query = db.query(Coupon).filter(Coupon.client_id == p.client_id)
-            coupons = coupon_query.all()
-            coupon_count = len(coupons)
-            total_points = sum(c.calculation or 0 for c in coupons)
+            # Fallback for Global View (Sum of points from all enrolled events)
+            total_points = db.query(func.sum(EventParticipant.total_points)).filter(
+                EventParticipant.participant_id == p.id
+            ).scalar() or 0.0
+            
+            # For coupon count, we still count master coupons
+            coupon_count = db.query(Coupon).filter(Coupon.client_id == p.client_id).count()
         
         enrolled_events = db.query(Event).join(EventParticipant).filter(EventParticipant.participant_id == p.id).all()
         enrolled_event_names = [e.name for e in enrolled_events]

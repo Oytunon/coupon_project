@@ -5,13 +5,19 @@ import json
 def main():
     db = SessionLocal()
     try:
-        events = db.query(Event).filter(Event.is_active == True).all()
-        print(f"Found {len(events)} active events.")
+        events = db.query(Event).all()
+        print(f"Found {len(events)} TOTAL events in DB.")
         
         for e in events:
-            print(f"\nEvent ID: {e.id} | Name: {e.name}")
+            print(f"\n==========================================")
+            print(f"Event ID: {e.id}")
+            print(f"Name: {e.name}")
+            print(f"Active: {e.is_active}")
+            print(f"Dates: {e.start_date} -> {e.end_date}")
+            
             rules = e.rules or {}
-            print(f"Rules: {json.dumps(rules, indent=2)}")
+            print(f"Rules JSON: {json.dumps(rules, indent=2)}")
+            
             formula = rules.get("scoring_formula", "simple")
             print(f"-> Effective Formula: {formula}")
             

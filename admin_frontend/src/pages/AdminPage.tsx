@@ -805,27 +805,27 @@ export default function AdminPage() {
                                                         />
                                                     </div>
                                                 </div>
-                                            </div>
 
-                                            <div className="space-y-2 p-4 bg-blue-500/5 rounded-lg border border-blue-500/20">
-                                                <label className="text-xs font-bold text-blue-400">Puan Hesaplama Türü</label>
-                                                <Select
-                                                    value={newEvent.rules.scoring_formula || "simple"}
-                                                    onValueChange={(val) => setNewEvent({ ...newEvent, rules: { ...newEvent.rules, scoring_formula: val } })}
-                                                >
-                                                    <SelectTrigger className="bg-black/20 border-blue-500/20 text-white">
-                                                        <SelectValue placeholder="Hesaplama Yöntemi Seç" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="simple">Sadece Oran (kupon oranı ile belirlenen kaybeden ve kazanan çarpanı ile çalışır)</SelectItem>
-                                                        <SelectItem value="stake_times_odds">Yatırım x Oran (yatırım miktarı ile kupon oranı çarpılır kazanç çarpanı 1 kaybeden çarpanı 0 olarak seçiniz)</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {newEvent.rules.scoring_formula === 'stake_times_odds' ?
-                                                        "Puan = Yatırım Miktarı * Kupon Oranı" :
-                                                        "Puan = Kupon Oranı"}
-                                                </p>
+                                                <div className="space-y-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-bold text-muted-foreground">Puan Hesaplama Türü</label>
+                                                        <Select
+                                                            value={newEvent.rules.scoring_formula}
+                                                            onValueChange={(val) => setNewEvent({
+                                                                ...newEvent,
+                                                                rules: { ...newEvent.rules, scoring_formula: val }
+                                                            })}
+                                                        >
+                                                            <SelectTrigger className="bg-black/20 border-white/10">
+                                                                <SelectValue placeholder="Seçiniz" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="simple">Sadece Oran (Klasik)</SelectItem>
+                                                                <SelectItem value="stake_times_odds">Yatırım x Oran</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                </div>
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-4">
@@ -989,8 +989,8 @@ export default function AdminPage() {
                                                         <SelectValue placeholder="Hesaplama Yöntemi Seç" />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="simple">Sadece Oran (kupon oranı ile belirlenen kaybeden ve kazanan çarpanı ile çalışır)</SelectItem>
-                                                        <SelectItem value="stake_times_odds">Yatırım x Oran (yatırım miktarı ile kupon oranı çarpılır kazanç çarpanı 1 kaybeden çarpanı 0 olarak seçiniz)</SelectItem>
+                                                        <SelectItem value="simple">Sadece Oran (Klasik)</SelectItem>
+                                                        <SelectItem value="stake_times_odds">Yatırım x Oran</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                                 <p className="text-xs text-muted-foreground">
@@ -1081,7 +1081,8 @@ export default function AdminPage() {
                         {showEditEvent && <div className="fixed inset-0 bg-black/80 z-40" onClick={() => setShowEditEvent(false)} />}
                     </div >
                 )
-            )}
+            )
+            }
 
             {
                 activeTab === 'participants' && !selectedParticipant && (
@@ -1244,6 +1245,7 @@ export default function AdminPage() {
                                                     <th className="px-4 py-3 font-bold">Maç Detayları</th>
                                                     <th className="px-4 py-3 font-bold text-right">Miktar</th>
                                                     <th className="px-4 py-3 font-bold text-center">Oran</th>
+                                                    <th className="px-4 py-3 font-bold text-center">Puan</th>
                                                     <th className="px-4 py-3 font-bold text-center">Durum</th>
                                                 </tr>
                                             </thead>
@@ -1295,6 +1297,9 @@ export default function AdminPage() {
                                                         <td className="px-4 py-4 font-bold text-right">{c.stake} TL</td>
                                                         <td className="px-4 py-4 text-center">
                                                             <Badge variant="outline" className="font-bold border-white/10">x{c.odds}</Badge>
+                                                        </td>
+                                                        <td className="px-4 py-4 text-center">
+                                                            <span className="font-bold text-primary font-mono">{(c.calculation || 0).toLocaleString()}</span>
                                                         </td>
                                                         <td className="px-4 py-4 text-center">
                                                             {c.state && c.state.toLowerCase() === 'won' ? (
