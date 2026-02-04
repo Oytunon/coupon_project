@@ -173,23 +173,26 @@ async def get_my_enrollments(
         event = db.query(Event).get(eid)
         if not event: continue
         
-        my_stats = db.query(EventParticipant).filter(
-            EventParticipant.participant_id == participant.id,
-            EventParticipant.event_id == eid
-        ).first()
+        # Cache yerine canlı hesaplama yap (Leaderboard ile tutarlı olması için)
+        # Leaderboard mantığı: shared/domain/leaderboard.py -> get_event_leaderboard
+        from shared.models.coupon import Coupon
+        live_score = db.query(func.coalesce(func.sum(Coupon.calculation), 0.0)).filter(
+            Coupon.client_id == participant.client_id, 
+            Coupon.event_id == eid
+        ).scalar()
         
-        if not my_stats: continue
-        
+        # Rank için cache kullanmaya devam ediyoruz (Performans için)
+        # Not: Eğer cache güncel değilse rank hatalı olabilir ancak score doğrusunu gösterecek.
         rank = db.query(EventParticipant).filter(
             EventParticipant.event_id == eid,
-            EventParticipant.total_points > my_stats.total_points
+            EventParticipant.total_points > (live_score or 0) 
         ).count() + 1
         
         results.append({
             "event_id": event.id,
             "event_name": event.name,
             "status": event.status,
-            "score": my_stats.total_points,
+            "score": live_score, # my_stats.total_points yerine live_score
             "rank": rank,
             "slug": event.slug
         })
