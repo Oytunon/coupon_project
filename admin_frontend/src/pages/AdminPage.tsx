@@ -1220,7 +1220,9 @@ export default function AdminPage() {
                                     </SelectContent>
                                 </Select>
                                 <Badge variant="secondary" className="px-3 py-1">ID: {selectedParticipant.client_id}</Badge>
-                                <Badge className="px-3 py-1 bg-primary/20 text-primary border-none">Puan: {selectedParticipant.points}</Badge>
+                                <Badge className="px-3 py-1 bg-primary/20 text-primary border-none">
+                                    Puan: {Number(selectedParticipant.points).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </Badge>
                             </div>
                         </div>
 
