@@ -133,7 +133,7 @@ export function LeagueSelector({
                         <CardHeader className="border-b border-zinc-800 pb-4">
                             <CardTitle className="text-lg font-bold flex items-center justify-between">
                                 Lig Seçimi
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => setOpen(false)}>
+                                <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => setOpen(false)}>
                                     <X className="h-4 w-4" />
                                 </Button>
                             </CardTitle>
@@ -152,7 +152,7 @@ export function LeagueSelector({
                                     />
                                 </div>
                                 {isManualAddable && (
-                                    <Button size="sm" onClick={handleManualAdd} className="bg-blue-600 hover:bg-blue-500 text-white gap-1">
+                                    <Button type="button" size="sm" onClick={handleManualAdd} className="bg-blue-600 hover:bg-blue-500 text-white gap-1">
                                         <Plus size={16} />
                                         Ekle ({search})
                                     </Button>
@@ -160,6 +160,7 @@ export function LeagueSelector({
                             </div>
                             <div className="flex justify-end gap-2 mt-2">
                                 <Button
+                                    type="button"
                                     size="sm"
                                     variant="ghost"
                                     className="h-6 text-[10px] text-muted-foreground hover:text-primary"
@@ -168,6 +169,7 @@ export function LeagueSelector({
                                     Tümünü Seç
                                 </Button>
                                 <Button
+                                    type="button"
                                     size="sm"
                                     variant="ghost"
                                     className="h-6 text-[10px] text-muted-foreground hover:text-destructive"
@@ -227,10 +229,10 @@ export function LeagueSelector({
                                 <span className="font-bold text-primary">{tempSelected.length}</span> lig seçildi
                             </div>
                             <div className="flex gap-2">
-                                <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
+                                <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
                                     İptal
                                 </Button>
-                                <Button size="sm" onClick={handleSave} className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
+                                <Button type="button" size="sm" onClick={handleSave} className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
                                     <CheckCircle2 className="h-4 w-4" />
                                     Seçimi Kaydet
                                 </Button>
