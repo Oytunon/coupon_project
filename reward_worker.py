@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from threading import Thread
 
-# Paths setup modules
+# Yollar kurulum modülleri
 import os
 sys.path.append(os.getcwd())
 
@@ -16,7 +16,7 @@ from shared.models.event import Event
 from shared.domain.leaderboard import get_event_leaderboard
 from backend_api.app.services.bapi_client import BapiClient
 
-# Configure Logging
+# Loglama Yapılandırması
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -43,11 +43,11 @@ def process_job(job_id: int):
         if not event:
             raise ValueError(f"Event {job.event_id} not found")
 
-        # Get Leaderboard
-        # Leaderboard returns list of dicts sorted by points desc
+        # Lider Tablosunu Al
+        # Lider Tablosu puanlara göre azalan sırada sözlük listesi döndürür
         participants = get_event_leaderboard(db, event.id)
         
-        # Add rank explicitly if not present (assuming get_event_leaderboard might just return list)
+        # Eğer mevcut değilse sıralamayı açıkça ekleyin (get_event_leaderboard'un sadece liste döndürdüğünü varsayarak)
         for idx, p in enumerate(participants, 1):
             p['rank'] = idx
 
@@ -57,6 +57,7 @@ def process_job(job_id: int):
         bapi = BapiClient()
         success_count = 0
         fail_count = 0
+        rewarded_clients = set()
 
         for rule in rewards:
             rule_type = rule.get('reward_type')
@@ -68,10 +69,12 @@ def process_job(job_id: int):
                 logger.warning(f"Skipping unsupported reward type: {rule_type}")
                 continue
 
-            # Identify eligible users
+            # Uygun kullanıcıları belirle
             eligible_users = []
             if criteria_type == 'rank':
                 eligible_users = [p for p in participants if p['rank'] <= int(criteria_value)]
+            elif criteria_type == 'rank_exact':
+                eligible_users = [p for p in participants if p['rank'] == int(criteria_value)]
             elif criteria_type == 'min_points':
                 eligible_users = [p for p in participants if p['points'] >= int(criteria_value)]
             
@@ -81,22 +84,26 @@ def process_job(job_id: int):
                 client_id = user['client_id']
                 user_str = str(client_id)
                 
-                # Check if already processed in this job for this rule? 
-                # Ideally we track per rule, but for simplicity we track per user.
-                # If user matches multiple rules, they get multiple rewards? 
-                # Yes, commonly expected behavior.
+                # Bu iş emrinde zaten işlendi mi kontrol et
+                # Kullanıcı isteği: "Bir ödül alan kullanıcı o etkinlikten tekrar ödül almamalı"
+                if client_id in rewarded_clients:
+                    logger.info(f"Client {client_id} already rewarded in this job. Skipping.")
+                    continue
                 
-                # We need a unique key for the result entry to allow multiple rewards
-                # But JSON keys must be strings. 
-                # Let's append to a list in the results for that user?
+                rewards_given = True
+                rewarded_clients.add(client_id)
+                
+                # Birden fazla ödüle izin vermek için sonuç girişinde benzersiz bir anahtara ihtiyacımız var
+                # Ancak JSON anahtarları dize olmalıdır.
+                # O kullanıcı için sonuçlardaki bir listeye ekleyelim mi?
                 if user_str not in job_results:
                     job_results[user_str] = []
 
                 try:
                     logger.info(f"Distributing {amount} {rule_type} to Client {client_id}")
                     
-                    # Call BAPI
-                    # Info message formatted for clarity
+                    # BAPI'yi çağır
+                    # Netlik için biçimlendirilmiş bilgi mesajı
                     info_msg = f"EventReward:{event.slug} Rank:{user['rank']} Pts:{user['points']}"
                     
                     resp = bapi.send_cash_reward(
@@ -123,11 +130,11 @@ def process_job(job_id: int):
                     })
                     fail_count += 1
                 
-                # Wait 4 seconds between requests to avoid rate limiting
+                # Hız sınırlamasını önlemek için istekler arasında 4 saniye bekleyin
                 logger.info("Waiting 4 seconds before next request...")
                 time.sleep(4)
         
-        # Update job
+        # İşi güncelle
         job.results = job_results
         job.status = "completed"
         job.completed_at = datetime.now()
@@ -154,11 +161,11 @@ def run_worker():
             job = db.query(RewardJob).filter(RewardJob.status == "pending").first()
             if job:
                 logger.info(f"Found pending job {job.id}")
-                # Process in main thread for now to avoid complexity, or spawn thread
-                # Since we want to ensure db session safety, separate thread or process is better if parallel.
-                # But sequential is safer for now.
+                # Şimdilik karmaşıklığı önlemek için ana iş parçacığında işle veya iş parçacığı oluştur
+                # Veritabanı oturum güvenliğini sağlamak istediğimiz için, paralel ise ayrı iş parçacığı veya işlem daha iyidir.
+                # Ancak şimdilik sıralı daha güvenli.
                 job_id = job.id
-                db.close() # Close session before processing
+                db.close() # İşlemeden önce oturumu kapat
                 process_job(job_id)
             else:
                 db.close()

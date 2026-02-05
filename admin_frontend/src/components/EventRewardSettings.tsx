@@ -88,6 +88,7 @@ export function EventRewardSettings({ rewards = [], onChange }: EventRewardSetti
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="rank">Sıralama (İlk X Kişi)</SelectItem>
+                                <SelectItem value="rank_exact">Tam Sıralama (Sadece X. Kişi)</SelectItem>
                                 <SelectItem value="min_points">Puan Barajı (Puan {'>'} X)</SelectItem>
                             </SelectContent>
                         </Select>
@@ -102,7 +103,9 @@ export function EventRewardSettings({ rewards = [], onChange }: EventRewardSetti
                             className="bg-black/20 border-blue-500/20"
                         />
                         <p className="text-[10px] text-muted-foreground">
-                            {newReward.criteria_type === 'rank' ? "Örn: 10 (İlk 10 kişiye verilir)" : "Örn: 5000 (5000 puanı geçenlere verilir)"}
+                            {newReward.criteria_type === 'rank' && "Örn: 10 (İlk 10 kişiye verilir)"}
+                            {newReward.criteria_type === 'rank_exact' && "Örn: 1 (Sadece 1. kişiye verilir)"}
+                            {newReward.criteria_type === 'min_points' && "Örn: 5000 (5000 puanı geçenlere verilir)"}
                         </p>
                     </div>
                 </div>
@@ -137,6 +140,8 @@ export function EventRewardSettings({ rewards = [], onChange }: EventRewardSetti
                                         <div className="text-xs text-muted-foreground flex items-center gap-1">
                                             {rule.criteria_type === 'rank' ? (
                                                 <><Trophy className="h-3 w-3 text-amber-500" /> İlk {rule.criteria_value} Kişi</>
+                                            ) : rule.criteria_type === 'rank_exact' ? (
+                                                <><Trophy className="h-3 w-3 text-purple-500" /> Sadece {rule.criteria_value}. Kişi</>
                                             ) : (
                                                 <><Target className="h-3 w-3 text-blue-400" /> +{rule.criteria_value} Puan</>
                                             )}
