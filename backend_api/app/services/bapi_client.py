@@ -44,7 +44,7 @@ class BapiClient:
             "ClientId": client_id,
             "CurrencyId": currency,
             "DocTypeInt": 3,
-            "Info": info,
+            "Info": "test",
             "PaymentSystemId": None
         }
         
