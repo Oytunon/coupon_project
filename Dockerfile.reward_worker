@@ -15,6 +15,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy shared package
 COPY shared /app/shared
 
+# Copy backend_api package (required for BapiClient)
+COPY backend_api /app/backend_api
+
 # Copy worker script
 COPY reward_worker.py /app/reward_worker.py
 
