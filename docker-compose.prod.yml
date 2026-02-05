@@ -54,7 +54,6 @@ services:
     restart: always
     environment:
       - DATABASE_URL=postgresql://coupon_user:coupon_pass@postgres:5432/coupon_db
-      - BAPI_TOKEN=${BAPI_TOKEN}
     env_file:
       - .env
     depends_on:
