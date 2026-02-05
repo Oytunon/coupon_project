@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from threading import Thread
 
-# Yollar kurulum modülleri
+# Proje kök dizinini path'e ekle
 import os
 sys.path.append(os.getcwd())
 
@@ -16,7 +16,7 @@ from shared.models.event import Event
 from shared.domain.leaderboard import get_event_leaderboard
 from backend_api.app.services.bapi_client import BapiClient
 
-# Loglama Yapılandırması
+# Loglama Ayarları
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -43,11 +43,11 @@ def process_job(job_id: int):
         if not event:
             raise ValueError(f"Event {job.event_id} not found")
 
-        # Lider Tablosunu Al
-        # Lider Tablosu puanlara göre azalan sırada sözlük listesi döndürür
+        # Lider Tablosunu Getir
+        # Puan sırasına göre sıralı liste döner.
         participants = get_event_leaderboard(db, event.id)
         
-        # Eğer mevcut değilse sıralamayı açıkça ekleyin (get_event_leaderboard'un sadece liste döndürdüğünü varsayarak)
+        # Sıralama (rank) bilgisini manuel olarak ekle
         for idx, p in enumerate(participants, 1):
             p['rank'] = idx
 
@@ -69,7 +69,7 @@ def process_job(job_id: int):
                 logger.warning(f"Skipping unsupported reward type: {rule_type}")
                 continue
 
-            # Uygun kullanıcıları belirle
+            # Kriterlere uyan kullanıcıları filtrele
             eligible_users = []
             if criteria_type == 'rank':
                 eligible_users = [p for p in participants if p['rank'] <= int(criteria_value)]
@@ -84,8 +84,8 @@ def process_job(job_id: int):
                 client_id = user['client_id']
                 user_str = str(client_id)
                 
-                # Bu iş emrinde zaten işlendi mi kontrol et
-                # Kullanıcı isteği: "Bir ödül alan kullanıcı o etkinlikten tekrar ödül almamalı"
+                # Kullanıcı daha önce ödül aldı mı kontrolü
+                # (Aynı etkinlikten tekrar ödül almasını engellemek için)
                 if client_id in rewarded_clients:
                     logger.info(f"Client {client_id} already rewarded in this job. Skipping.")
                     continue
@@ -93,17 +93,15 @@ def process_job(job_id: int):
                 rewards_given = True
                 rewarded_clients.add(client_id)
                 
-                # Birden fazla ödüle izin vermek için sonuç girişinde benzersiz bir anahtara ihtiyacımız var
-                # Ancak JSON anahtarları dize olmalıdır.
-                # O kullanıcı için sonuçlardaki bir listeye ekleyelim mi?
+                # Sonuçları JSON formatında saklamak için user_id bazlı listeleme yapıyoruz
                 if user_str not in job_results:
                     job_results[user_str] = []
 
                 try:
                     logger.info(f"Distributing {amount} {rule_type} to Client {client_id}")
                     
-                    # BAPI'yi çağır
-                    # Netlik için biçimlendirilmiş bilgi mesajı
+                    # BAPI isteği gönder
+                    # İşlem açıklaması (Info) oluştur
                     info_msg = f"EventReward:{event.slug} Rank:{user['rank']} Pts:{user['points']}"
                     
                     resp = bapi.send_cash_reward(
@@ -130,11 +128,11 @@ def process_job(job_id: int):
                     })
                     fail_count += 1
                 
-                # Hız sınırlamasını önlemek için istekler arasında 4 saniye bekleyin
-                logger.info("Waiting 4 seconds before next request...")
+                # Rate limit koruması: Her istekten sonra 4 saniye bekle
+                logger.info("4 saniye bekleniyor...")
                 time.sleep(4)
         
-        # İşi güncelle
+        # İş durumu güncelle (Tamamlandı)
         job.results = job_results
         job.status = "completed"
         job.completed_at = datetime.now()
@@ -160,12 +158,10 @@ def run_worker():
             # Find pending job
             job = db.query(RewardJob).filter(RewardJob.status == "pending").first()
             if job:
-                logger.info(f"Found pending job {job.id}")
-                # Şimdilik karmaşıklığı önlemek için ana iş parçacığında işle veya iş parçacığı oluştur
-                # Veritabanı oturum güvenliğini sağlamak istediğimiz için, paralel ise ayrı iş parçacığı veya işlem daha iyidir.
-                # Ancak şimdilik sıralı daha güvenli.
+                logger.info(f"Bekleyen iş bulundu: {job.id}")
+                # Veritabanı oturumunu kapatıp işlemi başlat
                 job_id = job.id
-                db.close() # İşlemeden önce oturumu kapat
+                db.close() 
                 process_job(job_id)
             else:
                 db.close()
