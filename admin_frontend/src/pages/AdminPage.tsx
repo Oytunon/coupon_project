@@ -30,7 +30,8 @@ import {
     Search,
     Download,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Gift
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -40,6 +41,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { apiClient } from "../api/client"
 import { LeagueSelector } from "@/components/LeagueSelector"
+import { EventRewardSettings } from "@/components/EventRewardSettings"
 
 const fetchAdminStats = async () => {
     const res = await apiClient.get('/admin/stats')
@@ -116,6 +118,11 @@ const deleteEvent = async (eventId: number) => {
     return res.data
 }
 
+const distributeRewards = async (eventId: number) => {
+    const res = await apiClient.post(`/admin/events/${eventId}/distribute-rewards`)
+    return res.data
+}
+
 export default function AdminPage() {
     const { toast } = useToast()
     const { logout } = useAuth()
@@ -170,10 +177,12 @@ export default function AdminPage() {
             max_combination: null as number | null,
             allowed_league_ids: [] as number[],
             scoring_formula: "stake_times_odds",
-            min_deposit: 0
+            min_deposit: 0,
+            rewards: [] as any[]
         }
     })
     const [leagueIdsInput, setLeagueIdsInput] = useState("")
+    const [modalTab, setModalTab] = useState<"general" | "rules" | "rewards">("general")
 
     const [showEditEvent, setShowEditEvent] = useState(false)
     const [editingEvent, setEditingEvent] = useState<any>(null)
@@ -415,11 +424,13 @@ export default function AdminPage() {
                 min_combination: rules.min_combination ?? 2,
                 allowed_league_ids: rules.allowed_league_ids ?? [],
                 min_deposit: rules.min_deposit ?? 1000,
+                rewards: rules.rewards || [],
                 ...rules
             }
         })
         setLeagueIdsInput(rules.allowed_league_ids ? rules.allowed_league_ids.join(", ") : "")
         setShowEditEvent(true)
+        setModalTab("general")
     }
 
     const handleExportParticipants = async (eventId: number, eventName: string) => {
@@ -728,6 +739,10 @@ export default function AdminPage() {
                                                 <Zap className="h-4 w-4" />
                                             </Button>
 
+                                            <Button size="icon" variant="ghost" className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10" onClick={() => distributeRewards(event.id).then(() => toast({ title: "Başarılı", description: "Ödül dağıtımı sıraya alındı." }))} title="Ödülleri Dağıt">
+                                                <Gift className="h-4 w-4" />
+                                            </Button>
+
                                             <Button size="icon" variant="ghost" onClick={() => handleViewDetails(event)} title="Detaylar">
                                                 <Eye className="h-4 w-4 text-purple-400" />
                                             </Button>
@@ -775,132 +790,154 @@ export default function AdminPage() {
                                 <Card className="bg-card border-white/5 w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
                                     <CardHeader>
                                         <CardTitle>Yeni Kampanya Oluştur</CardTitle>
-                                        <CardDescription>Kampanya kuralları ve tarih aralığı belirleyin.</CardDescription>
+                                        <CardDescription>Kampanya kuralları ve ödülleri belirleyin.</CardDescription>
+                                        <div className="flex gap-2 mt-4 border-b border-white/10">
+                                            <button onClick={() => setModalTab("general")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'general' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Genel Ayarlar</button>
+                                            <button onClick={() => setModalTab("rules")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'rules' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Kurallar</button>
+                                            <button onClick={() => setModalTab("rewards")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'rewards' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Ödüller</button>
+                                        </div>
                                     </CardHeader>
-                                    <CardContent className="overflow-y-auto custom-scrollbar pr-2">
+                                    <CardContent className="overflow-y-auto custom-scrollbar pr-2 mt-4">
                                         <form onSubmit={handleCreateEvent} className="space-y-4">
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-muted-foreground">Kampanya Adı</label>
-                                                <Input value={newEvent.name} onChange={e => setNewEvent({ ...newEvent, name: e.target.value })} required placeholder="Örn: Hafta Sonu Ligi" className="bg-black/20" />
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-muted-foreground">Açıklama</label>
-                                                <textarea
-                                                    value={newEvent.description}
-                                                    onChange={e => setNewEvent({ ...newEvent, description: e.target.value })}
-                                                    placeholder="Kampanya detayları..."
-                                                    className="flex min-h-[80px] w-full rounded-md border border-input bg-black/20 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                                />
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-4">
-                                                {/* Slug is auto-generated */}
-                                                <div className="space-y-3 bg-white/5 p-3 rounded-lg border border-white/5">
+                                            {/* TAB 1: GENERAL */}
+                                            {modalTab === 'general' && (
+                                                <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
                                                     <div className="space-y-2">
-                                                        <div className="flex justify-between items-center">
-                                                            <label className="text-xs font-bold text-emerald-400">Kazanan Çarpanı: <span className="text-sm">x{newEvent.won_point_multiplier.toFixed(1)}</span></label>
-                                                        </div>
-                                                        <input
-                                                            type="range" min="0.5" max="5.0" step="0.1"
-                                                            value={newEvent.won_point_multiplier}
-                                                            onChange={e => setNewEvent({ ...newEvent, won_point_multiplier: parseFloat(e.target.value) })}
-                                                            className="w-full h-1.5 bg-emerald-500/20 rounded-lg appearance-none cursor-pointer accent-emerald-500 hover:accent-emerald-400 transition-all"
+                                                        <label className="text-xs font-bold text-muted-foreground">Kampanya Adı</label>
+                                                        <Input value={newEvent.name} onChange={e => setNewEvent({ ...newEvent, name: e.target.value })} required placeholder="Örn: Hafta Sonu Ligi" className="bg-black/20" />
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-bold text-muted-foreground">Açıklama</label>
+                                                        <textarea
+                                                            value={newEvent.description}
+                                                            onChange={e => setNewEvent({ ...newEvent, description: e.target.value })}
+                                                            placeholder="Kampanya detayları..."
+                                                            className="flex min-h-[80px] w-full rounded-md border border-input bg-black/20 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                                         />
                                                     </div>
-                                                    <div className="space-y-2">
-                                                        <div className="flex justify-between items-center">
-                                                            <label className="text-xs font-bold text-red-400">Kaybeden Çarpanı: <span className="text-sm">x{newEvent.loss_point_multiplier.toFixed(1)}</span></label>
+
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold text-muted-foreground">Başlangıç</label>
+                                                            <Input type="datetime-local" value={newEvent.start_date} onChange={e => setNewEvent({ ...newEvent, start_date: e.target.value })} required className="bg-black/20" />
                                                         </div>
-                                                        <input
-                                                            type="range" min="0" max="2.0" step="0.1"
-                                                            value={newEvent.loss_point_multiplier}
-                                                            onChange={e => setNewEvent({ ...newEvent, loss_point_multiplier: parseFloat(e.target.value) })}
-                                                            className="w-full h-1.5 bg-red-500/20 rounded-lg appearance-none cursor-pointer accent-red-500 hover:accent-red-400 transition-all"
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold text-muted-foreground">Bitiş</label>
+                                                            <Input type="datetime-local" value={newEvent.end_date} onChange={e => setNewEvent({ ...newEvent, end_date: e.target.value })} required className="bg-black/20" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* TAB 2: RULES */}
+                                            {modalTab === 'rules' && (
+                                                <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        {/* Multipliers */}
+                                                        <div className="space-y-3 bg-white/5 p-3 rounded-lg border border-white/5">
+                                                            <div className="space-y-2">
+                                                                <div className="flex justify-between items-center">
+                                                                    <label className="text-xs font-bold text-emerald-400">Kazanan Çarpanı: <span className="text-sm">x{newEvent.won_point_multiplier.toFixed(1)}</span></label>
+                                                                </div>
+                                                                <input
+                                                                    type="range" min="0.5" max="5.0" step="0.1"
+                                                                    value={newEvent.won_point_multiplier}
+                                                                    onChange={e => setNewEvent({ ...newEvent, won_point_multiplier: parseFloat(e.target.value) })}
+                                                                    className="w-full h-1.5 bg-emerald-500/20 rounded-lg appearance-none cursor-pointer accent-emerald-500 hover:accent-emerald-400 transition-all"
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <div className="flex justify-between items-center">
+                                                                    <label className="text-xs font-bold text-red-400">Kaybeden Çarpanı: <span className="text-sm">x{newEvent.loss_point_multiplier.toFixed(1)}</span></label>
+                                                                </div>
+                                                                <input
+                                                                    type="range" min="0" max="2.0" step="0.1"
+                                                                    value={newEvent.loss_point_multiplier}
+                                                                    onChange={e => setNewEvent({ ...newEvent, loss_point_multiplier: parseFloat(e.target.value) })}
+                                                                    className="w-full h-1.5 bg-red-500/20 rounded-lg appearance-none cursor-pointer accent-red-500 hover:accent-red-400 transition-all"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Formula */}
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold text-muted-foreground">Puan Hesaplama Türü</label>
+                                                            <Select
+                                                                value={newEvent.rules.scoring_formula}
+                                                                onValueChange={(val) => setNewEvent({
+                                                                    ...newEvent,
+                                                                    rules: { ...newEvent.rules, scoring_formula: val }
+                                                                })}
+                                                            >
+                                                                <SelectTrigger className="bg-black/20 border-white/10">
+                                                                    <SelectValue placeholder="Seçiniz" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="simple">Sadece Oran (Klasik)</SelectItem>
+                                                                    <SelectItem value="stake_times_odds">Yatırım x Oran</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-4 p-4 bg-white/5 rounded-lg border border-white/5">
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold text-primary">Min Oran</label>
+                                                            <Input type="number" step="0.1" value={newEvent.rules.min_odd} onChange={e => setNewEvent({ ...newEvent, rules: { ...newEvent.rules, min_odd: parseFloat(e.target.value) } })} className="bg-black/20 border-primary/20" />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold text-primary">Min Bahis (TL)</label>
+                                                            <Input type="number" value={newEvent.rules.min_stake} onChange={e => setNewEvent({ ...newEvent, rules: { ...newEvent.rules, min_stake: parseInt(e.target.value) } })} className="bg-black/20 border-primary/20" />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold text-primary">Min Kombine</label>
+                                                            <Input type="number" value={newEvent.rules.min_combination} onChange={e => setNewEvent({ ...newEvent, rules: { ...newEvent.rules, min_combination: parseInt(e.target.value) } })} className="bg-black/20 border-primary/20" />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold text-primary">Max Kombine</label>
+                                                            <Input type="number" placeholder="Sınırsız" value={newEvent.rules.max_combination || ""} onChange={e => setNewEvent({ ...newEvent, rules: { ...newEvent.rules, max_combination: e.target.value ? parseInt(e.target.value) : null } })} className="bg-black/20 border-primary/20" />
+                                                        </div>
+                                                        <div className="space-y-3 bg-amber-500/5 p-3 rounded-lg border border-amber-500/10">
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <label className="text-[10px] font-bold text-amber-500 uppercase flex items-center gap-1">
+                                                                    <Shield className="h-3 w-3" /> Min Yatırım
+                                                                </label>
+                                                                <span className="text-xs font-bold text-amber-400">{newEvent.rules.min_deposit?.toLocaleString() || "0"} TL</span>
+                                                            </div>
+                                                            <Input
+                                                                type="number"
+                                                                min="0"
+                                                                step="100"
+                                                                value={newEvent.rules.min_deposit}
+                                                                onChange={e => {
+                                                                    const val = parseInt(e.target.value)
+                                                                    setNewEvent({ ...newEvent, rules: { ...newEvent.rules, min_deposit: isNaN(val) ? 0 : val } })
+                                                                }}
+                                                                className="bg-black/20 border-amber-500/20 text-amber-500"
+                                                            />
+                                                            <p className="text-[9px] text-amber-500/60 leading-tight">Yalnızca bu tutar ve üzeri yatırım yapanlar katılabilir (0 = Herkes).</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-2 p-4 bg-emerald-500/5 rounded-lg border border-emerald-500/20">
+                                                        <LeagueSelector
+                                                            selectedIds={newEvent.rules.allowed_league_ids}
+                                                            onChange={(ids) => setNewEvent({ ...newEvent, rules: { ...newEvent.rules, allowed_league_ids: ids } })}
                                                         />
                                                     </div>
                                                 </div>
+                                            )}
 
-                                                <div className="space-y-4">
-                                                    <div className="space-y-2">
-                                                        <label className="text-xs font-bold text-muted-foreground">Puan Hesaplama Türü</label>
-                                                        <Select
-                                                            value={newEvent.rules.scoring_formula}
-                                                            onValueChange={(val) => setNewEvent({
-                                                                ...newEvent,
-                                                                rules: { ...newEvent.rules, scoring_formula: val }
-                                                            })}
-                                                        >
-                                                            <SelectTrigger className="bg-black/20 border-white/10">
-                                                                <SelectValue placeholder="Seçiniz" />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="simple">Sadece Oran (Klasik)</SelectItem>
-                                                                <SelectItem value="stake_times_odds">Yatırım x Oran</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-muted-foreground">Başlangıç</label>
-                                                    <Input type="datetime-local" value={newEvent.start_date} onChange={e => setNewEvent({ ...newEvent, start_date: e.target.value })} required className="bg-black/20" />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-muted-foreground">Bitiş</label>
-                                                    <Input type="datetime-local" value={newEvent.end_date} onChange={e => setNewEvent({ ...newEvent, end_date: e.target.value })} required className="bg-black/20" />
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-4 p-4 bg-white/5 rounded-lg border border-white/5">
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-primary">Min Oran</label>
-                                                    <Input type="number" step="0.1" value={newEvent.rules.min_odd} onChange={e => setNewEvent({ ...newEvent, rules: { ...newEvent.rules, min_odd: parseFloat(e.target.value) } })} className="bg-black/20 border-primary/20" />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-primary">Min Bahis (TL)</label>
-                                                    <Input type="number" value={newEvent.rules.min_stake} onChange={e => setNewEvent({ ...newEvent, rules: { ...newEvent.rules, min_stake: parseInt(e.target.value) } })} className="bg-black/20 border-primary/20" />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-primary">Min Kombine</label>
-                                                    <Input type="number" value={newEvent.rules.min_combination} onChange={e => setNewEvent({ ...newEvent, rules: { ...newEvent.rules, min_combination: parseInt(e.target.value) } })} className="bg-black/20 border-primary/20" />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-primary">Max Kombine</label>
-                                                    <Input type="number" placeholder="Sınırsız" value={newEvent.rules.max_combination || ""} onChange={e => setNewEvent({ ...newEvent, rules: { ...newEvent.rules, max_combination: e.target.value ? parseInt(e.target.value) : null } })} className="bg-black/20 border-primary/20" />
-                                                </div>
-                                                <div className="space-y-3 bg-amber-500/5 p-3 rounded-lg border border-amber-500/10">
-                                                    <div className="flex justify-between items-center mb-1">
-                                                        <label className="text-[10px] font-bold text-amber-500 uppercase flex items-center gap-1">
-                                                            <Shield className="h-3 w-3" /> Min Yatırım
-                                                        </label>
-                                                        <span className="text-xs font-bold text-amber-400">{newEvent.rules.min_deposit?.toLocaleString() || "0"} TL</span>
-                                                    </div>
-                                                    <Input
-                                                        type="number"
-                                                        min="0"
-                                                        step="100"
-                                                        value={newEvent.rules.min_deposit}
-                                                        onChange={e => {
-                                                            const val = parseInt(e.target.value)
-                                                            setNewEvent({ ...newEvent, rules: { ...newEvent.rules, min_deposit: isNaN(val) ? 0 : val } })
-                                                        }}
-                                                        className="bg-black/20 border-amber-500/20 text-amber-500"
+                                            {/* TAB 3: REWARDS */}
+                                            {modalTab === 'rewards' && (
+                                                <div className="animate-in fade-in slide-in-from-right-4">
+                                                    <EventRewardSettings
+                                                        rewards={newEvent.rules.rewards}
+                                                        onChange={(rewards) => setNewEvent({ ...newEvent, rules: { ...newEvent.rules, rewards } })}
                                                     />
-                                                    <p className="text-[9px] text-amber-500/60 leading-tight">Yalnızca bu tutar ve üzeri yatırım yapanlar katılabilir (0 = Herkes).</p>
                                                 </div>
-                                            </div>
-
-
-
-                                            <div className="space-y-2 p-4 bg-emerald-500/5 rounded-lg border border-emerald-500/20">
-                                                <LeagueSelector
-                                                    selectedIds={newEvent.rules.allowed_league_ids}
-                                                    onChange={(ids) => setNewEvent({ ...newEvent, rules: { ...newEvent.rules, allowed_league_ids: ids } })}
-                                                />
-                                            </div>
+                                            )}
 
                                             <div className="flex justify-end gap-2 pt-4 border-t border-white/5">
                                                 <Button type="button" variant="ghost" onClick={() => setShowAddEvent(false)}>İptal</Button>
@@ -908,8 +945,7 @@ export default function AdminPage() {
                                                     {saving === "create_event" ? "Kaydediliyor..." : "Kampanyayı Oluştur"}
                                                 </Button>
                                             </div>
-                                        </form>
-                                    </CardContent>
+                                        </form>                                                </CardContent>
                                 </Card>
                             </div>
                         )
@@ -922,136 +958,157 @@ export default function AdminPage() {
                                     <CardHeader>
                                         <CardTitle>Kampanyayı Düzenle</CardTitle>
                                         <CardDescription>Kampanya kurallarını güncelle.</CardDescription>
+                                        <div className="flex gap-2 mt-4 border-b border-white/10">
+                                            <button onClick={() => setModalTab("general")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'general' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Genel Ayarlar</button>
+                                            <button onClick={() => setModalTab("rules")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'rules' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Kurallar</button>
+                                            <button onClick={() => setModalTab("rewards")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'rewards' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Ödüller</button>
+                                        </div>
                                     </CardHeader>
-                                    <CardContent className="max-h-[70vh] overflow-y-auto">
+                                    <CardContent className="max-h-[70vh] overflow-y-auto custom-scrollbar pr-2 mt-4">
                                         <form onSubmit={handleUpdateEvent} className="space-y-4">
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-muted-foreground">Açıklama</label>
-                                                <textarea
-                                                    value={editingEvent.description}
-                                                    onChange={e => setEditingEvent({ ...editingEvent, description: e.target.value })}
-                                                    placeholder="Kampanya detayları..."
-                                                    className="flex min-h-[80px] w-full rounded-md border border-input bg-black/20 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                                />
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-muted-foreground">Kampanya Adı</label>
-                                                    <Input value={editingEvent.name} onChange={e => setEditingEvent({ ...editingEvent, name: e.target.value })} required className="bg-black/20" />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-muted-foreground">Event Key / Slug</label>
-                                                    <Input value={editingEvent.slug} onChange={e => setEditingEvent({ ...editingEvent, slug: e.target.value })} required className="bg-black/20 font-mono" />
-                                                </div>
-                                                <div className="space-y-3 bg-white/5 p-3 rounded-lg border border-white/5">
+                                            {/* TAB 1: GENERAL */}
+                                            {modalTab === 'general' && (
+                                                <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
                                                     <div className="space-y-2">
-                                                        <div className="flex justify-between items-center">
-                                                            <label className="text-xs font-bold text-emerald-400">Kazanan Çarpanı: <span className="text-sm">x{editingEvent.won_point_multiplier.toFixed(1)}</span></label>
-                                                        </div>
-                                                        <input
-                                                            type="range" min="0.5" max="5.0" step="0.1"
-                                                            value={editingEvent.won_point_multiplier}
-                                                            onChange={e => setEditingEvent({ ...editingEvent, won_point_multiplier: parseFloat(e.target.value) })}
-                                                            className="w-full h-1.5 bg-emerald-500/20 rounded-lg appearance-none cursor-pointer accent-emerald-500 hover:accent-emerald-400 transition-all"
+                                                        <label className="text-xs font-bold text-muted-foreground">Kampanya Adı</label>
+                                                        <Input value={editingEvent.name} onChange={e => setEditingEvent({ ...editingEvent, name: e.target.value })} required className="bg-black/20" />
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-bold text-muted-foreground">Açıklama</label>
+                                                        <textarea
+                                                            value={editingEvent.description}
+                                                            onChange={e => setEditingEvent({ ...editingEvent, description: e.target.value })}
+                                                            placeholder="Kampanya detayları..."
+                                                            className="flex min-h-[80px] w-full rounded-md border border-input bg-black/20 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                                         />
                                                     </div>
+
                                                     <div className="space-y-2">
-                                                        <div className="flex justify-between items-center">
-                                                            <label className="text-xs font-bold text-red-400">Kaybeden Çarpanı: <span className="text-sm">x{editingEvent.loss_point_multiplier.toFixed(1)}</span></label>
+                                                        <label className="text-xs font-bold text-muted-foreground">Event Key / Slug</label>
+                                                        <Input value={editingEvent.slug} onChange={e => setEditingEvent({ ...editingEvent, slug: e.target.value })} required className="bg-black/20 font-mono" />
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold text-muted-foreground">Başlangıç</label>
+                                                            <Input type="datetime-local" value={editingEvent.start_date} onChange={e => setEditingEvent({ ...editingEvent, start_date: e.target.value })} required className="bg-black/20" />
                                                         </div>
-                                                        <input
-                                                            type="range" min="0" max="2.0" step="0.1"
-                                                            value={editingEvent.loss_point_multiplier}
-                                                            onChange={e => setEditingEvent({ ...editingEvent, loss_point_multiplier: parseFloat(e.target.value) })}
-                                                            className="w-full h-1.5 bg-red-500/20 rounded-lg appearance-none cursor-pointer accent-red-500 hover:accent-red-400 transition-all"
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold text-muted-foreground">Bitiş</label>
+                                                            <Input type="datetime-local" value={editingEvent.end_date} onChange={e => setEditingEvent({ ...editingEvent, end_date: e.target.value })} required className="bg-black/20" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* TAB 2: RULES */}
+                                            {modalTab === 'rules' && (
+                                                <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        {/* Multipliers */}
+                                                        <div className="space-y-3 bg-white/5 p-3 rounded-lg border border-white/5">
+                                                            <div className="space-y-2">
+                                                                <div className="flex justify-between items-center">
+                                                                    <label className="text-xs font-bold text-emerald-400">Kazanan Çarpanı: <span className="text-sm">x{editingEvent.won_point_multiplier.toFixed(1)}</span></label>
+                                                                </div>
+                                                                <input
+                                                                    type="range" min="0.5" max="5.0" step="0.1"
+                                                                    value={editingEvent.won_point_multiplier}
+                                                                    onChange={e => setEditingEvent({ ...editingEvent, won_point_multiplier: parseFloat(e.target.value) })}
+                                                                    className="w-full h-1.5 bg-emerald-500/20 rounded-lg appearance-none cursor-pointer accent-emerald-500 hover:accent-emerald-400 transition-all"
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <div className="flex justify-between items-center">
+                                                                    <label className="text-xs font-bold text-red-400">Kaybeden Çarpanı: <span className="text-sm">x{editingEvent.loss_point_multiplier.toFixed(1)}</span></label>
+                                                                </div>
+                                                                <input
+                                                                    type="range" min="0" max="2.0" step="0.1"
+                                                                    value={editingEvent.loss_point_multiplier}
+                                                                    onChange={e => setEditingEvent({ ...editingEvent, loss_point_multiplier: parseFloat(e.target.value) })}
+                                                                    className="w-full h-1.5 bg-red-500/20 rounded-lg appearance-none cursor-pointer accent-red-500 hover:accent-red-400 transition-all"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Formula */}
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold text-muted-foreground">Puan Hesaplama Türü</label>
+                                                            <Select
+                                                                value={editingEvent.rules.scoring_formula || "simple"}
+                                                                onValueChange={(val) => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, scoring_formula: val } })}
+                                                            >
+                                                                <SelectTrigger className="bg-black/20 border-white/10">
+                                                                    <SelectValue placeholder="Seçiniz" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="simple">Sadece Oran (Klasik)</SelectItem>
+                                                                    <SelectItem value="stake_times_odds">Yatırım x Oran</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-4 p-4 bg-white/5 rounded-lg border border-white/5">
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold text-primary">Min Oran</label>
+                                                            <Input type="number" step="0.1" value={editingEvent.rules.min_odd} onChange={e => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, min_odd: parseFloat(e.target.value) } })} className="bg-black/20 border-primary/20" />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold text-primary">Min Bahis (TL)</label>
+                                                            <Input type="number" value={editingEvent.rules.min_stake} onChange={e => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, min_stake: parseInt(e.target.value) } })} className="bg-black/20 border-primary/20" />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold text-primary">Min Kombine</label>
+                                                            <Input type="number" value={editingEvent.rules.min_combination} onChange={e => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, min_combination: parseInt(e.target.value) } })} className="bg-black/20 border-primary/20" />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-bold text-primary">Max Kombine</label>
+                                                            <Input type="number" placeholder="Sınırsız" value={editingEvent.rules.max_combination || ""} onChange={e => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, max_combination: e.target.value ? parseInt(e.target.value) : null } })} className="bg-black/20 border-primary/20" />
+                                                        </div>
+                                                        <div className="space-y-3 bg-amber-500/5 p-3 rounded-lg border border-amber-500/10">
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <label className="text-[10px] font-bold text-amber-500 uppercase flex items-center gap-1">
+                                                                    <Shield className="h-3 w-3" /> Min Yatırım
+                                                                </label>
+                                                                <span className="text-xs font-bold text-amber-400">{editingEvent.rules.min_deposit?.toLocaleString() || "0"} TL</span>
+                                                            </div>
+                                                            <Input
+                                                                type="number"
+                                                                min="0"
+                                                                step="100"
+                                                                value={editingEvent.rules.min_deposit}
+                                                                onChange={e => {
+                                                                    const val = parseInt(e.target.value)
+                                                                    setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, min_deposit: isNaN(val) ? 0 : val } })
+                                                                }}
+                                                                className="bg-black/20 border-amber-500/20 text-amber-500"
+                                                            />
+                                                            <p className="text-[9px] text-amber-500/60 leading-tight">Yalnızca bu tutar ve üzeri yatırım yapanlar katılabilir (0 = Herkes).</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-2 p-4 bg-emerald-500/5 rounded-lg border border-emerald-500/20">
+                                                        <LeagueSelector
+                                                            selectedIds={editingEvent.rules.allowed_league_ids}
+                                                            onChange={(ids) => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, allowed_league_ids: ids } })}
                                                         />
                                                     </div>
                                                 </div>
-                                            </div>
+                                            )}
 
-
-                                            <div className="space-y-2 p-4 bg-blue-500/5 rounded-lg border border-blue-500/20">
-                                                <label className="text-xs font-bold text-blue-400">Puan Hesaplama Türü</label>
-                                                <Select
-                                                    value={editingEvent.rules.scoring_formula || "simple"}
-                                                    onValueChange={(val) => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, scoring_formula: val } })}
-                                                >
-                                                    <SelectTrigger className="bg-black/20 border-blue-500/20 text-white">
-                                                        <SelectValue placeholder="Hesaplama Yöntemi Seç" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="simple">Sadece Oran (Klasik)</SelectItem>
-                                                        <SelectItem value="stake_times_odds">Yatırım x Oran</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {editingEvent.rules.scoring_formula === 'stake_times_odds' ?
-                                                        "Puan = Yatırım Miktarı * Kupon Oranı" :
-                                                        "Puan = Kupon Oranı"}
-                                                </p>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-muted-foreground">Başlangıç</label>
-                                                    <Input type="datetime-local" value={editingEvent.start_date} onChange={e => setEditingEvent({ ...editingEvent, start_date: e.target.value })} required className="bg-black/20" />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-muted-foreground">Bitiş</label>
-                                                    <Input type="datetime-local" value={editingEvent.end_date} onChange={e => setEditingEvent({ ...editingEvent, end_date: e.target.value })} required className="bg-black/20" />
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-4 p-4 bg-white/5 rounded-lg border border-white/5">
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-primary">Min Oran</label>
-                                                    <Input type="number" step="0.1" value={editingEvent.rules.min_odd} onChange={e => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, min_odd: parseFloat(e.target.value) } })} className="bg-black/20 border-primary/20" />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-primary">Min Bahis (TL)</label>
-                                                    <Input type="number" value={editingEvent.rules.min_stake} onChange={e => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, min_stake: parseInt(e.target.value) } })} className="bg-black/20 border-primary/20" />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-primary">Min Kombine</label>
-                                                    <Input type="number" value={editingEvent.rules.min_combination} onChange={e => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, min_combination: parseInt(e.target.value) } })} className="bg-black/20 border-primary/20" />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-bold text-primary">Max Kombine</label>
-                                                    <Input type="number" placeholder="Sınırsız" value={editingEvent.rules.max_combination || ""} onChange={e => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, max_combination: e.target.value ? parseInt(e.target.value) : null } })} className="bg-black/20 border-primary/20" />
-                                                </div>
-                                                <div className="space-y-3 bg-amber-500/5 p-3 rounded-lg border border-amber-500/10">
-                                                    <div className="flex justify-between items-center mb-1">
-                                                        <label className="text-[10px] font-bold text-amber-500 uppercase flex items-center gap-1">
-                                                            <Shield className="h-3 w-3" /> Min Yatırım
-                                                        </label>
-                                                        <span className="text-xs font-bold text-amber-400">{editingEvent.rules.min_deposit?.toLocaleString() || "0"} TL</span>
-                                                    </div>
-                                                    <Input
-                                                        type="number"
-                                                        min="0"
-                                                        step="100"
-                                                        value={editingEvent.rules.min_deposit}
-                                                        onChange={e => {
-                                                            const val = parseInt(e.target.value)
-                                                            setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, min_deposit: isNaN(val) ? 0 : val } })
-                                                        }}
-                                                        className="bg-black/20 border-amber-500/20 text-amber-500"
+                                            {/* TAB 3: REWARDS */}
+                                            {modalTab === 'rewards' && (
+                                                <div className="animate-in fade-in slide-in-from-right-4">
+                                                    <EventRewardSettings
+                                                        rewards={editingEvent.rules.rewards}
+                                                        onChange={(rewards) => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, rewards } })}
                                                     />
-                                                    <p className="text-[9px] text-amber-500/60 leading-tight">Yalnızca bu tutar ve üzeri yatırım yapanlar katılabilir (0 = Herkes).</p>
                                                 </div>
-                                            </div>
+                                            )}
 
-
-
-                                            <div className="md:col-span-2 space-y-2">
-                                                <LeagueSelector
-                                                    selectedIds={editingEvent.rules.allowed_league_ids}
-                                                    onChange={(ids) => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, allowed_league_ids: ids } })}
-                                                />
-                                            </div>
-
-                                            <div className="flex justify-end gap-2 pt-4">
+                                            <div className="flex justify-end gap-2 pt-4 border-t border-white/5">
                                                 <Button type="button" variant="ghost" onClick={() => setShowEditEvent(false)}>İptal</Button>
                                                 <Button type="submit" disabled={saving === "update_event"} className="bg-primary hover:bg-primary/90">
                                                     {saving === "update_event" ? "Güncelleniyor..." : "Güncelle"}

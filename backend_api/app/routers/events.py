@@ -22,6 +22,15 @@ router = APIRouter(prefix="/api/admin/events", tags=["admin-events"])
 
 # === Pydantic Schemas ===
 
+
+class RewardRule(BaseModel):
+    reward_type: str  # 'cash', 'bonus', 'freebet', 'spin'
+    amount: float
+    currency: str = "TRY"
+    criteria_type: str # 'rank', 'min_points'
+    criteria_value: int # e.g. 10 (rank <= 10) or 5000 (points >= 5000)
+
+
 class EventRules(BaseModel):
     model_config = {"extra": "allow"}
     min_stake: float = 100.0
@@ -34,6 +43,7 @@ class EventRules(BaseModel):
     combo_bonus_enabled: bool = False
     combo_bonus_multiplier: float = 0.1
     min_deposit: int = 1000
+    rewards: List[RewardRule] = []
 
 
 class EventCreate(BaseModel):
@@ -449,6 +459,37 @@ async def run_event_worker(
 
     background_tasks.add_task(process_coupons, target_event_id=event_id, job_id=job.id)
     return {"status": "initiated", "message": "Worker started", "job_id": job.id}
+
+
+@router.post("/{event_id}/distribute-rewards", status_code=202)
+async def distribute_event_rewards(
+    event_id: int,
+    db: Session = Depends(get_db_session),
+    current_admin: AdminUser = Depends(get_current_admin)
+):
+    """Event ödüllerini dağıtmak için worker'ı tetikle."""
+    from shared.models.reward_job import RewardJob
+    
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(404, "Event not found")
+        
+    # Optional: Check if event is ended?
+    # For flexibility, we allow it even if not ended, but maybe warn?
+    # User requirement: "turnuvayı bitirdiğimizde ödülleri dağıt dememiz gerekli"
+    # So it's intended for after. But we won't block strictly.
+    
+    # Create Job
+    job = RewardJob(event_id=event_id, status="pending")
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    
+    # We rely on the standalone worker to pick this up using the scheduler or polling.
+    # If we want to trigger it immediately, we might need a way to signal it.
+    # But user asked for "separate worker", implying async processing.
+    
+    return {"status": "queued", "message": "Reward distribution queued", "job_id": job.id}
 
 
 @router.get("/{event_id}/participants")

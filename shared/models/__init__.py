@@ -7,4 +7,5 @@ from shared.models.event import Event
 from shared.models.coupon_event_result import CouponEventResult
 from shared.models.enrollment import EventParticipant
 from shared.models.worker_log import WorkerLog
+from shared.models.reward_job import RewardJob
 from .league import League
