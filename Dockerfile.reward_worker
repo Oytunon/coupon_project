@@ -1,0 +1,25 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements (using backend_api's as it covers most needs)
+COPY backend_api/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy shared package
+COPY shared /app/shared
+
+# Copy worker script
+COPY reward_worker.py /app/reward_worker.py
+
+# Set Python path
+ENV PYTHONPATH=/app
+
+# Run the worker with unbuffered output
+CMD ["python", "-u", "reward_worker.py"]
