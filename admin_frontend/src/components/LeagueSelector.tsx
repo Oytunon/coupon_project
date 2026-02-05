@@ -158,6 +158,24 @@ export function LeagueSelector({
                                     </Button>
                                 )}
                             </div>
+                            <div className="flex justify-end gap-2 mt-2">
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-6 text-[10px] text-muted-foreground hover:text-primary"
+                                    onClick={() => setTempSelected(staticLeagues.map(l => l.id))}
+                                >
+                                    Tümünü Seç
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-6 text-[10px] text-muted-foreground hover:text-destructive"
+                                    onClick={() => setTempSelected([])}
+                                >
+                                    Seçimi Temizle
+                                </Button>
+                            </div>
                         </div>
 
                         <CardContent className="flex-1 overflow-y-auto p-2 custom-scrollbar">
