@@ -18,7 +18,7 @@ class BapiClient:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
         if self.token:
-            headers["Authorization"] = f"{self.token}"
+            headers["Authentication"] = f"{self.token}"
         return headers
 
     def send_cash_reward(self, client_id: int, amount: float, info: str = "Reward Distribution", currency: str = "TRY") -> dict:
