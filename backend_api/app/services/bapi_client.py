@@ -49,6 +49,18 @@ class BapiClient:
         }
         
         try:
+            # Debug: Log exact payload and headers
+            import json
+            json_body = json.dumps(payload)
+            masked_headers = self._get_headers().copy()
+            if "Authorization" in masked_headers:
+                token = masked_headers["Authorization"]
+                masked_headers["Authorization"] = token[:10] + "***" if token else "None"
+            
+            logger.info(f"BAPI Request URL: {url}")
+            logger.info(f"BAPI Request Headers: {masked_headers}")
+            logger.info(f"BAPI Request Body (Raw): {json_body}")
+
             logger.info(f"Sending cash reward to Client {client_id}: {amount} {currency}")
             response = requests.post(url, json=payload, headers=self._get_headers(), timeout=10)
             
