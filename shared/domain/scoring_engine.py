@@ -99,10 +99,12 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
             update_job_status("running")
 
         if target_event_id:
-            all_events = get_active_events(db=db)
-            active_events = [e for e in all_events if e.id == target_event_id]
+            # Manuel tetiklemede statüsüne bakmaksızın event'i çek
+            event = db.query(Event).filter(Event.id == target_event_id).first()
+            active_events = [event] if event else []
+            
             if not active_events:
-                msg = f"Event {target_event_id} aktif değil veya bulunamadı."
+                msg = f"Event {target_event_id} veritabanında bulunamadı."
                 logger.warning(msg)
                 update_job_status("failed", error=msg)
                 return

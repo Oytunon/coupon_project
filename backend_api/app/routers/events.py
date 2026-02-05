@@ -474,10 +474,9 @@ async def distribute_event_rewards(
     if not event:
         raise HTTPException(404, "Event not found")
         
-    # Optional: Check if event is ended?
-    # For flexibility, we allow it even if not ended, but maybe warn?
-    # User requirement: "turnuvayı bitirdiğimizde ödülleri dağıt dememiz gerekli"
-    # So it's intended for after. But we won't block strictly.
+    # Strict Check: Event MUST be ended
+    if event.status != 'ended':
+        raise HTTPException(400, "Ödül dağıtımı için etkinlik bitmiş olmalıdır (Status: Ended).")
     
     # Create Job
     job = RewardJob(event_id=event_id, status="pending")
