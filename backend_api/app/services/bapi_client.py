@@ -36,8 +36,11 @@ class BapiClient:
         endpoint = "/en/Client/CreateClientPaymentDocument"
         url = f"{self.base_url}{endpoint}"
         
+        # Format amount: remove decimals if whole number (e.g. "100.0" -> "100")
+        amt_str = str(int(amount)) if float(amount).is_integer() else str(amount)
+
         payload = {
-            "Amount": str(amount),
+            "Amount": amt_str,
             "ClientId": client_id,
             "CurrencyId": currency,
             "DocTypeInt": 3,
