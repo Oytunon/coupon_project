@@ -73,3 +73,49 @@ class BapiClient:
         except requests.exceptions.RequestException as e:
             logger.error(f"BAPI Request Success Failed: {str(e)} - Body: {payload}")
             raise e
+    def add_client_to_bonus(self, client_id: int, amount: float, bonus_id: int, bonus_type: int, note: str = "Reward Distribution") -> dict:
+        """
+        Add a client to a bonus (Free Spin, Free Bet, etc.) via BAPI.
+        
+        Args:
+            client_id: User's external client ID
+            amount: Bonus amount
+            bonus_id: PartnerBonusId
+            bonus_type: Bonus Type (5 for Free Spin, 6 for Free Bet)
+            note: Description/Reason
+            
+        Returns:
+            Response dict or raises exception
+        """
+        endpoint = "/en/Client/AddClientToBonus"
+        url = f"{self.base_url}{endpoint}"
+        
+        # Format amount: remove decimals if whole number
+        amt_str = str(int(amount)) if float(amount).is_integer() else str(amount)
+
+        payload = {
+            "Amount": amt_str,
+            "ClientId": client_id,
+            "Count": None,
+            "MessageChannel": None,
+            "MessageContent": None,
+            "MessageSubject": None,
+            "Note": note,
+            "PartnerBonusId": bonus_id,
+            "Type": bonus_type
+        }
+        
+        try:
+            # Debug: Log exact payload
+            json_body = json.dumps(payload)
+            logger.info(f"BAPI Bonus Request URL: {url}")
+            logger.info(f"BAPI Bonus Request Body: {json_body}")
+
+            response = requests.post(url, json=payload, headers=self._get_headers(), timeout=10)
+            response.raise_for_status()
+            
+            return response.json()
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"BAPI Bonus Request Failed: {str(e)} - Body: {payload}")
+            raise e

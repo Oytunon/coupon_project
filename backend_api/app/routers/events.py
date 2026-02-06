@@ -29,6 +29,7 @@ class RewardRule(BaseModel):
     currency: str = "TRY"
     criteria_type: str # 'rank', 'min_points'
     criteria_value: int # e.g. 10 (rank <= 10) or 5000 (points >= 5000)
+    partner_bonus_id: Optional[int] = None
 
 
 class EventRules(BaseModel):

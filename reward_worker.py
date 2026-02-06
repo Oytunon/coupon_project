@@ -65,7 +65,8 @@ def process_job(job_id: int):
             criteria_type = rule.get('criteria_type')
             criteria_value = rule.get('criteria_value')
             
-            if rule_type != 'cash':
+            # Skip unsupported reward types unless they are cash, spin or freebet
+            if rule_type not in ['cash', 'spin', 'freebet']:
                 logger.warning(f"Skipping unsupported reward type: {rule_type}")
                 continue
 
@@ -78,7 +79,7 @@ def process_job(job_id: int):
             elif criteria_type == 'min_points':
                 eligible_users = [p for p in participants if p['points'] >= int(criteria_value)]
             
-            logger.info(f"Rule {criteria_type}={criteria_value} matched {len(eligible_users)} users")
+            logger.info(f"Rule {rule_type} {criteria_type}={criteria_value} matched {len(eligible_users)} users")
 
             for user in eligible_users:
                 client_id = user['client_id']
@@ -90,7 +91,6 @@ def process_job(job_id: int):
                     logger.info(f"Client {client_id} already rewarded in this job. Skipping.")
                     continue
                 
-                rewards_given = True
                 rewarded_clients.add(client_id)
                 
                 # Sonuçları JSON formatında saklamak için user_id bazlı listeleme yapıyoruz
@@ -100,15 +100,30 @@ def process_job(job_id: int):
                 try:
                     logger.info(f"Distributing {amount} {rule_type} to Client {client_id}")
                     
-                    # BAPI isteği gönder
-                    # İşlem açıklaması (Info) oluştur
-                    info_msg = f"EventReward:{event.slug} Rank:{user['rank']} Pts:{user['points']}"
+                    # İşlem açıklaması (Info/Note) oluştur
+                    info_msg = f"EventReward:{event.slug} Type:{rule_type} Rank:{user['rank']} Pts:{user['points']}"
                     
-                    resp = bapi.send_cash_reward(
-                        client_id=client_id, 
-                        amount=amount, 
-                        info=info_msg
-                    )
+                    if rule_type == 'cash':
+                        resp = bapi.send_cash_reward(
+                            client_id=client_id, 
+                            amount=amount, 
+                            info=info_msg
+                        )
+                    elif rule_type in ['spin', 'freebet']:
+                        bonus_id = rule.get('partner_bonus_id')
+                        if not bonus_id:
+                            # Safely handle missing bonus ID
+                            logger.error(f"Missing partner_bonus_id for {rule_type} rule!")
+                            raise ValueError(f"Missing partner_bonus_id for {rule_type}")
+                        
+                        bonus_type = 5 if rule_type == 'spin' else 6
+                        resp = bapi.add_client_to_bonus(
+                            client_id=client_id,
+                            amount=amount,
+                            bonus_id=bonus_id,
+                            bonus_type=bonus_type,
+                            note=info_msg
+                        )
                     
                     job_results[user_str].append({
                         "rule": rule,

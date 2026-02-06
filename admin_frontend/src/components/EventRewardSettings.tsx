@@ -12,6 +12,7 @@ interface RewardRule {
     currency: string
     criteria_type: string
     criteria_value: number
+    partner_bonus_id?: number
 }
 
 interface EventRewardSettingsProps {
@@ -55,9 +56,9 @@ export function EventRewardSettings({ rewards = [], onChange }: EventRewardSetti
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="cash">Nakit (Cash)</SelectItem>
-                                {/* Future types can be added here */}
-                                <SelectItem value="bonus">Bonus (Yakında)</SelectItem>
-                                <SelectItem value="freebet">Freebet (Yakında)</SelectItem>
+                                <SelectItem value="spin">Free Spin</SelectItem>
+                                <SelectItem value="freebet">Freebet</SelectItem>
+                                <SelectItem value="bonus">Diğer Bonuslar</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -73,6 +74,19 @@ export function EventRewardSettings({ rewards = [], onChange }: EventRewardSetti
                             />
                             <span className="absolute left-3 top-2.5 text-xs font-bold text-muted-foreground">{newReward.currency}</span>
                         </div>
+
+                        {newReward.reward_type !== 'cash' && (
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-amber-500">Partner Bonus ID</label>
+                                <Input
+                                    type="number"
+                                    placeholder="Örn: 206675"
+                                    value={newReward.partner_bonus_id || ''}
+                                    onChange={e => setNewReward({ ...newReward, partner_bonus_id: parseInt(e.target.value) })}
+                                    className="bg-black/20 border-amber-500/20"
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -135,7 +149,10 @@ export function EventRewardSettings({ rewards = [], onChange }: EventRewardSetti
                                     <div>
                                         <div className="font-bold flex items-center gap-2">
                                             <span className="text-emerald-400">{rule.amount} {rule.currency}</span>
-                                            <Badge variant="secondary" className="text-[10px] uppercase">{rule.reward_type}</Badge>
+                                            <Badge variant="secondary" className="text-[10px] uppercase">
+                                                {rule.reward_type}
+                                                {rule.partner_bonus_id && ` (ID: ${rule.partner_bonus_id})`}
+                                            </Badge>
                                         </div>
                                         <div className="text-xs text-muted-foreground flex items-center gap-1">
                                             {rule.criteria_type === 'rank' ? (
