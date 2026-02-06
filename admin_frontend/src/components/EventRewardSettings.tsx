@@ -197,20 +197,22 @@ export function EventRewardSettings({ rewards = [], onChange }: EventRewardSetti
                                 </div>
                                 <div className="flex items-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
                                     <Button
+                                        type="button"
                                         size="icon"
                                         variant="ghost"
                                         className="h-8 w-8 text-muted-foreground hover:text-white"
                                         disabled={idx === 0}
-                                        onClick={() => moveUp(idx)}
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); moveUp(idx); }}
                                     >
                                         <ChevronUp className="h-4 w-4" />
                                     </Button>
                                     <Button
+                                        type="button"
                                         size="icon"
                                         variant="ghost"
                                         className="h-8 w-8 text-muted-foreground hover:text-white"
                                         disabled={idx === rewards.length - 1}
-                                        onClick={() => moveDown(idx)}
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); moveDown(idx); }}
                                     >
                                         <ChevronDown className="h-4 w-4" />
                                     </Button>
