@@ -3,7 +3,7 @@ import { getParticipationStatus, joinCampaign, getLeaderboard, getMyCoupons, get
 import { getPublicEvents, PublicEvent } from "../api/client"
 import { getUsernameFromUrl } from "../utils/useUsername"
 import {
-    Trophy, Loader2, FileText, Award,
+    Trophy, Loader2, FileText, Award, Gift,
     TrendingUp, ArrowUpRight, CheckCircle2, Ticket, List as ListIcon, LayoutGrid, PlayCircle
 } from "lucide-react"
 import tournamentBanner from "../assets/tournament-banner.jpg"
@@ -278,7 +278,7 @@ export default function UserDashboard() {
                             <Ticket className="w-4 h-4 mr-2" /> Kuponlarım
                         </TabsTrigger>
                         <TabsTrigger value="rules" className="py-3 font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                            <FileText className="w-4 h-4 mr-2" /> Kurallar
+                            <FileText className="w-4 h-4 mr-2" /> Kurallar & Ödüller
                         </TabsTrigger>
                     </TabsList>
 
@@ -669,9 +669,9 @@ export default function UserDashboard() {
                     <TabsContent value="rules" className="mt-6">
                         <Card className="border-white/10 bg-card/30">
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-green-500" /> Turnuva Kuralları</CardTitle>
+                                <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-green-500" /> Turnuva Kuralları & Ödüller</CardTitle>
                                 <CardDescription>
-                                    Aktif turnuvalar ve katılım şartları.
+                                    Aktif turnuvalar, katılım şartları ve kazanabileceğiniz ödüller.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-8">
@@ -730,6 +730,42 @@ export default function UserDashboard() {
                                                         </div>
                                                     </div>
                                                 </div>
+
+                                                {/* Rewards Section */}
+                                                {rules.rewards && rules.rewards.length > 0 && (
+                                                    <div className="space-y-4 mt-6">
+                                                        <div className="flex items-center gap-2">
+                                                            <Gift className="h-4 w-4 text-primary" />
+                                                            <h4 className="font-black italic uppercase tracking-wider text-sm">Turnuva Ödülleri</h4>
+                                                        </div>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                            {rules.rewards.map((reward: any, idx: number) => {
+                                                                const isExact = reward.rank_exact !== undefined && reward.rank_exact !== null;
+                                                                const rankLabel = isExact
+                                                                    ? `${reward.rank_exact}. Sıra`
+                                                                    : `${reward.rank_min}-${reward.rank_max}. Sıralar`;
+
+                                                                const rewardTypeLabel = reward.type === 'cash' ? 'Nakit' : (reward.type === 'spin' ? 'Free Spin' : 'Free Bet');
+                                                                const rewardColor = reward.type === 'cash' ? 'text-green-500' : (reward.type === 'spin' ? 'text-blue-400' : 'text-orange-400');
+                                                                const rewardBg = reward.type === 'cash' ? 'bg-green-500/10' : (reward.type === 'spin' ? 'bg-blue-500/10' : 'bg-orange-500/10');
+
+                                                                return (
+                                                                    <div key={idx} className="flex items-center justify-between p-3 rounded-xl border border-white/5 bg-black/40 group hover:border-primary/30 transition-all">
+                                                                        <div className="flex flex-col">
+                                                                            <span className="text-[10px] font-bold text-muted-foreground uppercase">{rankLabel}</span>
+                                                                            <span className={`text-lg font-black italic ${rewardColor}`}>
+                                                                                {reward.amount} {rewardTypeLabel}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className={`p-2 rounded-lg ${rewardBg} opacity-50 group-hover:opacity-100 transition-opacity`}>
+                                                                            {reward.rank_exact === 1 ? <Trophy className="h-5 w-5 text-yellow-500" /> : <Award className="h-5 w-5" />}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         )
                                     })
