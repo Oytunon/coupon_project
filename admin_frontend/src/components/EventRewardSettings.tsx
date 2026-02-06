@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Trash2, Plus, Gift, Trophy, Target } from "lucide-react"
+import { Trash2, Plus, Gift, Trophy, Target, ChevronUp, ChevronDown, AlertCircle } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 interface RewardRule {
     reward_type: string
@@ -35,6 +36,24 @@ export function EventRewardSettings({ rewards = [], onChange }: EventRewardSetti
 
     const handleRemove = (index: number) => {
         onChange(rewards.filter((_, i) => i !== index))
+    }
+
+    const moveUp = (index: number) => {
+        if (index === 0) return
+        const newRewards = [...rewards]
+        const temp = newRewards[index]
+        newRewards[index] = newRewards[index - 1]
+        newRewards[index - 1] = temp
+        onChange(newRewards)
+    }
+
+    const moveDown = (index: number) => {
+        if (index === rewards.length - 1) return
+        const newRewards = [...rewards]
+        const temp = newRewards[index]
+        newRewards[index] = newRewards[index + 1]
+        newRewards[index + 1] = temp
+        onChange(newRewards)
     }
 
     return (
@@ -134,6 +153,17 @@ export function EventRewardSettings({ rewards = [], onChange }: EventRewardSetti
                     <Gift className="h-4 w-4" /> Tanımlı Ödüller ({rewards.length})
                 </h3>
 
+                {rewards.length > 0 && (
+                    <Alert className="bg-amber-500/10 border-amber-500/20 text-amber-500">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle className="text-xs font-bold uppercase">Önemli: Ödül Önceliği</AlertTitle>
+                        <AlertDescription className="text-[11px]">
+                            Ödüller yukarıdan aşağıya doğru kontrol edilir. Bir kullanıcı uyan <b>ilk kuraldan</b> ödülünü alır ve diğerlerini es geçer.
+                            En özel ödülleri (Örn: 1.lik ödülü) her zaman en üste taşıyın.
+                        </AlertDescription>
+                    </Alert>
+                )}
+
                 {rewards.length === 0 ? (
                     <div className="text-center py-8 bg-white/5 rounded-lg border border-dashed border-white/10 text-muted-foreground text-sm">
                         Henüz ödül kuralı eklenmedi.
@@ -165,9 +195,29 @@ export function EventRewardSettings({ rewards = [], onChange }: EventRewardSetti
                                         </div>
                                     </div>
                                 </div>
-                                <Button size="icon" type="button" variant="ghost" className="text-red-500 opacity-50 group-hover:opacity-100 hover:bg-red-500/10" onClick={() => handleRemove(idx)}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
+                                <div className="flex items-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8 text-muted-foreground hover:text-white"
+                                        disabled={idx === 0}
+                                        onClick={() => moveUp(idx)}
+                                    >
+                                        <ChevronUp className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8 text-muted-foreground hover:text-white"
+                                        disabled={idx === rewards.length - 1}
+                                        onClick={() => moveDown(idx)}
+                                    >
+                                        <ChevronDown className="h-4 w-4" />
+                                    </Button>
+                                    <Button size="icon" type="button" variant="ghost" className="h-8 w-8 text-red-500 hover:bg-red-500/10" onClick={() => handleRemove(idx)}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
                             </div>
                         ))}
                     </div>
