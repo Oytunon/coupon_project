@@ -187,11 +187,11 @@ export default function UserDashboard() {
             window.location.reload()
         } catch (e: any) {
             const errorMsg = e.response?.data?.detail || "Katılım işlemi başarısız oldu."
-            if (errorMsg.includes("1000 TL")) {
+            if (errorMsg.includes("yatırım şartı")) {
                 toast({
                     variant: "destructive",
                     title: "⚠️ Katılım Şartı Sağlanmadı",
-                    description: errorMsg + " Bu ay içinde tek seferde 1000 TL veya üzeri yatırım yapmalısınız.",
+                    description: errorMsg,
                 })
             } else {
                 toast({ variant: "destructive", title: "Hata", description: errorMsg })

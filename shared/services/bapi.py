@@ -60,6 +60,13 @@ def get_current_month_range():
 
 
 async def has_single_deposit(client_id: int, min_amount: float = 1000) -> bool:
+    try:
+        min_amount = float(min_amount) if min_amount is not None else 0
+    except (TypeError, ValueError):
+        min_amount = 0
+
+    if min_amount <= 0:
+        return True
     start, end = get_current_month_range()
 
     body = {

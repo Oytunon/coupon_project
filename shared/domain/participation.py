@@ -121,7 +121,10 @@ async def join_event(
         raise HTTPException(status_code=400, detail="Username veya client_id gereklidir")
         
     # Pre-fetch rules
-    min_deposit = target_event.rules.get("min_deposit", 1000)
+    try:
+        min_deposit = int(target_event.rules.get("min_deposit") or 0)
+    except (TypeError, ValueError):
+        min_deposit = 0
     event_id_val = target_event.id
     event_name_val = target_event.name
     
