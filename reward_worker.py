@@ -101,7 +101,8 @@ def process_job(job_id: int):
                     logger.info(f"Distributing {amount} {rule_type} to Client {client_id}")
                     
                     # İşlem açıklaması (Info/Note) oluştur
-                    info_msg = f"EventReward:{event.slug} Type:{rule_type} Rank:{user['rank']} Pts:{user['points']}"
+                    event_context = event.slug if event else (job.event_name_snapshot or "DeletedEvent")
+                    info_msg = f"EventReward:{event_context} Type:{rule_type} Rank:{user['rank']} Pts:{user['points']}"
                     
                     if rule_type == 'cash':
                         resp = bapi.send_cash_reward(
