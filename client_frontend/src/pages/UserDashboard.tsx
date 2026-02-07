@@ -702,15 +702,25 @@ export default function UserDashboard() {
                                     publicEvents.filter(e => e.status === 'active').map(event => {
                                         const rules = event.rules || {}
                                         return (
-                                            <div key={event.id} className="p-6 rounded-2xl border border-white/5 bg-black/40 shadow-xl space-y-6 relative overflow-hidden group hover:border-primary/20 transition-colors">
-                                                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                                                    <Trophy className="h-24 w-24 text-primary" />
+                                            <div key={event.id} className="p-6 rounded-2xl border-l-4 border-l-primary border border-white/10 bg-black/60 shadow-2xl space-y-6 relative overflow-hidden group hover:bg-black/80 transition-all">
+                                                <div className="absolute -top-4 -right-4 p-4 opacity-[0.03] pointer-events-none group-hover:opacity-10 transition-opacity">
+                                                    <Trophy className="h-40 w-40 text-primary" />
                                                 </div>
-                                                <div className="flex items-center gap-3 mb-4">
-                                                    <Badge className="bg-primary text-primary-foreground hover:bg-primary/90">
-                                                        {event.name}
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="bg-primary/20 p-2 rounded-xl">
+                                                            <Trophy className="h-6 w-6 text-primary" />
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="text-xl font-black italic uppercase tracking-tighter text-white">
+                                                                {event.name}
+                                                            </h3>
+                                                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Turnuva Katılım Şartları ve Ödül Tablosu</p>
+                                                        </div>
+                                                    </div>
+                                                    <Badge variant="outline" className="w-fit bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-3 py-1">
+                                                        <CheckCircle2 className="h-3 w-3 mr-1" /> AKTİF TURNUVA
                                                     </Badge>
-                                                    <span className="text-sm text-muted-foreground">Turnuva Kuralları</span>
                                                 </div>
 
                                                 <div className="grid md:grid-cols-2 gap-4">
