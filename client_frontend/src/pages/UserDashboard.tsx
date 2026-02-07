@@ -755,14 +755,20 @@ export default function UserDashboard() {
                                                         </div>
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                                             {rules.rewards.map((reward: any, idx: number) => {
-                                                                const isExact = reward.rank_exact !== undefined && reward.rank_exact !== null;
-                                                                const rankLabel = isExact
-                                                                    ? `${reward.rank_exact}. Sıra`
-                                                                    : `${reward.rank_min}-${reward.rank_max}. Sıralar`;
+                                                                let rankLabel = "";
+                                                                if (reward.criteria_type === 'rank_exact') {
+                                                                    rankLabel = `${reward.criteria_value}. Sıra`;
+                                                                } else if (reward.criteria_type === 'rank') {
+                                                                    rankLabel = `İlk ${reward.criteria_value} Kişi`;
+                                                                } else if (reward.criteria_type === 'min_points') {
+                                                                    rankLabel = `+${reward.criteria_value} Puan`;
+                                                                } else {
+                                                                    rankLabel = "Özel Ödül";
+                                                                }
 
-                                                                const rewardTypeLabel = reward.type === 'cash' ? 'Nakit' : (reward.type === 'spin' ? 'Free Spin' : 'Free Bet');
-                                                                const rewardColor = reward.type === 'cash' ? 'text-green-500' : (reward.type === 'spin' ? 'text-blue-400' : 'text-orange-400');
-                                                                const rewardBg = reward.type === 'cash' ? 'bg-green-500/10' : (reward.type === 'spin' ? 'bg-blue-500/10' : 'bg-orange-500/10');
+                                                                const rewardTypeLabel = reward.reward_type === 'cash' ? 'Nakit' : (reward.reward_type === 'spin' ? 'Free Spin' : 'Free Bet');
+                                                                const rewardColor = reward.reward_type === 'cash' ? 'text-green-500' : (reward.reward_type === 'spin' ? 'text-blue-400' : 'text-orange-400');
+                                                                const rewardBg = reward.reward_type === 'cash' ? 'bg-green-500/10' : (reward.reward_type === 'spin' ? 'bg-blue-500/10' : 'bg-orange-500/10');
 
                                                                 return (
                                                                     <div key={idx} className="flex items-center justify-between p-3 rounded-xl border border-white/5 bg-black/40 group hover:border-primary/30 transition-all">
