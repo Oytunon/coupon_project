@@ -187,12 +187,14 @@ export default function AdminPage() {
         }
     })
     const [leagueIdsInput, setLeagueIdsInput] = useState("")
-    const [modalTab, setModalTab] = useState<"general" | "rules" | "rewards" | "history">("general")
+    const [modalTab, setModalTab] = useState<"general" | "rules" | "rewards">("general")
     const [rewardHistory, setRewardHistory] = useState<any[]>([])
     const [loadingRewards, setLoadingRewards] = useState(false)
 
     const [showEditEvent, setShowEditEvent] = useState(false)
     const [editingEvent, setEditingEvent] = useState<any>(null)
+    const [showHistoryModal, setShowHistoryModal] = useState(false)
+    const [historyEvent, setHistoryEvent] = useState<any>(null)
 
     const [viewEventId, setViewEventId] = useState<number | null>(null)
     const [eventStats, setEventStats] = useState<any>(null)
@@ -765,6 +767,9 @@ export default function AdminPage() {
                                             <Button size="icon" variant="ghost" onClick={() => handleViewDetails(event)} title="Detaylar">
                                                 <Eye className="h-4 w-4 text-purple-400" />
                                             </Button>
+                                            <Button size="icon" variant="ghost" onClick={() => { setHistoryEvent(event); setShowHistoryModal(true); handleLoadRewardHistory(event.id); }} title="Ödül Geçmişi">
+                                                <History className="h-4 w-4 text-amber-400" />
+                                            </Button>
                                             <Button size="icon" variant="ghost" onClick={() => openEditModal(event)} title="Düzenle">
                                                 <Pencil className="h-4 w-4 text-blue-400" />
                                             </Button>
@@ -981,7 +986,6 @@ export default function AdminPage() {
                                             <button onClick={() => setModalTab("general")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'general' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Genel Ayarlar</button>
                                             <button onClick={() => setModalTab("rules")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'rules' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Kurallar</button>
                                             <button onClick={() => setModalTab("rewards")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'rewards' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Ödüller</button>
-                                            <button onClick={() => { setModalTab("history"); handleLoadRewardHistory(editingEvent.id); }} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'history' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Ödül Geçmişi</button>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="max-h-[70vh] overflow-y-auto custom-scrollbar pr-2 mt-4">
@@ -1128,45 +1132,6 @@ export default function AdminPage() {
                                                 </div>
                                             )}
 
-                                            {/* TAB 4: HISTORY */}
-                                            {modalTab === 'history' && (
-                                                <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
-                                                    {loadingRewards ? (
-                                                        <div className="py-12 flex flex-col items-center justify-center">
-                                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
-                                                            <span className="text-sm text-muted-foreground">Yükleniyor...</span>
-                                                        </div>
-                                                    ) : rewardHistory.length === 0 ? (
-                                                        <div className="py-12 text-center text-muted-foreground italic">
-                                                            Bu etkinlik için henüz başarılı bir ödül dağıtımı bulunmuyor.
-                                                        </div>
-                                                    ) : (
-                                                        <div className="overflow-x-auto rounded-lg border border-white/5">
-                                                            <table className="w-full text-left text-xs">
-                                                                <thead className="bg-white/5 text-muted-foreground uppercase text-[10px] tracking-wider">
-                                                                    <tr>
-                                                                        <th className="px-4 py-3">Kullanıcı</th>
-                                                                        <th className="px-4 py-3">Ödül</th>
-                                                                        <th className="px-4 py-3">Miktar</th>
-                                                                        <th className="px-4 py-3">Tarih</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody className="divide-y divide-white/5">
-                                                                    {rewardHistory.map((rh, i) => (
-                                                                        <tr key={i} className="hover:bg-white/5 transition-colors">
-                                                                            <td className="px-4 py-3 font-bold">{rh.username} <span className="text-[10px] text-muted-foreground font-normal">(ID: {rh.client_id})</span></td>
-                                                                            <td className="px-4 py-3"><Badge variant="outline" className="uppercase text-[10px]">{rh.reward_type}</Badge></td>
-                                                                            <td className="px-4 py-3 font-bold text-emerald-400">{rh.amount} TRY</td>
-                                                                            <td className="px-4 py-3 text-muted-foreground">{new Date(rh.timestamp).toLocaleString("tr-TR")}</td>
-                                                                        </tr>
-                                                                    ))}
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-
                                             <div className="flex justify-end gap-2 pt-4 border-t border-white/5">
                                                 <Button type="button" variant="ghost" onClick={() => setShowEditEvent(false)}>İptal</Button>
                                                 <Button type="submit" disabled={saving === "update_event"} className="bg-primary hover:bg-primary/90">
@@ -1178,7 +1143,72 @@ export default function AdminPage() {
                                 </Card>
                             )
                         }
+                        {showHistoryModal && historyEvent && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                                <Card className="bg-card border-white/5 w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
+                                    <CardHeader className="flex flex-row items-center justify-between">
+                                        <div>
+                                            <CardTitle>Ödül Geçmişi</CardTitle>
+                                            <CardDescription>{historyEvent.name} etkinliği için başarılı dağıtımlar.</CardDescription>
+                                        </div>
+                                        <History className="h-8 w-8 text-amber-400/20" />
+                                    </CardHeader>
+                                    <CardContent className="overflow-y-auto custom-scrollbar pr-2 mt-4 flex-grow">
+                                        {loadingRewards ? (
+                                            <div className="py-24 flex flex-col items-center justify-center">
+                                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+                                                <span className="text-muted-foreground">Geçmiş yükleniyor...</span>
+                                            </div>
+                                        ) : rewardHistory.length === 0 ? (
+                                            <div className="py-24 text-center flex flex-col items-center gap-4 text-muted-foreground italic">
+                                                <History className="h-12 w-12 opacity-10" />
+                                                Bu etkinlik için henüz başarılı bir ödül dağıtımı bulunmuyor.
+                                            </div>
+                                        ) : (
+                                            <div className="overflow-x-auto rounded-lg border border-white/5">
+                                                <table className="w-full text-left text-xs">
+                                                    <thead className="bg-white/5 text-muted-foreground uppercase text-[10px] tracking-wider">
+                                                        <tr>
+                                                            <th className="px-4 py-3">Kullanıcı</th>
+                                                            <th className="px-4 py-3">Ödül</th>
+                                                            <th className="px-4 py-3">Miktar</th>
+                                                            <th className="px-4 py-3">Tarih</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-white/5">
+                                                        {rewardHistory.map((rh, i) => (
+                                                            <tr key={i} className="hover:bg-white/5 transition-colors">
+                                                                <td className="px-4 py-3 font-bold">
+                                                                    {rh.username}
+                                                                    <div className="text-[9px] text-muted-foreground font-normal">ID: {rh.client_id}</div>
+                                                                </td>
+                                                                <td className="px-4 py-3">
+                                                                    <Badge variant="outline" className="uppercase text-[9px] border-primary/20 text-primary">
+                                                                        {rh.reward_type}
+                                                                    </Badge>
+                                                                </td>
+                                                                <td className="px-4 py-3 font-bold text-emerald-400">
+                                                                    {rh.amount} TRY
+                                                                </td>
+                                                                <td className="px-4 py-3 text-muted-foreground text-[10px]">
+                                                                    {new Date(rh.timestamp).toLocaleString("tr-TR")}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                    <div className="p-4 border-t border-white/5 flex justify-end">
+                                        <Button variant="outline" onClick={() => setShowHistoryModal(false)}>Kapat</Button>
+                                    </div>
+                                </Card>
+                            </div>
+                        )}
+
                         {showEditEvent && <div className="fixed inset-0 bg-black/80 z-40" onClick={() => setShowEditEvent(false)} />}
+                        {showHistoryModal && <div className="fixed inset-0 bg-black/80 z-40" onClick={() => setShowHistoryModal(false)} />}
                     </div >
                 )
             )
