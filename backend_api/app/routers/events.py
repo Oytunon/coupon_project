@@ -480,7 +480,7 @@ async def distribute_event_rewards(
         raise HTTPException(400, "Ödül dağıtımı için etkinlik bitmiş olmalıdır (Status: Ended).")
     
     # Create Job
-    job = RewardJob(event_id=event_id, status="pending")
+    job = RewardJob(event_id=event_id, event_name_snapshot=event.name, status="pending")
     db.add(job)
     db.commit()
     db.refresh(job)

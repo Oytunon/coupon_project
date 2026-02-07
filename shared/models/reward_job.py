@@ -6,7 +6,8 @@ class RewardJob(Base):
     __tablename__ = "reward_jobs"
 
     id = Column(Integer, primary_key=True, index=True)
-    event_id = Column(Integer, ForeignKey("events.id"), nullable=False)
+    event_id = Column(Integer, ForeignKey("events.id", ondelete="SET NULL"), nullable=True)
+    event_name_snapshot = Column(String(255), nullable=True)
     status = Column(String, default="pending", index=True) # pending, processing, completed, failed
     
     # Store detailed results: { "user_id": { "status": "success", "amount": 100, "tx_id": "..." } }
