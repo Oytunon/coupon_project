@@ -156,8 +156,14 @@ export default function UserDashboard() {
                 const events = await getPublicEvents()
                 console.log("DEBUG: Events fetched:", events)
                 if (Array.isArray(events)) {
-                    setPublicEvents(events)
-                    console.log("DEBUG: Public events state updated:", events.length)
+                    // Sort: Active ones first, then by ID descending (newest first)
+                    const sortedEvents = [...events].sort((a, b) => {
+                        if (a.status === 'active' && b.status !== 'active') return -1;
+                        if (a.status !== 'active' && b.status === 'active') return 1;
+                        return b.id - a.id;
+                    });
+                    setPublicEvents(sortedEvents)
+                    console.log("DEBUG: Public events state updated and sorted:", sortedEvents.length)
 
                     // If no eventId is set yet (root path), auto-select the first active valid event
                     if (!eventId && !slug && !paramEventId) {
