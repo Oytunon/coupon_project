@@ -805,17 +805,33 @@ export default function UserDashboard() {
                                 ) : (
                                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                         {myRewards.map((reward, idx) => (
-                                            <div key={idx} className="p-4 rounded-xl border border-primary/20 bg-primary/5 flex flex-col gap-2 relative overflow-hidden group">
-                                                <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-40 transition-opacity">
-                                                    <Trophy className="h-12 w-12 text-primary" />
+                                            <div key={idx} className="p-5 rounded-2xl border border-primary/20 bg-primary/5 flex flex-col gap-3 relative overflow-hidden group hover:bg-primary/10 transition-all shadow-lg animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `${idx * 100}ms` }}>
+                                                <div className="absolute -top-2 -right-2 opacity-5 group-hover:opacity-10 transition-opacity">
+                                                    <Trophy className="h-24 w-24 text-primary" />
                                                 </div>
-                                                <Badge className="w-fit bg-primary/20 text-primary border-none text-[10px] uppercase">{reward.event_name}</Badge>
-                                                <div className="text-2xl font-black italic text-primary">
-                                                    {reward.amount} TRY
+
+                                                <div className="space-y-1 relative z-10">
+                                                    <div className="text-[10px] font-black uppercase tracking-widest text-primary/60">Kampanya</div>
+                                                    <h3 className="text-sm font-bold text-white uppercase tracking-tight">{reward.event_name}</h3>
                                                 </div>
-                                                <div className="flex justify-between items-center text-[10px] text-muted-foreground font-bold mt-2">
-                                                    <span className="uppercase">{reward.reward_type === 'cash' ? 'Nakit' : reward.reward_type}</span>
-                                                    <span>{new Date(reward.timestamp).toLocaleDateString('tr-TR')}</span>
+
+                                                <div className="py-2 relative z-10">
+                                                    <div className="text-3xl font-black italic text-primary leading-none drop-shadow-sm">
+                                                        {reward.amount} TRY
+                                                    </div>
+                                                    <Badge variant="outline" className="mt-2 bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px] uppercase font-bold px-2">
+                                                        {reward.reward_type === 'cash' ? 'Nakit Ödül' : reward.reward_type} Başarıyla Eklendi
+                                                    </Badge>
+                                                </div>
+
+                                                <div className="mt-auto pt-3 border-t border-white/5 flex justify-between items-center relative z-10">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-tighter">İşlem Tarihi</span>
+                                                        <span className="text-xs font-mono font-bold text-white/90">{new Date(reward.timestamp).toLocaleDateString('tr-TR')}</span>
+                                                    </div>
+                                                    <div className="p-2 rounded-full bg-primary/20 text-primary">
+                                                        <CheckCircle2 className="h-4 w-4" />
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
