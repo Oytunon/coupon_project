@@ -1,5 +1,5 @@
 import { useEffect, useState, Fragment } from "react"
-import { getParticipationStatus, joinCampaign, getLeaderboard, getMyCoupons, getMyEnrollments } from "../api/participation"
+import { getParticipationStatus, joinCampaign, getLeaderboard, getMyCoupons, getMyEnrollments, getMyRewards } from "../api/participation"
 import { getPublicEvents, PublicEvent } from "../api/client"
 import { getUsernameFromUrl } from "../utils/useUsername"
 import {
@@ -43,6 +43,8 @@ export default function UserDashboard() {
     const [expandedEventId, setExpandedEventId] = useState<number | null>(null)
     const [expandedLeaderboard, setExpandedLeaderboard] = useState<any[]>([])
     const [expandedCouponId, setExpandedCouponId] = useState<number | null>(null)
+    const [myRewards, setMyRewards] = useState<any[]>([])
+    const [loadingRewards, setLoadingRewards] = useState(false)
 
     const { toast } = useToast()
 
@@ -108,6 +110,16 @@ export default function UserDashboard() {
                     console.error("Enrollments error", e)
                 } finally {
                     setLoadingEnrollments(false)
+                }
+
+                setLoadingRewards(true)
+                try {
+                    const rewards = await getMyRewards(u)
+                    setMyRewards(rewards)
+                } catch (e) {
+                    console.error("Rewards error", e)
+                } finally {
+                    setLoadingRewards(false)
                 }
             } catch (err) {
                 console.error("User data error", err)
@@ -278,7 +290,10 @@ export default function UserDashboard() {
                             <Ticket className="w-4 h-4 mr-2" /> Kuponlarım
                         </TabsTrigger>
                         <TabsTrigger value="rules" className="py-3 font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                            <FileText className="w-4 h-4 mr-2" /> Kurallar & Ödüller
+                            <FileText className="w-4 h-4 mr-2" /> Kurallar
+                        </TabsTrigger>
+                        <TabsTrigger value="rewards" className="py-3 font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                            <Gift className="w-4 h-4 mr-2" /> Ödüllerim
                         </TabsTrigger>
                     </TabsList>
 
@@ -669,7 +684,7 @@ export default function UserDashboard() {
                     <TabsContent value="rules" className="mt-6">
                         <Card className="border-white/10 bg-card/30">
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-green-500" /> Turnuva Kuralları & Ödüller</CardTitle>
+                                <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-green-500" /> Turnuva Kuralları</CardTitle>
                                 <CardDescription>
                                     Aktif turnuvalar, katılım şartları ve kazanabileceğiniz ödüller.
                                 </CardDescription>
@@ -769,6 +784,42 @@ export default function UserDashboard() {
                                             </div>
                                         )
                                     })
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                    <TabsContent value="rewards" className="mt-6">
+                        <Card className="border-white/10 bg-card/30">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><Gift className="h-5 w-5 text-primary" /> Kazandığım Ödüller</CardTitle>
+                                <CardDescription>Hangi turnuvalardan ne kazandığınızı takip edin.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {loadingRewards ? (
+                                    <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
+                                ) : myRewards.length === 0 ? (
+                                    <div className="text-center p-12 flex flex-col items-center gap-4">
+                                        <Gift className="h-12 w-12 text-muted-foreground/30" />
+                                        <p className="text-muted-foreground italic">Henüz bir ödül kazanmadınız. Zirveye oynamaya devam edin!</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                        {myRewards.map((reward, idx) => (
+                                            <div key={idx} className="p-4 rounded-xl border border-primary/20 bg-primary/5 flex flex-col gap-2 relative overflow-hidden group">
+                                                <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-40 transition-opacity">
+                                                    <Trophy className="h-12 w-12 text-primary" />
+                                                </div>
+                                                <Badge className="w-fit bg-primary/20 text-primary border-none text-[10px] uppercase">{reward.event_name}</Badge>
+                                                <div className="text-2xl font-black italic text-primary">
+                                                    {reward.amount} TRY
+                                                </div>
+                                                <div className="flex justify-between items-center text-[10px] text-muted-foreground font-bold mt-2">
+                                                    <span className="uppercase">{reward.reward_type === 'cash' ? 'Nakit' : reward.reward_type}</span>
+                                                    <span>{new Date(reward.timestamp).toLocaleDateString('tr-TR')}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>

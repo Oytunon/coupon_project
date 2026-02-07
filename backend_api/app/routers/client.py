@@ -62,3 +62,35 @@ async def get_public_events(
     results.sort(key=lambda x: status_priority.get(x.status, 4))
     
     return results
+@router.get("/my-rewards")
+async def get_my_rewards(
+    username: str,
+    db: Session = Depends(get_db_session)
+):
+    from shared.models.reward_job import RewardJob
+    from shared.models.participant import Participant
+    
+    participant = db.query(Participant).filter(Participant.username == username).first()
+    if not participant:
+        return []
+    
+    client_id_str = str(participant.client_id)
+    
+    # Optimization: Filter jobs that actually have results (status=completed or processing)
+    jobs = db.query(RewardJob).filter(RewardJob.status.in_(["completed", "processing"])).order_by(RewardJob.created_at.desc()).all()
+    
+    my_rewards = []
+    for job in jobs:
+        results = job.results or {}
+        if client_id_str in results:
+            for r in results[client_id_str]:
+                if r.get("status") == "success":
+                    my_rewards.append({
+                        "id": f"{job.id}_{r.get('timestamp')}",
+                        "event_name": job.event_name_snapshot or "Etkinlik",
+                        "reward_type": r.get("rule", {}).get("reward_type"),
+                        "amount": r.get("rule", {}).get("amount"),
+                        "timestamp": r.get("timestamp")
+                    })
+    
+    return my_rewards

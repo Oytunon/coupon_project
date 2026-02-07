@@ -123,6 +123,11 @@ const distributeRewards = async (eventId: number) => {
     return res.data
 }
 
+const fetchRewardHistory = async (eventId: number) => {
+    const res = await apiClient.get(`/admin/events/${eventId}/reward-history`)
+    return res.data
+}
+
 export default function AdminPage() {
     const { toast } = useToast()
     const { logout } = useAuth()
@@ -182,7 +187,9 @@ export default function AdminPage() {
         }
     })
     const [leagueIdsInput, setLeagueIdsInput] = useState("")
-    const [modalTab, setModalTab] = useState<"general" | "rules" | "rewards">("general")
+    const [modalTab, setModalTab] = useState<"general" | "rules" | "rewards" | "history">("general")
+    const [rewardHistory, setRewardHistory] = useState<any[]>([])
+    const [loadingRewards, setLoadingRewards] = useState(false)
 
     const [showEditEvent, setShowEditEvent] = useState(false)
     const [editingEvent, setEditingEvent] = useState<any>(null)
@@ -468,6 +475,18 @@ export default function AdminPage() {
             toast({ title: "Hata", description: "Dosya indirilemedi.", variant: "destructive" });
         }
     };
+
+    const handleLoadRewardHistory = async (eventId: number) => {
+        setLoadingRewards(true)
+        try {
+            const history = await fetchRewardHistory(eventId)
+            setRewardHistory(history)
+        } catch (e) {
+            toast({ title: "Hata", description: "Ödül geçmişi yüklenemedi.", variant: "destructive" })
+        } finally {
+            setLoadingRewards(false)
+        }
+    }
 
     const handleUpdateEvent = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -962,6 +981,7 @@ export default function AdminPage() {
                                             <button onClick={() => setModalTab("general")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'general' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Genel Ayarlar</button>
                                             <button onClick={() => setModalTab("rules")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'rules' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Kurallar</button>
                                             <button onClick={() => setModalTab("rewards")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'rewards' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Ödüller</button>
+                                            <button onClick={() => { setModalTab("history"); handleLoadRewardHistory(editingEvent.id); }} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'history' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Ödül Geçmişi</button>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="max-h-[70vh] overflow-y-auto custom-scrollbar pr-2 mt-4">
@@ -1105,6 +1125,45 @@ export default function AdminPage() {
                                                         rewards={editingEvent.rules.rewards}
                                                         onChange={(rewards) => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, rewards } })}
                                                     />
+                                                </div>
+                                            )}
+
+                                            {/* TAB 4: HISTORY */}
+                                            {modalTab === 'history' && (
+                                                <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
+                                                    {loadingRewards ? (
+                                                        <div className="py-12 flex flex-col items-center justify-center">
+                                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
+                                                            <span className="text-sm text-muted-foreground">Yükleniyor...</span>
+                                                        </div>
+                                                    ) : rewardHistory.length === 0 ? (
+                                                        <div className="py-12 text-center text-muted-foreground italic">
+                                                            Bu etkinlik için henüz başarılı bir ödül dağıtımı bulunmuyor.
+                                                        </div>
+                                                    ) : (
+                                                        <div className="overflow-x-auto rounded-lg border border-white/5">
+                                                            <table className="w-full text-left text-xs">
+                                                                <thead className="bg-white/5 text-muted-foreground uppercase text-[10px] tracking-wider">
+                                                                    <tr>
+                                                                        <th className="px-4 py-3">Kullanıcı</th>
+                                                                        <th className="px-4 py-3">Ödül</th>
+                                                                        <th className="px-4 py-3">Miktar</th>
+                                                                        <th className="px-4 py-3">Tarih</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody className="divide-y divide-white/5">
+                                                                    {rewardHistory.map((rh, i) => (
+                                                                        <tr key={i} className="hover:bg-white/5 transition-colors">
+                                                                            <td className="px-4 py-3 font-bold">{rh.username} <span className="text-[10px] text-muted-foreground font-normal">(ID: {rh.client_id})</span></td>
+                                                                            <td className="px-4 py-3"><Badge variant="outline" className="uppercase text-[10px]">{rh.reward_type}</Badge></td>
+                                                                            <td className="px-4 py-3 font-bold text-emerald-400">{rh.amount} TRY</td>
+                                                                            <td className="px-4 py-3 text-muted-foreground">{new Date(rh.timestamp).toLocaleString("tr-TR")}</td>
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
 

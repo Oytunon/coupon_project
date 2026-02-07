@@ -67,3 +67,10 @@ export async function getMyEnrollments(username: string) {
   })
   return res.data
 }
+
+export async function getMyRewards(username: string) {
+  const res = await apiClient.get<any[]>(`/api/client/my-rewards`, {
+    params: { username }
+  })
+  return res.data
+}
