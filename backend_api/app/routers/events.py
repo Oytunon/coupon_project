@@ -607,16 +607,36 @@ async def export_reward_history(
 
     for job in jobs:
         results = job.results or {}
+        if not isinstance(results, dict):
+            continue
+            
         for client_id_str, rewards_list in results.items():
-            username = db.query(Participant.username).filter(Participant.client_id == int(client_id_str)).scalar() or "Unknown"
+            if not isinstance(rewards_list, list):
+                continue
+                
+            # Try to get username, handle non-integer client_id_str safely
+            try:
+                c_id = int(client_id_str)
+                username = db.query(Participant.username).filter(Participant.client_id == c_id).scalar() or f"User-{client_id_str}"
+            except (ValueError, TypeError):
+                username = f"User-{client_id_str}"
+                
             for r in rewards_list:
+                if not isinstance(r, dict):
+                    continue
+                    
                 if r.get("status") == "success":
+                    # Robust timestamp parsing
+                    ts_raw = r.get("timestamp", "")
+                    ts_display = ts_raw.split(".")[0].replace("T", " ") if ts_raw else "-"
+                    
+                    rule = r.get("rule", {})
                     ws.append([
-                        r.get("timestamp", "").split(".")[0].replace("T", " "),
+                        ts_display,
                         username,
                         client_id_str,
-                        r.get("rule", {}).get("reward_type", ""),
-                        r.get("rule", {}).get("amount", 0),
+                        rule.get("reward_type", "") if isinstance(rule, dict) else "",
+                        rule.get("amount", 0) if isinstance(rule, dict) else 0,
                         "Basarili"
                     ])
 
@@ -627,7 +647,10 @@ async def export_reward_history(
     filename = f"{event.slug}_rewards_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
     return StreamingResponse(
         output,
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        },
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
