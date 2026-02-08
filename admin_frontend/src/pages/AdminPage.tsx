@@ -200,9 +200,27 @@ export default function AdminPage() {
     const [eventStats, setEventStats] = useState<any>(null)
 
 
+    const [workerLogs, setWorkerLogs] = useState<any[]>([])
+
     useEffect(() => {
         loadData()
     }, [selectedEventId, page, debouncedSearch])
+
+    useEffect(() => {
+        if (activeTab === 'dashboard') {
+            const fetchLogs = async () => {
+                try {
+                    const res = await apiClient.get('/admin/worker-logs')
+                    setWorkerLogs(res.data)
+                } catch (e) {
+                    console.error("Worker logs fetch failed", e)
+                }
+            }
+            fetchLogs()
+            const interval = setInterval(fetchLogs, 5000)
+            return () => clearInterval(interval)
+        }
+    }, [activeTab])
 
     useEffect(() => {
         if (selectedParticipant) {
@@ -478,6 +496,24 @@ export default function AdminPage() {
         }
     };
 
+    const handleExportRewardHistory = async (eventId: number, eventName: string) => {
+        try {
+            const response = await apiClient.get(`/admin/events/${eventId}/reward-history/export`, {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${eventName}_odul_gecmisi.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            toast({ title: "Başarılı", description: "Ödül geçmişi indiriliyor." });
+        } catch (err: any) {
+            toast({ title: "Hata", description: "Dosya indirilemedi.", variant: "destructive" });
+        }
+    };
+
     const handleLoadRewardHistory = async (eventId: number) => {
         setLoadingRewards(true)
         try {
@@ -630,11 +666,71 @@ export default function AdminPage() {
             )}
 
             {activeTab === 'dashboard' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <StatCard title="Toplam Katılımcı" value={stats?.total_participants || 0} icon={Users} color="text-blue-500" />
-                    <StatCard title="Toplam Kupon" value={stats?.total_coupons || 0} icon={FileText} color="text-purple-500" />
-                    <StatCard title="Aktif Kampanya" value={events.filter(e => e.status === 'active').length} icon={Trophy} color="text-yellow-500" />
-                    <StatCard title="Bekleyen Kontrol" value={stats?.pending_coupons || 0} icon={AlertCircle} color="text-orange-500" />
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <StatCard title="Toplam Katılımcı" value={stats?.total_participants || 0} icon={Users} color="text-blue-500" />
+                        <StatCard title="Toplam Kupon" value={stats?.total_coupons || 0} icon={FileText} color="text-purple-500" />
+                        <StatCard title="Aktif Kampanya" value={events.filter(e => e.status === 'active').length} icon={Trophy} color="text-yellow-500" />
+                        <StatCard title="Bekleyen Kontrol" value={stats?.pending_coupons || 0} icon={AlertCircle} color="text-orange-500" />
+                    </div>
+
+                    <Card className="bg-card/50 border-white/5 backdrop-blur-xl">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Zap className="h-5 w-5 text-primary" />
+                                Canlı Worker Durumu
+                            </CardTitle>
+                            <CardDescription>Sistemdeki tarama ve ödül dağıtım süreçlerinin anlık durumu.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-xs">
+                                    <thead className="text-muted-foreground uppercase text-[10px] tracking-wider border-b border-white/5">
+                                        <tr>
+                                            <th className="px-4 py-3">İşlem Türü</th>
+                                            <th className="px-4 py-3">Kampanya</th>
+                                            <th className="px-4 py-3">Durum</th>
+                                            <th className="px-4 py-3">İşlenen / Başarılı</th>
+                                            <th className="px-4 py-3 text-right">Hata Mesajı</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/5">
+                                        {workerLogs.map((log) => (
+                                            <tr key={log.id} className="hover:bg-white/5 transition-colors">
+                                                <td className="px-4 py-3">
+                                                    <Badge variant="outline" className={`text-[9px] uppercase font-bold ${log.type === 'Reward' ? 'border-amber-500 text-amber-500' : 'border-blue-500 text-blue-500'}`}>
+                                                        {log.type === 'Reward' ? 'Ödül Dağıtımı' : 'Kupon Tarama'}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-4 py-3 font-medium">{log.event_name}</td>
+                                                <td className="px-4 py-3">
+                                                    <Badge className={`text-[9px] uppercase font-black ${log.status === 'completed' ? 'bg-green-500/10 text-green-500' :
+                                                            log.status === 'running' ? 'bg-blue-500/10 text-blue-500 animate-pulse' :
+                                                                'bg-red-500/10 text-red-500'
+                                                        }`}>
+                                                        {log.status === 'completed' ? 'Tamamlandı' : log.status === 'running' ? 'Çalışıyor' : 'Hata'}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-4 py-3 font-mono">
+                                                    <span className="text-white/60">{log.processed || 0}</span>
+                                                    <span className="text-white/20 mx-1">/</span>
+                                                    <span className="text-emerald-400 font-bold">{log.saved || 0}</span>
+                                                </td>
+                                                <td className="px-4 py-3 text-right text-red-400/80 max-w-[200px] truncate" title={log.error}>
+                                                    {log.error || "-"}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {workerLogs.length === 0 && (
+                                            <tr>
+                                                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground italic">Henüz bir aktivite kaydı yok.</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
             )}
 
@@ -760,7 +856,20 @@ export default function AdminPage() {
                                                 <Zap className="h-4 w-4" />
                                             </Button>
 
-                                            <Button size="icon" variant="ghost" className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10" onClick={() => distributeRewards(event.id).then(() => toast({ title: "Başarılı", description: "Ödül dağıtımı sıraya alındı." }))} title="Ödülleri Dağıt">
+                                            <Button size="icon" variant="ghost" className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10"
+                                                onClick={() => {
+                                                    if (event.status !== 'ended') {
+                                                        toast({
+                                                            title: "Uyarı",
+                                                            description: "Ödül dağıtımı için önce kampanyayı 'Bitir' diyerek sonlandırmalısınız.",
+                                                            variant: "destructive"
+                                                        });
+                                                        return;
+                                                    }
+                                                    distributeRewards(event.id).then(() => toast({ title: "Başarılı", description: "Ödül dağıtımı sıraya alındı." }));
+                                                }}
+                                                title="Ödülleri Dağıt"
+                                            >
                                                 <Gift className="h-4 w-4" />
                                             </Button>
 
@@ -1200,7 +1309,16 @@ export default function AdminPage() {
                                             </div>
                                         )}
                                     </CardContent>
-                                    <div className="p-4 border-t border-white/5 flex justify-end">
+                                    <div className="p-4 border-t border-white/5 flex justify-between items-center">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleExportRewardHistory(historyEvent.id, historyEvent.name)}
+                                            className="gap-2 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                                            disabled={rewardHistory.length === 0}
+                                        >
+                                            <Download className="h-4 w-4" /> Excel'e Aktar
+                                        </Button>
                                         <Button variant="outline" onClick={() => setShowHistoryModal(false)}>Kapat</Button>
                                     </div>
                                 </Card>

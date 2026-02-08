@@ -13,6 +13,7 @@ sys.path.append(os.getcwd())
 from shared.database import SessionLocal
 from shared.models.reward_job import RewardJob
 from shared.models.event import Event
+from shared.models.worker_log import WorkerLog
 from shared.domain.leaderboard import get_event_leaderboard
 from backend_api.app.services.bapi_client import BapiClient
 
@@ -29,11 +30,22 @@ logger = logging.getLogger("reward_worker")
 
 def process_job(job_id: int):
     db = SessionLocal()
+    # Create a progress log entry in WorkerLog for visibility in Admin Panel
+    worker_log = WorkerLog(status="running")
     try:
         job = db.query(RewardJob).filter(RewardJob.id == job_id).first()
         if not job:
             logger.error(f"Job {job_id} not found!")
+            worker_log.status = "failed"
+            worker_log.error_message = f"RewardJob {job_id} not found"
+            db.add(worker_log)
+            db.commit()
             return
+
+        worker_log.event_id = job.event_id
+        db.add(worker_log)
+        db.commit()
+        db.refresh(worker_log)
 
         logger.info(f"Starting Job {job_id} for Event {job.event_id}")
         job.status = "processing"
@@ -44,10 +56,8 @@ def process_job(job_id: int):
             raise ValueError(f"Event {job.event_id} not found")
 
         # Lider Tablosunu Getir
-        # Puan sırasına göre sıralı liste döner.
         participants = get_event_leaderboard(db, event.id)
         
-        # Sıralama (rank) bilgisini manuel olarak ekle
         for idx, p in enumerate(participants, 1):
             p['rank'] = idx
 
@@ -59,18 +69,20 @@ def process_job(job_id: int):
         fail_count = 0
         rewarded_clients = set()
 
+        # Update initial count expectation
+        worker_log.processed_count = 0
+        db.commit()
+
         for rule in rewards:
             rule_type = rule.get('reward_type')
             amount = rule.get('amount')
             criteria_type = rule.get('criteria_type')
             criteria_value = rule.get('criteria_value')
             
-            # Skip unsupported reward types unless they are cash, spin or freebet
             if rule_type not in ['cash', 'spin', 'freebet']:
                 logger.warning(f"Skipping unsupported reward type: {rule_type}")
                 continue
 
-            # Kriterlere uyan kullanıcıları filtrele
             eligible_users = []
             if criteria_type == 'rank':
                 eligible_users = [p for p in participants if p['rank'] <= int(criteria_value)]
@@ -85,22 +97,19 @@ def process_job(job_id: int):
                 client_id = user['client_id']
                 user_str = str(client_id)
                 
-                # Kullanıcı daha önce ödül aldı mı kontrolü
-                # (Aynı etkinlikten tekrar ödül almasını engellemek için)
                 if client_id in rewarded_clients:
                     logger.info(f"Client {client_id} already rewarded in this job. Skipping.")
                     continue
                 
                 rewarded_clients.add(client_id)
+                worker_log.processed_count += 1
+                db.commit()
                 
-                # Sonuçları JSON formatında saklamak için user_id bazlı listeleme yapıyoruz
                 if user_str not in job_results:
                     job_results[user_str] = []
 
                 try:
                     logger.info(f"Distributing {amount} {rule_type} to Client {client_id}")
-                    
-                    # İşlem açıklaması (Info/Note) oluştur
                     event_context = event.slug if event else (job.event_name_snapshot or "DeletedEvent")
                     info_msg = f"EventReward:{event_context} Type:{rule_type} Rank:{user['rank']} Pts:{user['points']}"
                     
@@ -113,7 +122,6 @@ def process_job(job_id: int):
                     elif rule_type in ['spin', 'freebet']:
                         bonus_id = rule.get('partner_bonus_id')
                         if not bonus_id:
-                            # Safely handle missing bonus ID
                             logger.error(f"Missing partner_bonus_id for {rule_type} rule!")
                             raise ValueError(f"Missing partner_bonus_id for {rule_type}")
                         
@@ -133,6 +141,8 @@ def process_job(job_id: int):
                         "timestamp": datetime.now().isoformat()
                     })
                     success_count += 1
+                    worker_log.saved_count = success_count
+                    db.commit()
                     
                 except Exception as e:
                     logger.error(f"Failed to reward Client {client_id}: {e}")
@@ -144,7 +154,7 @@ def process_job(job_id: int):
                     })
                     fail_count += 1
                 
-                # Rate limit koruması: Her istekten sonra 4 saniye bekle
+                # Rate limit koruması
                 logger.info("4 saniye bekleniyor...")
                 time.sleep(4)
         
@@ -152,6 +162,9 @@ def process_job(job_id: int):
         job.results = job_results
         job.status = "completed"
         job.completed_at = datetime.now()
+        
+        worker_log.status = "completed"
+        worker_log.completed_at = datetime.now()
         db.commit()
         logger.info(f"Job {job_id} completed. Success: {success_count}, Failed: {fail_count}")
 
@@ -160,6 +173,8 @@ def process_job(job_id: int):
         try:
             job.status = "failed"
             job.error_message = str(e)
+            worker_log.status = "failed"
+            worker_log.error_message = str(e)
             db.commit()
         except:
             pass

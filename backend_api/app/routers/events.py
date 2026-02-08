@@ -582,3 +582,52 @@ async def export_event_coupons(
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
+
+@router.get("/{event_id}/reward-history/export")
+async def export_reward_history(
+    event_id: int,
+    db: Session = Depends(get_db_session),
+    _: AdminUser = Depends(get_current_admin)
+):
+    """Dağıtılan ödüllerin listesini Excel olarak indir."""
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(404, "Event not found")
+
+    from shared.models.reward_job import RewardJob
+    from shared.models.participant import Participant
+
+    # Fetch all successful rewards for this event
+    jobs = db.query(RewardJob).filter(RewardJob.event_id == event_id).all()
+    
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Dagitilan Oduller"
+    ws.append(["Tarih", "Kullanici Adi", "Client ID", "Odul Turu", "Miktar", "Durum"])
+
+    for job in jobs:
+        results = job.results or {}
+        for client_id_str, rewards_list in results.items():
+            username = db.query(Participant.username).filter(Participant.client_id == int(client_id_str)).scalar() or "Unknown"
+            for r in rewards_list:
+                if r.get("status") == "success":
+                    ws.append([
+                        r.get("timestamp", "").split(".")[0].replace("T", " "),
+                        username,
+                        client_id_str,
+                        r.get("rule", {}).get("reward_type", ""),
+                        r.get("rule", {}).get("amount", 0),
+                        "Basarili"
+                    ])
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = f"{event.slug}_rewards_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    return StreamingResponse(
+        output,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+

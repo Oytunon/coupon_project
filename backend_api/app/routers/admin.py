@@ -188,6 +188,27 @@ async def get_worker_job_status(job_id: int, db: Session = Depends(get_db)):
         "completed_at": job.completed_at
     }
 
+@router.get("/worker-logs")
+async def list_worker_logs(db: Session = Depends(get_db)):
+    from shared.models.worker_log import WorkerLog
+    from shared.models.event import Event
+    
+    logs = db.query(WorkerLog, Event.name).outerjoin(Event, WorkerLog.event_id == Event.id).order_by(WorkerLog.id.desc()).limit(10).all()
+    
+    return [
+        {
+            "id": l.WorkerLog.id,
+            "status": l.WorkerLog.status,
+            "processed": l.WorkerLog.processed_count,
+            "saved": l.WorkerLog.saved_count,
+            "error": l.WorkerLog.error_message,
+            "created_at": l.WorkerLog.created_at,
+            "event_name": l.name or "Sistem Geneli",
+            "type": "Reward" if l.WorkerLog.event_id else "Coupon"
+        } 
+        for l in logs
+    ]
+
 @router.get("/events/{event_id}/stats")
 async def get_event_stats_api(event_id: int, db: Session = Depends(get_db)):
     from shared.models.enrollment import EventParticipant
