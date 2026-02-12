@@ -16,6 +16,10 @@ module.exports = {
             },
         },
         extend: {
+            fontFamily: {
+                oswald: ['Oswald', 'sans-serif'],
+                roboto: ['Roboto Condensed', 'sans-serif'],
+            },
             colors: {
                 border: "hsl(var(--border))",
                 input: "hsl(var(--input))",
