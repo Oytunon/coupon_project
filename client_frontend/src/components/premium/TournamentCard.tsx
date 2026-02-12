@@ -31,7 +31,7 @@ export function TournamentCard({
         >
             <div className="flex flex-col lg:flex-row h-full">
                 {/* Left: Square Banner Image */}
-                <div className="relative w-full lg:w-[260px] lg:h-[260px] overflow-hidden bg-black shrink-0">
+                <div className="relative w-full lg:w-[260px] lg:h-[260px] overflow-hidden bg-black shrink-0 border-r-[3px] border-primary/30">
                     {image_url ? (
                         <img
                             src={`${baseUrl}${image_url}`}
