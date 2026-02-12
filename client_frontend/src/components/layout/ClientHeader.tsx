@@ -1,4 +1,5 @@
 import { Trophy, LogOut, LayoutGrid, Zap, Calendar, CheckSquare, BarChart3, Star } from "lucide-react"
+import logo from "../../assets/logo.png"
 
 interface ClientHeaderProps {
     username: string | null
@@ -9,21 +10,8 @@ export function ClientHeader({ username }: ClientHeaderProps) {
         <nav className="border-b border-primary/20 bg-black/90 backdrop-blur-xl sticky top-0 z-50">
             <div className="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
                 {/* Logo Section */}
-                <div className="flex items-center gap-2 group cursor-pointer">
-                    <div className="flex flex-col">
-                        <div className="flex items-center gap-1">
-                            <span className="font-black text-3xl tracking-tighter uppercase italic text-white flex items-center">
-                                EXTRA<span className="text-secondary-foreground font-black">BET</span>
-                                <span className="ml-2 bg-primary text-black text-[10px] px-1 py-0.5 rounded not-italic font-black flex items-center gap-1">
-                                    12.<span className="text-[8px]">YIL</span>
-                                    <span className="w-3 h-2 bg-red-600 relative overflow-hidden flex items-center justify-center">
-                                        <div className="w-1.5 h-1.5 bg-white rounded-full absolute -left-0.5"></div>
-                                        <div className="w-1 h-1 bg-white rotate-45 absolute right-0.5"></div>
-                                    </span>
-                                </span>
-                            </span>
-                        </div>
-                    </div>
+                <div className="flex items-center gap-2 group cursor-pointer" onClick={() => window.location.href = '/'}>
+                    <img src={logo} alt="Extrabet Logo" className="h-12 w-auto transition-transform duration-500 group-hover:scale-105" />
                 </div>
 
                 {/* Navigation Menu */}
