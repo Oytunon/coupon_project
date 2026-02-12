@@ -58,7 +58,7 @@ export function TournamentCard({
                     {/* Middle Info Boxes */}
                     <div className="flex items-center gap-4">
                         {/* Katılımcı Box */}
-                        <div className="bg-zinc-900/40 border-[2px] border-primary/40 rounded-[20px] px-8 py-5 flex flex-col items-center justify-center min-w-[170px]">
+                        <div className="bg-zinc-900/40 border-[2px] border-primary/40 rounded-[20px] px-8 py-5 flex flex-col items-center justify-center min-w-[170px] shadow-[0_0_20px_rgba(255,184,0,0.1)]">
                             <div className="flex items-center gap-2 mb-2 text-primary">
                                 <Users className="h-4 w-4" />
                                 <span className="text-[10px] font-black uppercase tracking-widest">KATILIMCI</span>
@@ -69,7 +69,7 @@ export function TournamentCard({
                         </div>
 
                         {/* Ödül Box */}
-                        <div className="bg-zinc-900/40 border-[2px] border-primary/40 rounded-[20px] px-8 py-5 flex flex-col items-center justify-center min-w-[170px]">
+                        <div className="bg-zinc-900/40 border-[2px] border-primary/40 rounded-[20px] px-8 py-5 flex flex-col items-center justify-center min-w-[170px] shadow-[0_0_20px_rgba(255,184,0,0.15)]">
                             <div className="flex items-center gap-2 mb-2 text-primary">
                                 <Trophy className="h-4 w-4" />
                                 <span className="text-[10px] font-black uppercase tracking-widest">ÖDÜL</span>
