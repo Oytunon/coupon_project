@@ -27,11 +27,11 @@ export function TournamentCard({
     return (
         <Card
             onClick={() => onDetails?.(id)}
-            className="group overflow-hidden bg-black/40 border-primary/20 backdrop-blur-2xl hover:border-primary/60 transition-all duration-500 mb-6 border-2 relative cursor-pointer"
+            className="group overflow-hidden bg-black/30 border-primary/30 backdrop-blur-2xl hover:border-primary/80 transition-all duration-500 mb-6 border-[3px] relative cursor-pointer"
         >
             <div className="flex flex-col lg:flex-row h-full">
-                {/* Left: Banner Image */}
-                <div className="relative w-full lg:w-[280px] h-[220px] lg:h-auto overflow-hidden bg-black shrink-0">
+                {/* Left: Square Banner Image */}
+                <div className="relative w-full lg:w-[260px] lg:h-[260px] overflow-hidden bg-black shrink-0">
                     {image_url ? (
                         <img
                             src={`${baseUrl}${image_url}`}
@@ -48,7 +48,7 @@ export function TournamentCard({
                 {/* Content Area */}
                 <CardContent className="p-0 flex-1 flex flex-col items-center justify-center relative py-6">
                     {/* Centered Title */}
-                    <div className="text-center mb-8">
+                    <div className="text-center mb-6">
                         <h3 className="text-4xl font-black text-white group-hover:text-primary transition-colors tracking-tighter uppercase italic">
                             {name}
                         </h3>
@@ -57,7 +57,7 @@ export function TournamentCard({
 
                     {/* Middle Info Boxes */}
                     <div className="flex items-center gap-4">
-                        <div className="bg-primary/5 border border-primary/20 rounded-2xl px-8 py-4 flex flex-col items-center justify-center min-w-[150px] shadow-lg">
+                        <div className="bg-white/5 border-[2px] border-primary/30 rounded-2xl px-8 py-4 flex flex-col items-center justify-center min-w-[150px] shadow-lg">
                             <span className="text-[10px] text-primary font-black uppercase tracking-widest mb-1 flex items-center gap-1">
                                 <Users className="h-3 w-3" /> KATILIMCI
                             </span>
@@ -65,7 +65,7 @@ export function TournamentCard({
                                 {participantCount.toLocaleString('tr-TR')}
                             </span>
                         </div>
-                        <div className="border border-primary/50 rounded-2xl px-8 py-4 flex flex-col items-center justify-center min-w-[150px] shadow-[0_0_20px_rgba(255,188,0,0.1)]">
+                        <div className="bg-primary/5 border-[2px] border-primary/60 rounded-2xl px-8 py-4 flex flex-col items-center justify-center min-w-[150px] shadow-[0_0_25px_rgba(255,210,26,0.15)]">
                             <span className="text-[10px] text-primary font-black uppercase tracking-widest mb-1 flex items-center gap-1">
                                 <Trophy className="h-3 w-3" /> ÖDÜL
                             </span>
@@ -77,7 +77,7 @@ export function TournamentCard({
                 </CardContent>
 
                 {/* Right: Stats and Countdown */}
-                <div className="lg:w-[350px] p-8 shrink-0 flex items-center gap-8 justify-between border-t lg:border-t-0 lg:border-l border-white/5">
+                <div className="lg:w-[350px] p-8 shrink-0 flex items-center gap-8 justify-between border-t lg:border-t-0 lg:border-l border-white/10">
                     {/* User Stats */}
                     <div className="flex flex-col gap-4">
                         <div className="flex flex-col">

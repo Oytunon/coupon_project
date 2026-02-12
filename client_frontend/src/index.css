@@ -10,19 +10,21 @@
     --card-foreground: 0 0% 100%;
     --popover: 0 0% 5%;
     --popover-foreground: 0 0% 100%;
-    --primary: 44 100% 50%; /* Vibrant Gold #FFBC00 */
+    --primary: 44 100% 55%;
+    /* Lighter Gold #FFD21A */
     --primary-foreground: 0 0% 0%;
-    --secondary: 0 0% 10%;
+    --secondary: 0 0% 12%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 44 100% 50%;
+    --muted: 0 0% 18%;
+    --muted-foreground: 0 0% 70%;
+    --accent: 44 100% 55%;
     --accent-foreground: 0 0% 0%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 15%;
-    --input: 0 0% 15%;
-    --ring: 44 100% 50%;
+    --border: 0 0% 25%;
+    /* Lighter border */
+    --input: 0 0% 25%;
+    --ring: 44 100% 55%;
     --radius: 0.75rem;
   }
 
