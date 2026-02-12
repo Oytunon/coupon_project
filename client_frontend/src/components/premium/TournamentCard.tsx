@@ -27,16 +27,16 @@ export function TournamentCard({
     return (
         <Card
             onClick={() => onDetails?.(id)}
-            className="group overflow-hidden bg-black/30 border-primary/30 backdrop-blur-2xl hover:border-primary/80 transition-all duration-500 mb-6 border-[3px] relative cursor-pointer"
+            className="group overflow-hidden bg-black border-primary border-[2px] rounded-[20px] transition-all duration-500 mb-6 cursor-pointer relative"
         >
             <div className="flex flex-col lg:flex-row h-full">
-                {/* Left: Square Banner Image */}
-                <div className="relative w-full lg:w-[260px] lg:h-[260px] overflow-hidden bg-black shrink-0 border-r-[3px] border-primary/30">
+                {/* Left: Banner Image */}
+                <div className="relative w-full lg:w-[260px] lg:h-[260px] overflow-hidden bg-black shrink-0 border-r border-primary/40">
                     {image_url ? (
                         <img
                             src={`${baseUrl}${image_url}`}
                             alt={name}
-                            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                            className="w-full h-full object-cover"
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neutral-900 to-black">
@@ -46,29 +46,34 @@ export function TournamentCard({
                 </div>
 
                 {/* Content Area */}
-                <CardContent className="p-0 flex-1 flex flex-col items-center justify-center relative py-6">
+                <CardContent className="p-0 flex-1 flex flex-col items-center justify-center py-6 min-h-[260px]">
                     {/* Centered Title */}
-                    <div className="text-center mb-6">
-                        <h3 className="text-4xl font-black text-white group-hover:text-primary transition-colors tracking-tighter uppercase italic">
+                    <div className="text-center mb-8">
+                        <h3 className="text-4xl font-black text-white tracking-tighter uppercase">
                             {name}
                         </h3>
-                        <div className="h-1 w-24 bg-gradient-to-r from-transparent via-primary/50 to-transparent mx-auto mt-2"></div>
+                        <div className="h-0.5 w-16 bg-primary/60 mx-auto mt-2 rounded-full"></div>
                     </div>
 
                     {/* Middle Info Boxes */}
-                    <div className="flex items-center gap-4">
-                        <div className="bg-white/5 border-[2px] border-primary/30 rounded-2xl px-8 py-4 flex flex-col items-center justify-center min-w-[150px] shadow-lg">
-                            <span className="text-[10px] text-primary font-black uppercase tracking-widest mb-1 flex items-center gap-1">
-                                <Users className="h-3 w-3" /> KATILIMCI
-                            </span>
+                    <div className="flex items-center gap-6">
+                        {/* Katılımcı Box */}
+                        <div className="bg-zinc-950/80 border border-primary/50 rounded-[20px] px-10 py-5 flex flex-col items-center justify-center min-w-[160px] shadow-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Users className="h-4 w-4 text-primary" />
+                                <span className="text-[11px] text-primary font-black uppercase tracking-widest">KATILIMCI</span>
+                            </div>
                             <span className="text-3xl font-black text-white tabular-nums">
                                 {participantCount.toLocaleString('tr-TR')}
                             </span>
                         </div>
-                        <div className="bg-primary/5 border-[2px] border-primary/60 rounded-2xl px-8 py-4 flex flex-col items-center justify-center min-w-[150px] shadow-[0_0_25px_rgba(255,210,26,0.15)]">
-                            <span className="text-[10px] text-primary font-black uppercase tracking-widest mb-1 flex items-center gap-1">
-                                <Trophy className="h-3 w-3" /> ÖDÜL
-                            </span>
+
+                        {/* Ödül Box */}
+                        <div className="bg-zinc-950/80 border border-primary/50 rounded-[20px] px-10 py-5 flex flex-col items-center justify-center min-w-[160px] shadow-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Trophy className="h-4 w-4 text-primary" />
+                                <span className="text-[11px] text-primary font-black uppercase tracking-widest">ÖDÜL</span>
+                            </div>
                             <span className="text-2xl font-black text-primary italic">
                                 10.000.000₺
                             </span>
@@ -76,40 +81,45 @@ export function TournamentCard({
                     </div>
                 </CardContent>
 
-                {/* Right: Stats and Countdown */}
-                <div className="lg:w-[350px] p-8 shrink-0 flex items-center gap-8 justify-between border-t lg:border-t-0 lg:border-l border-white/10">
-                    {/* User Stats */}
-                    <div className="flex flex-col gap-4">
-                        <div className="flex flex-col">
-                            <div className="flex items-center gap-2 text-[10px] text-white/40 font-black tracking-widest uppercase">
+                {/* Right Area: Stats and Countdown Separated */}
+                <div className="flex items-center bg-black/40 pr-10 border-l border-white/10">
+                    {/* Stats Section */}
+                    <div className="flex flex-col gap-6 px-10 border-r border-white/10 py-8 min-w-[200px]">
+                        <div className="flex flex-col items-end">
+                            <div className="flex items-center gap-2 text-[10px] text-white/40 font-black tracking-widest uppercase mb-1">
                                 <BarChart3 className="h-3 w-3" /> PUANIM
                             </div>
-                            <div className="text-3xl font-black text-white tabular-nums">
+                            <div className="text-4xl font-black text-white tabular-nums leading-none">
                                 {userPoints.toLocaleString('tr-TR')}
                             </div>
                         </div>
-                        <div className="flex flex-col">
-                            <div className="flex items-center gap-2 text-[10px] text-white/40 font-black tracking-widest uppercase">
+                        <div className="flex flex-col items-end">
+                            <div className="flex items-center gap-2 text-[10px] text-primary font-black tracking-widest uppercase mb-1">
                                 <Trophy className="h-3 w-3" /> SIRALAMA
                             </div>
-                            <div className="text-3xl font-black text-primary italic">
+                            <div className="text-4xl font-black text-primary italic leading-none">
                                 #{userRank}
                             </div>
                         </div>
                     </div>
 
-                    {/* Simple Box Countdown */}
-                    <div className="flex items-center gap-2">
+                    {/* Countdown Section */}
+                    <div className="flex items-center gap-3 pl-10">
                         {[
                             { value: '15', label: 'GÜN' },
                             { value: '06', label: 'SAAT' },
-                            { value: '57', label: 'DAK' }
+                            { value: '13', label: 'DAK' }
                         ].map((time, idx) => (
-                            <div key={idx} className="flex flex-col items-center gap-1">
-                                <div className="w-12 h-12 border border-primary/40 rounded-lg flex items-center justify-center text-xl font-black text-white tabular-nums">
-                                    {time.value}
+                            <div key={idx} className="flex items-center gap-3">
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="w-14 h-14 border border-primary/60 rounded-xl flex items-center justify-center text-2xl font-black text-white tabular-nums bg-black/60 shadow-[0_0_15px_rgba(255,184,0,0.1)]">
+                                        {time.value}
+                                    </div>
+                                    <span className="text-[9px] font-black text-white/40 tracking-widest">{time.label}</span>
                                 </div>
-                                <span className="text-[8px] font-black text-white/40 tracking-tighter">{time.label}</span>
+                                {idx < 2 && (
+                                    <div className="text-primary/60 font-black text-xl mb-6">:</div>
+                                )}
                             </div>
                         ))}
                     </div>
