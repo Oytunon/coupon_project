@@ -16,145 +16,88 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ClientLayout } from "@/components/layout/ClientLayout"
 
-import { useParams } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
+import { TournamentDetails } from "@/components/premium/TournamentDetails"
 
 export default function UserDashboard() {
     const { eventId: paramEventId, username: paramUsername } = useParams()
-    const [isJoined, setIsJoined] = useState(false)
-    const [username, setUsername] = useState<string | null>(null)
-    const [loading, setLoading] = useState(true)
-    const [joining, setJoining] = useState(false)
-    const [eventId, setEventId] = useState<number | null>(null)
-    const [slug, setSlug] = useState<string | null>(null)
-    const [publicEvents, setPublicEvents] = useState<PublicEvent[]>([])
-    const [activeTab, setActiveTab] = useState("leaderboard")
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+    const navigate = useNavigate()
+    const { toast } = useToast()
 
+    // State Definitions
+    const [loading, setLoading] = useState(true)
+    const [fetchError, setFetchError] = useState<string | null>(null)
+    const [publicEvents, setPublicEvents] = useState<PublicEvent[]>([])
     const [myEnrollments, setMyEnrollments] = useState<any[]>([])
     const [myCoupons, setMyCoupons] = useState<any[]>([])
-    const [loadingLeaderboard, setLoadingLeaderboard] = useState(false)
-    const [loadingEnrollments, setLoadingEnrollments] = useState(false)
-    const [loadingCoupons, setLoadingCoupons] = useState(false)
-    const [fetchError, setFetchError] = useState<string | null>(null)
+    const [myRewards, setMyRewards] = useState<any[]>([])
+
+    const [activeTab, setActiveTab] = useState("tournaments")
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+
+    // Filters & Expanded Items
+    const [eventId, setEventId] = useState<number | null>(null)
+    const [slug, setSlug] = useState<string | null>(null)
     const [expandedEventId, setExpandedEventId] = useState<number | null>(null)
     const [expandedLeaderboard, setExpandedLeaderboard] = useState<any[]>([])
     const [expandedCouponId, setExpandedCouponId] = useState<number | null>(null)
-    const [myRewards, setMyRewards] = useState<any[]>([])
+
+    // Loading States for subsets
+    const [loadingLeaderboard, setLoadingLeaderboard] = useState(false)
+    const [loadingEnrollments, setLoadingEnrollments] = useState(false)
+    const [loadingCoupons, setLoadingCoupons] = useState(false)
     const [loadingRewards, setLoadingRewards] = useState(false)
 
-    const { toast } = useToast()
+    const [username, setUsername] = useState<string | null>(paramUsername || null)
+
+    // Handle Username
+    useEffect(() => {
+        if (!username) {
+            const u = getUsernameFromUrl()
+            if (u) setUsername(u)
+        }
+    }, [username])
+
+    // Fetch Data
+    const fetchData = async () => {
+        setLoading(true)
+        try {
+            const [events, enrollments, coupons, rewards] = await Promise.all([
+                getPublicEvents(),
+                username ? getMyEnrollments(username) : Promise.resolve([]),
+                username ? getMyCoupons(username) : Promise.resolve([]),
+                username ? getMyRewards(username) : Promise.resolve([])
+            ])
+            setPublicEvents(events)
+            setMyEnrollments(enrollments || [])
+            setMyCoupons(coupons || [])
+            setMyRewards(rewards || [])
+        } catch (err) {
+            console.error(err)
+            setFetchError("Veriler yüklenirken bir hata oluştu.")
+        } finally {
+            setLoading(false)
+        }
+    }
 
     useEffect(() => {
-        let u = paramUsername || getUsernameFromUrl()
-        if (paramUsername) u = paramUsername
-
-        setUsername(u)
-
-        const params = new URLSearchParams(window.location.search)
-
-        // Event ID logic
-        let rawEid = paramEventId || params.get("event_id")
-        let parsedEid: number | null = null
-        let sl: string | null = params.get("slug") || params.get("key")
-
-        if (rawEid) {
-            if (!isNaN(Number(rawEid))) {
-                parsedEid = parseInt(rawEid)
-            } else {
-                sl = rawEid
-            }
-        }
-
-        setEventId(parsedEid)
-        setSlug(sl)
-
-        const fetchData = async () => {
-            if (!u) {
-                setLoading(false)
-                return
-            }
-
-            try {
-                const status = await getParticipationStatus(u, parsedEid || undefined, sl || undefined)
-                setIsJoined(status.joined)
-
-                setLoadingCoupons(true)
-                const coupons = await getMyCoupons(u, sl || undefined, parsedEid || undefined)
-                setMyCoupons(coupons)
-
-                setLoadingEnrollments(true)
-                try {
-                    const enrolls = await getMyEnrollments(u)
-                    setMyEnrollments(enrolls)
-                } catch (e) {
-                    console.error("Enrollments error", e)
-                } finally {
-                    setLoadingEnrollments(false)
-                }
-
-                setLoadingRewards(true)
-                try {
-                    const rewards = await getMyRewards(u)
-                    setMyRewards(rewards)
-                } catch (e) {
-                    console.error("Rewards error", e)
-                } finally {
-                    setLoadingRewards(false)
-                }
-            } catch (err) {
-                console.error("User data error", err)
-            } finally {
-                setLoading(false)
-                setLoadingCoupons(false)
-            }
-        }
-
         fetchData()
-    }, [paramEventId, paramUsername])
+    }, [username])
 
-    useEffect(() => {
-        if (!username || !eventId) return
-
-        const reloadCoupons = async () => {
-            setLoadingCoupons(true)
-            try {
-                const coupons = await getMyCoupons(username, undefined, eventId)
-                setMyCoupons(coupons)
-            } catch (e) {
-                console.error("Coupons reload error", e)
-            } finally {
-                setLoadingCoupons(false)
-            }
+    // Actions
+    const handleJoin = async (id: number) => {
+        if (!username) {
+            toast({ title: "Hata", description: "Katılmak için giriş yapmalısınız.", variant: "destructive" })
+            return
         }
-        reloadCoupons()
-    }, [eventId, username])
-
-    useEffect(() => {
-        const loadEvents = async () => {
-            try {
-                const events = await getPublicEvents()
-                if (Array.isArray(events)) {
-                    const sortedEvents = [...events].sort((a, b) => {
-                        if (a.status === 'active' && b.status !== 'active') return -1;
-                        if (a.status !== 'active' && b.status === 'active') return 1;
-                        return b.id - a.id;
-                    });
-                    setPublicEvents(sortedEvents)
-
-                    if (!eventId && !slug && !paramEventId) {
-                        const latestActive = events.find(e => e.status === 'active') || events[0]
-                        if (latestActive) {
-                            setEventId(latestActive.id)
-                        }
-                    }
-                }
-            } catch (e: any) {
-                console.error("Failed events fetch", e)
-                setFetchError(e.message || "Turnuvalar yüklenirken hata oluştu")
-            }
+        try {
+            await joinCampaign(username, id)
+            toast({ title: "Başarılı", description: "Turnuvaya başarıyla katıldınız!" })
+            fetchData()
+        } catch (e) {
+            toast({ title: "Hata", description: "Katılım başarısız oldu.", variant: "destructive" })
         }
-        loadEvents()
-    }, [])
+    }
 
     const handleSwitchEvent = (id: number) => {
         let url = `/event/${id}`
@@ -162,58 +105,51 @@ export default function UserDashboard() {
         window.location.href = url
     }
 
-    const handleJoin = async (specificEventId?: number) => {
-        if (!username) return
-
-        const targetId = specificEventId || eventId
-        if (!targetId) return
-
-        setJoining(true)
-        try {
-            await joinCampaign(username, targetId, undefined)
-            toast({
-                title: "Katılım Başarılı! 🎉",
-                description: "Turnuvaya başarıyla katıldınız.",
-            })
-            window.location.reload()
-        } catch (e: any) {
-            const errorMsg = e.response?.data?.detail || "Katılım işlemi başarısız oldu."
-            toast({ variant: "destructive", title: "Hata", description: errorMsg })
-        } finally {
-            setJoining(false)
-        }
-    }
-
-    const toggleLeaderboard = async (eventId: number) => {
-        if (expandedEventId === eventId) {
+    const toggleLeaderboard = async (id: number) => {
+        if (expandedEventId === id) {
             setExpandedEventId(null)
             return
         }
-
+        setExpandedEventId(id)
         setLoadingLeaderboard(true)
         try {
-            const lb = await getLeaderboard(undefined, eventId, 50, username || undefined)
-            setExpandedLeaderboard(lb)
-            setExpandedEventId(eventId)
+            const data = await getLeaderboard(undefined, id, 10)
+            setExpandedLeaderboard(data)
         } catch (e) {
-            toast({ variant: "destructive", title: "Hata", description: "Sıralama yüklenemedi." })
+            console.error(e)
         } finally {
             setLoadingLeaderboard(false)
         }
     }
 
     if (loading) {
-        return (
-            <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 space-y-4">
-                <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
-                <p className="text-neutral-500 animate-pulse font-bold tracking-widest uppercase text-xs">Yükleniyor...</p>
-            </div>
-        )
+        return <div className="min-h-screen bg-black flex items-center justify-center"><Loader2 className="animate-spin text-amber-500 w-12 h-12" /></div>
+    }
+
+    // Detail View Logic
+    const targetEventId = paramEventId ? Number(paramEventId) : null
+    if (targetEventId) {
+        const selectedEvent = publicEvents.find(e => e.id === targetEventId)
+        const enrollment = myEnrollments.find(e => e.event_id === targetEventId)
+
+        if (selectedEvent) {
+            return (
+                <TournamentDetails
+                    event={selectedEvent}
+                    userPoints={enrollment?.score || 0}
+                    userRank={enrollment?.rank || 0}
+                    isJoined={!!enrollment}
+                    onBack={() => navigate('/')}
+                    username={username || ''}
+                />
+            )
+        }
     }
 
     return (
         <ClientLayout username={username}>
             <main className="max-w-[1200px] mx-auto px-6 py-8 space-y-12">
+
                 {/* User Info Bar - Refined (Badges Removed) */}
                 <div className="flex flex-col md:flex-row items-center justify-between gap-12 bg-black/20 rounded-3xl p-8 border border-white/5 shadow-2xl backdrop-blur-sm">
                     <div className="flex items-center gap-10">
