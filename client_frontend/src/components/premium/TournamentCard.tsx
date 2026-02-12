@@ -27,7 +27,7 @@ export function TournamentCard({
     return (
         <Card
             onClick={() => onDetails?.(id)}
-            className="group overflow-hidden bg-black border-primary border-[3px] rounded-[24px] mb-6 cursor-pointer relative shadow-[0_0_30px_rgba(255,184,0,0.05)]"
+            className="group overflow-hidden bg-black border-primary border-[3px] rounded-[24px] mb-6 cursor-pointer relative shadow-[0_0_30px_rgba(255,184,0,0.05)] transition-all duration-500 hover:shadow-[0_0_50px_rgba(255,184,0,0.15)] hover:border-primary/90 hover:-translate-y-1 active:scale-[0.99]"
         >
             <div className="flex flex-col lg:flex-row h-full min-h-[260px]">
                 {/* Left: Banner Image */}
@@ -133,6 +133,11 @@ export function TournamentCard({
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Premium Shine Overlay */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-700">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.05] to-transparent -translate-x-full group-hover:animate-[shine_1.5s_ease-in-out_infinite]"></div>
             </div>
         </Card>
     )
