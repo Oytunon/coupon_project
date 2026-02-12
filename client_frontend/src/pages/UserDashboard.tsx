@@ -4,7 +4,7 @@ import { getPublicEvents, PublicEvent } from "../api/client"
 import { getUsernameFromUrl } from "../utils/useUsername"
 import {
     Trophy, Loader2, FileText, Award, Gift,
-    TrendingUp, ArrowUpRight, CheckCircle2, Ticket, List as ListIcon, LayoutGrid, Zap, BarChart3
+    TrendingUp, ArrowUpRight, CheckCircle2, Ticket, List as ListIcon, LayoutGrid, Zap, BarChart3, Users
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TournamentCard } from "@/components/premium/TournamentCard"
@@ -213,57 +213,60 @@ export default function UserDashboard() {
 
     return (
         <ClientLayout username={username}>
-            <main className="max-w-[1400px] mx-auto px-6 py-8 space-y-8">
-                {/* User Info Bar */}
-                <div className="bg-black/60 border border-primary/20 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl backdrop-blur-xl">
-                    <div className="flex items-center gap-6">
-                        <div className="h-16 w-16 rounded-full bg-primary flex items-center justify-center text-black font-black text-2xl shadow-[0_0_20px_rgba(255,188,0,0.3)] border-2 border-primary/50">
-                            {username?.slice(0, 2).toUpperCase() || "UN"}
+            <main className="max-w-[1200px] mx-auto px-6 py-8 space-y-12">
+                {/* User Info Bar - Refined */}
+                <div className="flex flex-col md:flex-row items-center justify-between gap-12 bg-black/20 rounded-3xl p-8 border border-white/5 shadow-2xl backdrop-blur-sm">
+                    <div className="flex items-center gap-10">
+                        {/* User Profile */}
+                        <div className="flex items-center gap-4">
+                            <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center text-black font-black text-lg shadow-lg">
+                                <Users className="h-6 w-6" />
+                            </div>
+                            <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">{username || "Misafir"}</h2>
                         </div>
-                        <div className="flex items-center gap-8">
-                            <div className="flex flex-col">
-                                <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">{username || "Misafir"}</h2>
-                                <div className="flex items-center gap-4 mt-1">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-primary font-black text-xl italic">{myEnrollments.length}</span>
-                                        <span className="text-[10px] text-white font-black uppercase tracking-widest leading-none">Kayıtlı<br />Turnuva</span>
-                                    </div>
-                                    <div className="w-px h-6 bg-white/10"></div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-primary font-black text-xl italic">{publicEvents.filter(e => e.status === 'active').length}</span>
-                                        <span className="text-[10px] text-white font-black uppercase tracking-widest leading-none">Aktif<br />Turnuva</span>
-                                    </div>
-                                </div>
+
+                        {/* Simplified Stats */}
+                        <div className="flex items-center gap-10">
+                            <div className="flex items-center gap-4">
+                                <span className="text-primary font-black text-4xl italic tracking-tighter leading-none">{myEnrollments.length}</span>
+                                <span className="text-[10px] text-white font-black uppercase tracking-widest leading-tight">KAYITLI<br />TURNUVA</span>
+                            </div>
+                            <div className="w-px h-10 bg-white/10"></div>
+                            <div className="flex items-center gap-4">
+                                <span className="text-primary font-black text-4xl italic tracking-tighter leading-none">{publicEvents.filter(e => e.status === 'active').length}</span>
+                                <span className="text-[10px] text-white font-black uppercase tracking-widest leading-tight">AKTİF<br />TURNUVA</span>
                             </div>
                         </div>
                     </div>
 
+                    {/* Badge Boxes on the Right */}
                     <div className="flex items-center gap-4 w-full md:w-auto">
-                        <div className="flex-1 md:flex-none bg-primary/5 border border-primary/20 rounded-xl px-6 py-3 flex items-center gap-4 min-w-[180px]">
-                            <div className="bg-primary/20 p-2 rounded-lg">
-                                <Award className="h-5 w-5 text-primary" />
+                        <div className="flex-1 md:flex-none bg-zinc-900/50 border border-white/10 rounded-2xl px-10 py-5 flex items-center gap-4 min-w-[200px] shadow-xl">
+                            <div className="bg-primary/10 p-2 rounded-lg">
+                                <Award className="h-6 w-6 text-primary" />
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-white font-black text-sm">42 / 123</span>
-                                <span className="text-[9px] text-primary font-black uppercase tracking-widest">Rozet</span>
+                                <span className="text-white font-black text-lg">42 / 123</span>
+                                <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Rozet</span>
                             </div>
                         </div>
-                        <div className="flex-1 md:flex-none bg-primary/5 border border-primary/20 rounded-xl px-6 py-3 flex items-center gap-4 min-w-[180px]">
-                            <div className="bg-primary/20 p-2 rounded-lg">
-                                <Zap className="h-5 w-5 text-primary" />
+                        <div className="flex-1 md:flex-none bg-zinc-900/50 border border-white/10 rounded-2xl px-10 py-5 flex items-center gap-4 min-w-[200px] shadow-xl">
+                            <div className="bg-primary/10 p-2 rounded-lg">
+                                <Zap className="h-6 w-6 text-primary" />
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-white font-black text-sm uppercase">İlk Adım</span>
-                                <span className="text-[9px] text-primary font-black uppercase tracking-widest">Son Rozet</span>
+                                <span className="text-white font-black text-lg uppercase italic">İlk Adım</span>
+                                <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Son Rozet</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-6">
-                    <div className="flex items-center gap-4 border-b border-white/5 pb-2">
-                        <h3 className="text-xl font-black text-white uppercase italic tracking-tighter">KAYITLI TURNUVALARIM ({myEnrollments.length})</h3>
-                        <div className="flex-1 h-px bg-primary/30"></div>
+                <div className="flex flex-col gap-10">
+                    <div className="flex items-center gap-4 justify-center">
+                        <div className="h-px bg-gradient-to-r from-transparent to-primary/30 flex-1"></div>
+                        <h3 className="text-xl font-black text-white uppercase italic tracking-widest px-8">KAYITLI TURNUVALARIM ({myEnrollments.length})</h3>
+                        <div className="h-px bg-gradient-to-l from-transparent to-primary/30 flex-1"></div>
                     </div>
 
                     {/* Content */}
@@ -274,7 +277,7 @@ export default function UserDashboard() {
                                 id={event.id}
                                 name={event.name}
                                 description={event.description || ""}
-                                image_url={event.image_url}
+                                image_url={event.image_url ?? null}
                                 status={event.status}
                                 startDate={event.start_date}
                                 endDate={event.end_date}
