@@ -529,12 +529,14 @@ export default function UserDashboard() {
                                                             id={event.id}
                                                             name={event.name}
                                                             description={event.description || ""}
-                                                            image_url={event.image_url}
+                                                            image_url={event.image_url ?? null}
                                                             status={event.status}
                                                             startDate={event.start_date}
                                                             endDate={event.end_date}
                                                             participantCount={event.participant_count}
                                                             isJoined={myEnrollments.some(e => e.event_id === event.id)}
+                                                            userPoints={myEnrollments.find(e => e.event_id === event.id)?.score || 0}
+                                                            userRank={myEnrollments.find(e => e.event_id === event.id)?.rank || 0}
                                                             onJoin={(id) => handleJoin(id)}
                                                             onDetails={(id) => handleSwitchEvent(id)}
                                                         />
