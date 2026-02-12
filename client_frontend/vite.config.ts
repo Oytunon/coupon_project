@@ -33,6 +33,10 @@ export default defineConfig(({ mode }) => {
                 '/auth': {
                     target: target,
                     changeOrigin: true,
+                },
+                '/media': {
+                    target: target,
+                    changeOrigin: true,
                 }
             }
         }

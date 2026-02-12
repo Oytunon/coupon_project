@@ -5,6 +5,10 @@
             "destination": "http://46.101.96.41:8000/api/:path*"
         },
         {
+            "source": "/media/:path*",
+            "destination": "http://46.101.96.41:8000/media/:path*"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }

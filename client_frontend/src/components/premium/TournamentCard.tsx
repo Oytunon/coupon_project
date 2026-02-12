@@ -22,7 +22,7 @@ export function TournamentCard({
     id, name, image_url, participantCount,
     userPoints, userRank, onJoin, onDetails
 }: TournamentCardProps) {
-    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000"
+    const baseUrl = import.meta.env.VITE_API_URL || ""
 
     return (
         <Card
