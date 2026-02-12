@@ -188,8 +188,12 @@ app.include_router(client_router)
 from backend_api.app.routers.leagues import router as leagues_router
 app.include_router(leagues_router)
 
-# Mount static files
-os.makedirs("static/uploads", exist_ok=True)
+# Mount media files (Uploads)
+os.makedirs("media", exist_ok=True)
+app.mount("/media", StaticFiles(directory="media"), name="media")
+
+# Mount static files (Assets)
+os.makedirs("static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 

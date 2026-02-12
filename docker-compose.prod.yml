@@ -29,6 +29,8 @@ services:
       - DATABASE_URL=postgresql://coupon_user:coupon_pass@postgres:5432/coupon_db
     env_file:
       - .env
+    volumes:
+      - ./media_data:/app/media
     depends_on:
       postgres:
         condition: service_healthy

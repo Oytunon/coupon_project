@@ -683,7 +683,7 @@ async def upload_event_image(
     filename = f"event_{event_id}_{uuid.uuid4().hex}{ext}"
     
     # Ensure directory exists
-    upload_dir = "static/uploads"
+    upload_dir = "media"
     os.makedirs(upload_dir, exist_ok=True)
     
     file_path = os.path.join(upload_dir, filename)
@@ -694,7 +694,7 @@ async def upload_event_image(
             shutil.copyfileobj(file.file, buffer)
             
         # Update event model
-        image_url = f"/static/uploads/{filename}"
+        image_url = f"/media/{filename}"
         event.image_url = image_url
         db.commit()
         
