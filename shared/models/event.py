@@ -14,6 +14,7 @@ class Event(Base):
     name = Column(String(255), nullable=False)
     slug = Column(String(50), nullable=False, unique=True, index=True)
     description = Column(Text, nullable=True)
+    image_url = Column(String(512), nullable=True)
 
     # Status Management
     status = Column(String(16), nullable=False, default="draft", index=True)

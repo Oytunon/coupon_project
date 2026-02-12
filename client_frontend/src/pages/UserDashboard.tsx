@@ -4,10 +4,10 @@ import { getPublicEvents, PublicEvent } from "../api/client"
 import { getUsernameFromUrl } from "../utils/useUsername"
 import {
     Trophy, Loader2, FileText, Award, Gift,
-    TrendingUp, ArrowUpRight, CheckCircle2, Ticket, List as ListIcon, LayoutGrid, PlayCircle
+    TrendingUp, ArrowUpRight, CheckCircle2, Ticket, List as ListIcon, LayoutGrid
 } from "lucide-react"
-import tournamentBanner from "../assets/tournament-banner.jpg"
 import { Button } from "@/components/ui/button"
+import { TournamentCard } from "@/components/premium/TournamentCard"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
@@ -20,20 +20,16 @@ import { useParams } from "react-router-dom"
 
 export default function UserDashboard() {
     const { eventId: paramEventId, username: paramUsername } = useParams()
-    const [canJoin, setCanJoin] = useState(false)
     const [isJoined, setIsJoined] = useState(false)
     const [username, setUsername] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
     const [joining, setJoining] = useState(false)
-    const [userScore, setUserScore] = useState<number>(0)
-    const [userRank, setUserRank] = useState<number>(0)
     const [eventId, setEventId] = useState<number | null>(null)
     const [slug, setSlug] = useState<string | null>(null)
     const [publicEvents, setPublicEvents] = useState<PublicEvent[]>([])
     const [activeTab, setActiveTab] = useState("leaderboard")
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
-    const [leaderboard, setLeaderboard] = useState<any[]>([])
     const [myEnrollments, setMyEnrollments] = useState<any[]>([])
     const [myCoupons, setMyCoupons] = useState<any[]>([])
     const [loadingLeaderboard, setLoadingLeaderboard] = useState(false)
@@ -49,7 +45,6 @@ export default function UserDashboard() {
     const { toast } = useToast()
 
     useEffect(() => {
-
         let u = paramUsername || getUsernameFromUrl()
         if (paramUsername) u = paramUsername
 
@@ -59,7 +54,6 @@ export default function UserDashboard() {
 
         // Event ID logic
         let rawEid = paramEventId || params.get("event_id")
-
         let parsedEid: number | null = null
         let sl: string | null = params.get("slug") || params.get("key")
 
@@ -67,7 +61,6 @@ export default function UserDashboard() {
             if (!isNaN(Number(rawEid))) {
                 parsedEid = parseInt(rawEid)
             } else {
-                // If it's a string in the ID slot, treat as slug
                 sl = rawEid
             }
         }
@@ -76,16 +69,6 @@ export default function UserDashboard() {
         setSlug(sl)
 
         const fetchData = async () => {
-            setLoadingLeaderboard(true)
-            try {
-                const lb = await getLeaderboard(sl || undefined, parsedEid || undefined, 50, u || null)
-                setLeaderboard(lb)
-            } catch (e) {
-                console.error("Leaderboard error", e)
-            } finally {
-                setLoadingLeaderboard(false)
-            }
-
             if (!u) {
                 setLoading(false)
                 return
@@ -93,10 +76,7 @@ export default function UserDashboard() {
 
             try {
                 const status = await getParticipationStatus(u, parsedEid || undefined, sl || undefined)
-                setCanJoin(status.can_join)
                 setIsJoined(status.joined)
-                if (status.score !== undefined) setUserScore(status.score || 0)
-                if (status.rank !== undefined) setUserRank(status.rank)
 
                 setLoadingCoupons(true)
                 const coupons = await getMyCoupons(u, sl || undefined, parsedEid || undefined)
@@ -132,7 +112,6 @@ export default function UserDashboard() {
         fetchData()
     }, [paramEventId, paramUsername])
 
-    // Reload coupons when user selects a different tournament from dropdown
     useEffect(() => {
         if (!username || !eventId) return
 
@@ -154,18 +133,14 @@ export default function UserDashboard() {
         const loadEvents = async () => {
             try {
                 const events = await getPublicEvents()
-                console.log("DEBUG: Events fetched:", events)
                 if (Array.isArray(events)) {
-                    // Sort: Active ones first, then by ID descending (newest first)
                     const sortedEvents = [...events].sort((a, b) => {
                         if (a.status === 'active' && b.status !== 'active') return -1;
                         if (a.status !== 'active' && b.status === 'active') return 1;
                         return b.id - a.id;
                     });
                     setPublicEvents(sortedEvents)
-                    console.log("DEBUG: Public events state updated and sorted:", sortedEvents.length)
 
-                    // If no eventId is set yet (root path), auto-select the first active valid event
                     if (!eventId && !slug && !paramEventId) {
                         const latestActive = events.find(e => e.status === 'active') || events[0]
                         if (latestActive) {
@@ -196,28 +171,19 @@ export default function UserDashboard() {
         setJoining(true)
         try {
             await joinCampaign(username, targetId, undefined)
-            setCanJoin(false)
             toast({
                 title: "Katılım Başarılı! 🎉",
                 description: "Turnuvaya başarıyla katıldınız.",
             })
-            // Refresh
             window.location.reload()
         } catch (e: any) {
             const errorMsg = e.response?.data?.detail || "Katılım işlemi başarısız oldu."
-            if (errorMsg.includes("yatırım şartı")) {
-                toast({
-                    variant: "destructive",
-                    title: "⚠️ Katılım Şartı Sağlanmadı",
-                    description: errorMsg,
-                })
-            } else {
-                toast({ variant: "destructive", title: "Hata", description: errorMsg })
-            }
+            toast({ variant: "destructive", title: "Hata", description: errorMsg })
         } finally {
             setJoining(false)
         }
     }
+
     const toggleLeaderboard = async (eventId: number) => {
         if (expandedEventId === eventId) {
             setExpandedEventId(null)
@@ -226,12 +192,9 @@ export default function UserDashboard() {
 
         setLoadingLeaderboard(true)
         try {
-            const lb = await getLeaderboard(undefined, eventId, 50, username)
+            const lb = await getLeaderboard(undefined, eventId, 50, username || undefined)
             setExpandedLeaderboard(lb)
             setExpandedEventId(eventId)
-            // Sync global event context so Coupons tab shows this event
-            setEventId(eventId)
-            setSlug(null)
         } catch (e) {
             toast({ variant: "destructive", title: "Hata", description: "Sıralama yüklenemedi." })
         } finally {
@@ -241,165 +204,152 @@ export default function UserDashboard() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 space-y-4">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                <p className="text-muted-foreground animate-pulse">Yükleniyor...</p>
+            <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 space-y-4">
+                <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
+                <p className="text-neutral-500 animate-pulse font-bold tracking-widest uppercase text-xs">Yükleniyor...</p>
             </div>
         )
     }
 
     return (
         <ClientLayout username={username}>
-
             <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
                 {/* Hero Section */}
-                <section className="relative rounded-3xl overflow-hidden bg-black border border-primary/20 p-8 md:p-12">
-                    <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/10 to-transparent pointer-events-none" />
+                <section className="relative rounded-3xl overflow-hidden bg-zinc-950 border border-amber-500/10 p-8 md:p-12 shadow-2xl">
+                    <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-amber-500/5 to-transparent pointer-events-none" />
                     <div className="relative z-10 grid md:grid-cols-2 gap-12 items-center">
                         <div className="space-y-6">
-                            <Badge className="bg-primary/20 text-primary border-primary/30 py-1.5 px-4 rounded-full font-bold uppercase tracking-widest text-[10px]">
-                                Aktif Turnuva
+                            <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/20 py-1.5 px-4 rounded-full font-bold uppercase tracking-widest text-[10px]">
+                                Premium Turnuva Platformu
                             </Badge>
                             <div>
-                                <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-none uppercase italic mb-2">
-                                    <span className="text-primary">Zirveye</span> Oyna
+                                <h2 className="text-4xl md:text-5xl font-black tracking-tighter leading-none uppercase italic mb-2">
+                                    <span className="text-amber-500">Kupon</span> Turnuvası
                                 </h2>
-                                <p className="text-muted-foreground text-lg">Puan topla, sıralamada yüksel, ödülleri kazan.</p>
+                                <p className="text-neutral-400 text-lg font-medium">Büyük ödüller için stratejini belirle ve yarışa katıl.</p>
                             </div>
-
-
-
-
-                        </div>
-                        {/* Right Side Image */}
-                        <div className="hidden md:flex justify-center md:absolute md:right-0 md:bottom-0 md:h-full md:w-1/2 items-end">
-                            <img
-                                src={tournamentBanner}
-                                alt="Tournament Banner"
-                                className="object-contain max-h-[120%] w-auto mask-image-gradient"
-                                style={{ maskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)' }}
-                            />
                         </div>
                     </div>
                 </section>
 
                 {/* Main Tabs */}
                 <Tabs defaultValue="leaderboard" className="w-full" value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList className="grid w-full grid-cols-4 bg-card/50 p-1 h-auto">
-                        <TabsTrigger value="leaderboard" className="py-3 font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                            <Award className="w-4 h-4 mr-2" /> Sıralamalarım
+                    <TabsList className="grid w-full grid-cols-5 bg-zinc-900/50 p-1 h-auto border border-white/5 rounded-xl">
+                        <TabsTrigger value="leaderboard" className="py-3 font-bold uppercase text-[10px] sm:text-xs data-[state=active]:bg-amber-500 data-[state=active]:text-black">
+                            <Trophy className="w-4 h-4 mr-2 hidden sm:inline" /> Sıralamalarım
                         </TabsTrigger>
-                        <TabsTrigger value="tournaments" className="py-3 font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                            <ListIcon className="w-4 h-4 mr-2" /> Turnuvalar
+                        <TabsTrigger value="tournaments" className="py-3 font-bold uppercase text-[10px] sm:text-xs data-[state=active]:bg-amber-500 data-[state=active]:text-black">
+                            <LayoutGrid className="w-4 h-4 mr-2 hidden sm:inline" /> Turnuvalar
                         </TabsTrigger>
-                        <TabsTrigger value="my-coupons" className="py-3 font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                            <Ticket className="w-4 h-4 mr-2" /> Kuponlarım
+                        <TabsTrigger value="my-coupons" className="py-3 font-bold uppercase text-[10px] sm:text-xs data-[state=active]:bg-amber-500 data-[state=active]:text-black">
+                            <Ticket className="w-4 h-4 mr-2 hidden sm:inline" /> Kuponlarım
                         </TabsTrigger>
-                        <TabsTrigger value="rules" className="py-3 font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                            <FileText className="w-4 h-4 mr-2" /> Kurallar ve Ödüller
+                        <TabsTrigger value="rules" className="py-3 font-bold uppercase text-[10px] sm:text-xs data-[state=active]:bg-amber-500 data-[state=active]:text-black">
+                            <FileText className="w-4 h-4 mr-2 hidden sm:inline" /> Kurallar
                         </TabsTrigger>
-                        <TabsTrigger value="rewards" className="py-3 font-bold uppercase data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                            <Gift className="w-4 h-4 mr-2" /> Ödüllerim
+                        <TabsTrigger value="rewards" className="py-3 font-bold uppercase text-[10px] sm:text-xs data-[state=active]:bg-amber-500 data-[state=active]:text-black">
+                            <Gift className="w-4 h-4 mr-2 hidden sm:inline" /> Ödüllerim
                         </TabsTrigger>
                     </TabsList>
 
-                    {/* My Rankings / Leaderboard Tab */}
-                    <TabsContent value="leaderboard" className="mt-6">
-                        <Card className="border-white/10 bg-card/30">
+                    {/* My Rankings Tab */}
+                    <TabsContent value="leaderboard" className="mt-6 animation-in fade-in slide-in-from-bottom-2">
+                        <Card className="border-white/5 bg-zinc-950/40 backdrop-blur-xl">
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Trophy className="h-5 w-5 text-yellow-500" /> Sıralamalarım</CardTitle>
-                                <CardDescription>Katıldığınız turnuvalardaki anlık durumunuz.</CardDescription>
+                                <CardTitle className="flex items-center gap-2 text-white"><Trophy className="h-5 w-5 text-amber-500" /> Sıralamarım</CardTitle>
+                                <CardDescription className="text-neutral-500">Katıldığınız aktif ve geçmiş turnuvalardaki durumunuz.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 {loadingEnrollments ? (
-                                    <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
+                                    <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber-500" /></div>
                                 ) : myEnrollments.length === 0 ? (
-                                    <div className="text-center p-8 text-muted-foreground">Henüz hiçbir turnuvaya katılmadınız.</div>
+                                    <div className="text-center p-12 text-neutral-500 italic bg-white/5 rounded-xl border border-dashed border-white/10">Henüz hiçbir turnuvaya katılmadınız.</div>
                                 ) : (
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow className="hover:bg-transparent border-white/10">
-                                                <TableHead>Turnuva</TableHead>
-                                                <TableHead>Durum</TableHead>
-                                                <TableHead className="text-right">Puan</TableHead>
-                                                <TableHead className="text-right">Sıralama</TableHead>
-                                                <TableHead className="text-right">İşlem</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {myEnrollments.map((enr) => (
-                                                <Fragment key={enr.event_id}>
-                                                    <TableRow className="border-white/5 hover:bg-white/5">
-                                                        <TableCell className="font-bold text-white">{enr.event_name}</TableCell>
-                                                        <TableCell>
-                                                            <Badge variant={enr.status === 'active' ? 'default' : 'secondary'} className="uppercase text-[10px]">
-                                                                {enr.status === 'active' ? 'Aktif' : 'Tamamlandı'}
-                                                            </Badge>
-                                                        </TableCell>
-                                                        <TableCell className="text-right font-mono">{enr.score.toLocaleString()}</TableCell>
-                                                        <TableCell className="text-right font-bold text-lg text-primary">#{enr.rank}</TableCell>
-                                                        <TableCell className="text-right">
-                                                            <Button size="sm" variant="ghost" onClick={() => toggleLeaderboard(enr.event_id)}>
-                                                                {expandedEventId === enr.event_id ? 'Kapat' : 'Sıralamayı Göster'} <ListIcon className="ml-1 h-3 w-3" />
-                                                            </Button>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                    {expandedEventId === enr.event_id && (
-                                                        <TableRow className="bg-black/20 hover:bg-black/20">
-                                                            <TableCell colSpan={5} className="p-4">
-                                                                <div className="rounded-lg border border-white/10 overflow-hidden">
-                                                                    <Table>
-                                                                        <TableHeader className="bg-black/40">
-                                                                            <TableRow>
-                                                                                <TableHead className="w-[80px]">Sıra</TableHead>
-                                                                                <TableHead>Kullanıcı</TableHead>
-                                                                                <TableHead className="text-right">Puan</TableHead>
-                                                                            </TableRow>
-                                                                        </TableHeader>
-                                                                        <TableBody>
-                                                                            {loadingLeaderboard ? (
-                                                                                <TableRow><TableCell colSpan={3} className="text-center py-4"><Loader2 className="animate-spin h-5 w-5 mx-auto" /></TableCell></TableRow>
-                                                                            ) : expandedLeaderboard.length === 0 ? (
-                                                                                <TableRow><TableCell colSpan={3} className="text-center py-4">Veri yok</TableCell></TableRow>
-                                                                            ) : (
-                                                                                expandedLeaderboard.map((user, idx) => (
-                                                                                    <TableRow key={idx} className={user.username === username ? "bg-primary/10" : ""}>
-                                                                                        <TableCell className="font-mono font-bold">#{idx + 1}</TableCell>
-                                                                                        <TableCell>{user.username === username ? `${user.username} (Sen)` : user.username}</TableCell>
-                                                                                        <TableCell className="text-right font-mono">{(user.score || 0).toLocaleString()}</TableCell>
-                                                                                    </TableRow>
-                                                                                ))
-                                                                            )}
-                                                                        </TableBody>
-                                                                    </Table>
-                                                                </div>
+                                    <div className="overflow-x-auto">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow className="hover:bg-transparent border-white/5">
+                                                    <TableHead className="text-neutral-400 uppercase text-[10px] font-black tracking-widest">Turnuva</TableHead>
+                                                    <TableHead className="text-neutral-400 uppercase text-[10px] font-black tracking-widest">Durum</TableHead>
+                                                    <TableHead className="text-right text-neutral-400 uppercase text-[10px] font-black tracking-widest">Puan</TableHead>
+                                                    <TableHead className="text-right text-neutral-400 uppercase text-[10px] font-black tracking-widest">Sıralama</TableHead>
+                                                    <TableHead className="text-right text-neutral-400 uppercase text-[10px] font-black tracking-widest">Detay</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {myEnrollments.map((enr) => (
+                                                    <Fragment key={enr.event_id}>
+                                                        <TableRow className="border-white/5 hover:bg-white/5 transition-colors">
+                                                            <TableCell className="font-bold text-white">{enr.event_name}</TableCell>
+                                                            <TableCell>
+                                                                <Badge variant={enr.status === 'active' ? 'default' : 'secondary'} className={enr.status === 'active' ? 'bg-emerald-500/20 text-emerald-500 border-none' : 'bg-white/5 text-neutral-500 border-none'}>
+                                                                    {enr.status === 'active' ? 'AKTİF' : 'TAMAMLANDI'}
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell className="text-right font-mono text-amber-500 font-bold">{enr.score.toLocaleString()}</TableCell>
+                                                            <TableCell className="text-right font-black text-xl text-white italic">#{enr.rank}</TableCell>
+                                                            <TableCell className="text-right">
+                                                                <Button size="sm" variant="ghost" className="text-amber-500 hover:text-amber-400 hover:bg-amber-500/10" onClick={() => toggleLeaderboard(enr.event_id)}>
+                                                                    {expandedEventId === enr.event_id ? 'Kapat' : 'Sıralama'}
+                                                                </Button>
                                                             </TableCell>
                                                         </TableRow>
-                                                    )}
-                                                </Fragment>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
+                                                        {expandedEventId === enr.event_id && (
+                                                            <TableRow className="bg-black/40 border-none">
+                                                                <TableCell colSpan={5} className="p-4">
+                                                                    <div className="rounded-xl border border-white/5 overflow-hidden animate-in fade-in zoom-in-95">
+                                                                        <Table>
+                                                                            <TableHeader className="bg-white/5">
+                                                                                <TableRow className="border-none">
+                                                                                    <TableHead className="w-[80px] text-[10px] uppercase font-bold">Sıra</TableHead>
+                                                                                    <TableHead className="text-[10px] uppercase font-bold">Kullanıcı</TableHead>
+                                                                                    <TableHead className="text-right text-[10px] uppercase font-bold">Puan</TableHead>
+                                                                                </TableRow>
+                                                                            </TableHeader>
+                                                                            <TableBody>
+                                                                                {loadingLeaderboard ? (
+                                                                                    <TableRow><TableCell colSpan={3} className="text-center py-4"><Loader2 className="animate-spin h-5 w-5 mx-auto text-amber-500" /></TableCell></TableRow>
+                                                                                ) : (
+                                                                                    expandedLeaderboard.map((user, idx) => (
+                                                                                        <TableRow key={idx} className={user.username === username ? "bg-amber-500/10 border-amber-500/20" : "border-white/5"}>
+                                                                                            <TableCell className="font-mono font-bold text-white">#{idx + 1}</TableCell>
+                                                                                            <TableCell className={user.username === username ? "text-amber-500 font-bold" : "text-neutral-300"}>
+                                                                                                {user.username === username ? `${user.username} (SEN)` : user.username}
+                                                                                            </TableCell>
+                                                                                            <TableCell className="text-right font-mono text-white">{(user.score || 0).toLocaleString()}</TableCell>
+                                                                                        </TableRow>
+                                                                                    ))
+                                                                                )}
+                                                                            </TableBody>
+                                                                        </Table>
+                                                                    </div>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        )}
+                                                    </Fragment>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>
                     </TabsContent>
 
                     {/* My Coupons Tab */}
-                    <TabsContent value="my-coupons" className="mt-6">
-                        <Card className="border-white/10 bg-card/30">
+                    <TabsContent value="my-coupons" className="mt-6 animation-in fade-in slide-in-from-bottom-2">
+                        <Card className="border-white/5 bg-zinc-950/40 backdrop-blur-xl">
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Ticket className="h-5 w-5 text-blue-500" /> Kuponlarım</CardTitle>
-                                <div className="flex items-center gap-4 mt-2">
-                                    <div className="text-sm text-muted-foreground whitespace-nowrap">Turnuva Seçin:</div>
+                                <CardTitle className="flex items-center gap-2 text-white"><Ticket className="h-5 w-5 text-amber-500" /> Kuponlarım</CardTitle>
+                                <div className="flex items-center gap-4 mt-4">
                                     <Select value={eventId ? eventId.toString() : ""} onValueChange={(val) => {
                                         setEventId(Number(val))
                                         setSlug(null)
                                     }}>
-                                        <SelectTrigger className="w-[280px]">
+                                        <SelectTrigger className="w-full sm:w-[320px] bg-white/5 border-white/10 text-white">
                                             <SelectValue placeholder="Turnuva Seçiniz" />
                                         </SelectTrigger>
-                                        <SelectContent>
+                                        <SelectContent className="bg-zinc-900 border-white/10 text-white">
                                             {myEnrollments.length > 0 ? (
                                                 myEnrollments.map((enr) => (
                                                     <SelectItem key={enr.event_id} value={enr.event_id.toString()}>
@@ -415,84 +365,74 @@ export default function UserDashboard() {
                             </CardHeader>
                             <CardContent>
                                 {!username ? (
-                                    <div className="text-center p-8 text-muted-foreground bg-secondary/20 rounded-lg border-dashed border-2">
-                                        Kuponlarınızı görmek için lütfen kampanya linki üzerinden giriş yapınız.
-                                    </div>
+                                    <div className="text-center p-12 text-neutral-500 italic bg-white/5 rounded-xl border border-dashed border-white/10">Kuponlarınızı görmek için giriş yapmalısınız.</div>
                                 ) : loadingCoupons ? (
-                                    <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
+                                    <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber-500" /></div>
                                 ) : myCoupons.length === 0 ? (
-                                    <div className="text-center p-12 flex flex-col items-center gap-4">
-                                        <Ticket className="h-12 w-12 text-muted-foreground/50" />
-                                        <p className="text-muted-foreground">Henüz puanlanan bir kuponunuz yok.</p>
+                                    <div className="text-center p-12 flex flex-col items-center gap-4 bg-white/5 rounded-xl border border-dashed border-white/10">
+                                        <Ticket className="h-12 w-12 text-neutral-700" />
+                                        <p className="text-neutral-500 italic">Bu turnuvada henüz puanlanan kuponunuz bulunmuyor.</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-4">
                                         {myCoupons.map((coupon: any) => (
-                                            <div key={coupon.id} className="grid grid-cols-12 items-center gap-4 p-4 bg-background/40 rounded-lg border border-white/5 hover:border-primary/20 transition-colors">
-                                                {/* Left: Beta ID and Date */}
-                                                <div className="col-span-3 space-y-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-sm font-mono text-muted-foreground">#{coupon.bet_id}</span>
-                                                        <Badge variant={
-                                                            coupon.state === "Won" ? "default" :
-                                                                coupon.state === "Lost" ? "destructive" : "secondary"
-                                                        } className="uppercase text-[10px]">
-                                                            {coupon.state || "Bekliyor"}
-                                                        </Badge>
-                                                    </div>
-                                                    <div className="text-xs text-muted-foreground">
-                                                        {new Date(coupon.inserted_at).toLocaleString('tr-TR')}
-                                                    </div>
-                                                    {coupon.is_live && <Badge variant="outline" className="text-[10px] border-red-500/50 text-red-400">CANLI</Badge>}
-                                                </div>
-
-                                                {/* Center: Match Details with Expand Button */}
-                                                <div className="col-span-6 bg-black/20 rounded p-2 text-xs">
-                                                    {coupon.bet_data?.Selections && coupon.bet_data.Selections.length > 0 ? (
-                                                        <div>
-                                                            {/* Detay Button */}
-                                                            <button
-                                                                onClick={() => setExpandedCouponId(expandedCouponId === coupon.id ? null : coupon.id)}
-                                                                className="w-full flex items-center justify-between text-left hover:bg-white/5 rounded px-2 py-1 transition-colors"
-                                                            >
-                                                                <span className="text-muted-foreground">
-                                                                    {coupon.bet_data.Selections.length} maç
-                                                                </span>
-                                                                <span className="text-primary text-[10px] flex items-center gap-1">
-                                                                    {expandedCouponId === coupon.id ? '▲ Gizle' : '▼ Detay'}
-                                                                </span>
-                                                            </button>
-
-                                                            {/* Expanded Details */}
-                                                            {expandedCouponId === coupon.id && (
-                                                                <div className="mt-2 space-y-2 border-t border-white/10 pt-2">
-                                                                    {coupon.bet_data.Selections.map((sel: any, i: number) => (
-                                                                        <div key={i} className="border-b border-white/5 last:border-0 pb-1 last:pb-0">
-                                                                            <div className="text-white/80 font-medium text-[11px]">{sel.MatchName}</div>
-                                                                            <div className="flex justify-between items-center text-[10px]">
-                                                                                <span className="text-blue-400">→ {sel.DisplaySelectionName || sel.SelectionName}</span>
-                                                                                <span className="text-muted-foreground">{sel.DisplayMarketName || sel.MarketName}</span>
-                                                                            </div>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            )}
+                                            <div key={coupon.id} className="p-4 bg-black/40 rounded-xl border border-white/5 hover:border-amber-500/20 transition-all group shadow-lg">
+                                                <div className="grid grid-cols-12 items-center gap-4">
+                                                    <div className="col-span-12 sm:col-span-3 space-y-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs font-mono text-neutral-500">#{coupon.bet_id}</span>
+                                                            <Badge variant={coupon.state === "Won" ? "default" : coupon.state === "Lost" ? "destructive" : "secondary"}
+                                                                className={`uppercase text-[9px] font-black px-2 py-0.5 border-none ${coupon.state === 'Won' ? 'bg-emerald-500/20 text-emerald-500' : coupon.state === 'Lost' ? 'bg-red-500/20 text-red-500' : 'bg-neutral-800 text-neutral-400'}`}>
+                                                                {coupon.state === "Won" ? "KAZANDI" : coupon.state === "Lost" ? "KAYBETTİ" : "BEKLİYOR"}
+                                                            </Badge>
                                                         </div>
-                                                    ) : (
-                                                        <div className="text-muted-foreground italic text-center">Detay bulunamadı.</div>
-                                                    )}
-                                                </div>
+                                                        <div className="text-[10px] text-neutral-500 font-medium">
+                                                            {new Date(coupon.inserted_at).toLocaleString('tr-TR')}
+                                                        </div>
+                                                        {coupon.is_live && <Badge className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0 h-4 border-none">CANLI</Badge>}
+                                                    </div>
 
-                                                {/* Right: Amount and Points */}
-                                                <div className="col-span-3 text-right space-y-1">
-                                                    <div className="font-bold text-lg text-primary">
-                                                        {(coupon.calculation || 0).toLocaleString()} <span className="text-[10px] text-muted-foreground font-normal">PUAN</span>
+                                                    <div className="col-span-12 sm:col-span-6 bg-white/5 rounded-lg p-3 text-xs border border-white/5">
+                                                        {coupon.bet_data?.Selections && coupon.bet_data.Selections.length > 0 ? (
+                                                            <div className="space-y-2">
+                                                                <button
+                                                                    onClick={() => setExpandedCouponId(expandedCouponId === coupon.id ? null : coupon.id)}
+                                                                    className="w-full flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-amber-500 transition-colors"
+                                                                >
+                                                                    <span>{coupon.bet_data.Selections.length} SEÇİM</span>
+                                                                    <span className="text-amber-500 underline underline-offset-4">
+                                                                        {expandedCouponId === coupon.id ? 'GİZLE' : 'DETAYLARI GÖR'}
+                                                                    </span>
+                                                                </button>
+
+                                                                {expandedCouponId === coupon.id && (
+                                                                    <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-2">
+                                                                        {coupon.bet_data.Selections.map((sel: any, i: number) => (
+                                                                            <div key={i} className="flex flex-col gap-1 border-b border-white/5 last:border-0 pb-2 last:pb-0">
+                                                                                <div className="text-white font-bold text-[11px] leading-tight">{sel.MatchName}</div>
+                                                                                <div className="flex justify-between items-center text-[10px]">
+                                                                                    <span className="text-amber-500 font-medium">{sel.DisplaySelectionName || sel.SelectionName}</span>
+                                                                                    <span className="text-neutral-500">{sel.DisplayMarketName || sel.MarketName}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-neutral-600 italic text-center text-[10px]">Maç detayı bulunamadı.</div>
+                                                        )}
                                                     </div>
-                                                    <div className="text-xs">
-                                                        <span className="text-muted-foreground">Tutar:</span> <span className="text-white font-mono">{coupon.stake} TL</span>
-                                                    </div>
-                                                    <div className="text-xs">
-                                                        <span className="text-muted-foreground">Oran:</span> <span className="text-white font-mono">{coupon.odds}</span>
+
+                                                    <div className="col-span-12 sm:col-span-3 text-right space-y-1">
+                                                        <div className="font-black text-2xl text-amber-500 italic tabular-nums leading-none">
+                                                            +{(coupon.calculation || 0).toLocaleString()}
+                                                        </div>
+                                                        <div className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">PUAN</div>
+                                                        <div className="flex justify-end gap-3 text-[10px] items-center pt-1 border-white/5 border-t mt-1">
+                                                            <span className="text-neutral-500">Tutar: <span className="text-white font-mono">{coupon.stake}TL</span></span>
+                                                            <span className="text-neutral-500">Oran: <span className="text-white font-mono">{coupon.odds}</span></span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -504,18 +444,18 @@ export default function UserDashboard() {
                     </TabsContent>
 
                     {/* Tournaments Tab */}
-                    <TabsContent value="tournaments" className="mt-6">
-                        <Card className="border-white/10 bg-card/30">
+                    <TabsContent value="tournaments" className="mt-6 animation-in fade-in slide-in-from-bottom-2">
+                        <Card className="border-white/5 bg-zinc-950/40 backdrop-blur-xl">
                             <CardHeader className="flex flex-row items-center justify-between pb-2">
                                 <div className="space-y-1">
-                                    <CardTitle className="flex items-center gap-2"><ListIcon className="h-5 w-5 text-purple-500" /> Turnuvalar</CardTitle>
-                                    <CardDescription>Aktif ve tamamlanmış tüm turnuvalar.</CardDescription>
+                                    <CardTitle className="flex items-center gap-2 text-white"><LayoutGrid className="h-5 w-5 text-amber-500" /> Kategoriler</CardTitle>
+                                    <CardDescription className="text-neutral-500">Aktif turnuvalara katılarak büyük ödüllerden payınızı alın.</CardDescription>
                                 </div>
-                                <div className="flex bg-background/50 p-1 rounded-lg border border-white/5">
+                                <div className="flex bg-white/5 p-1 rounded-lg border border-white/10">
                                     <Button
                                         variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
                                         size="sm"
-                                        className="h-8 w-8 p-0"
+                                        className={`h-8 w-8 p-0 ${viewMode === 'grid' ? 'bg-amber-500 text-black hover:bg-amber-400' : 'text-neutral-400 hover:text-white'}`}
                                         onClick={() => setViewMode('grid')}
                                     >
                                         <LayoutGrid className="h-4 w-4" />
@@ -523,7 +463,7 @@ export default function UserDashboard() {
                                     <Button
                                         variant={viewMode === 'list' ? 'secondary' : 'ghost'}
                                         size="sm"
-                                        className="h-8 w-8 p-0"
+                                        className={`h-8 w-8 p-0 ${viewMode === 'list' ? 'bg-amber-500 text-black hover:bg-amber-400' : 'text-neutral-400 hover:text-white'}`}
                                         onClick={() => setViewMode('list')}
                                     >
                                         <ListIcon className="h-4 w-4" />
@@ -532,153 +472,69 @@ export default function UserDashboard() {
                             </CardHeader>
                             <CardContent>
                                 {publicEvents.length === 0 ? (
-                                    <div className="text-center p-12 text-muted-foreground">
-                                        {fetchError ? (
-                                            <div className="text-red-500 bg-red-500/10 p-4 rounded-lg border border-red-500/20">
-                                                <p className="font-bold">Hata Oluştu</p>
-                                                <p className="text-sm">{fetchError}</p>
-                                                <p className="text-xs mt-2 text-muted-foreground">Lütfen sayfayı yenileyin veya daha sonra tekrar deneyin.</p>
-                                            </div>
-                                        ) : (
-                                            "Hiçbir turnuva bulunamadı."
-                                        )}
+                                    <div className="text-center p-12 text-neutral-500 italic bg-white/5 rounded-xl border border-dashed border-white/10">
+                                        {fetchError || "Hiçbir turnuva bulunamadı."}
                                     </div>
                                 ) : (
                                     <>
                                         {viewMode === 'grid' ? (
-                                            <div className="grid gap-4 md:grid-cols-2">
+                                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                                                 {publicEvents.map((event) => (
-                                                    <div key={event.id} className="group relative overflow-hidden rounded-xl border border-white/5 bg-background/40 hover:border-primary/50 transition-all duration-300">
-                                                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                        <div className="p-5 flex flex-col gap-4 relative z-10">
-                                                            <div className="flex justify-between items-start">
-                                                                <div>
-                                                                    <div className="flex items-center gap-2 mb-2">
-                                                                        <Badge variant={event.status === 'active' ? 'default' : 'secondary'} className="uppercase text-[10px]">
-                                                                            {event.status === 'active' ? 'Aktif' : 'Tamamlandı'}
-                                                                        </Badge>
-                                                                        {event.status === 'active' &&
-                                                                            <span className="flex items-center text-[10px] text-green-500 font-bold animate-pulse">
-                                                                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1" /> CANLI
-                                                                            </span>
-                                                                        }
-                                                                    </div>
-                                                                    <h3 className="font-bold text-xl leading-tight group-hover:text-primary transition-colors">{event.name}</h3>
-                                                                </div>
-                                                                <div className="text-right">
-                                                                    <div className="text-xs text-muted-foreground font-mono">Katılımcı</div>
-                                                                    <div className="font-bold text-lg">{event.participant_count > 0 ? event.participant_count : 0}</div>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="space-y-1 text-sm text-muted-foreground">
-                                                                <div className="flex justify-between">
-                                                                    <span>Başlangıç:</span>
-                                                                    <span className="text-foreground">{new Date(event.start_date).toLocaleDateString('tr-TR')}</span>
-                                                                </div>
-                                                                <div className="flex justify-between">
-                                                                    <span>Bitiş:</span>
-                                                                    <span className="text-foreground">{new Date(event.end_date).toLocaleDateString('tr-TR')}</span>
-                                                                </div>
-                                                            </div>
-
-                                                            <Button variant="secondary" className="w-full mt-2 font-bold group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                                                                disabled={myEnrollments.some(e => e.event_id === event.id)}
-                                                                onClick={() => event.status === 'active' ? handleJoin(event.id) : handleSwitchEvent(event.id)}>
-                                                                {myEnrollments.some(e => e.event_id === event.id) ? (
-                                                                    <><CheckCircle2 className="mr-2 h-4 w-4" /> KATILDI</>
-                                                                ) : (
-                                                                    event.status === 'active' ? (joining ? 'İŞLENİYOR...' : 'HEMEN KATIL') : 'SONUÇLARI GÖR'
-                                                                )}
-                                                            </Button>
-                                                        </div>
-                                                    </div>
+                                                    <TournamentCard
+                                                        key={event.id}
+                                                        id={event.id}
+                                                        name={event.name}
+                                                        description={event.description || ""}
+                                                        image_url={event.image_url}
+                                                        status={event.status}
+                                                        startDate={event.start_date}
+                                                        endDate={event.end_date}
+                                                        participantCount={event.participant_count}
+                                                        isJoined={myEnrollments.some(e => e.event_id === event.id)}
+                                                        onJoin={(id) => handleJoin(id)}
+                                                        onDetails={(id) => handleSwitchEvent(id)}
+                                                    />
                                                 ))}
                                             </div>
                                         ) : (
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow className="hover:bg-transparent border-white/10">
-                                                        <TableHead>Turnuva Adı</TableHead>
-                                                        <TableHead>Durum</TableHead>
-                                                        <TableHead className="text-right">Katılımcı</TableHead>
-                                                        <TableHead className="text-right">Tarihler</TableHead>
-                                                        <TableHead className="text-right">İşlem</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {publicEvents.map((event) => (
-                                                        <Fragment key={event.id}>
-                                                            <TableRow className="border-white/5 hover:bg-white/5">
-                                                                <TableCell className="font-bold text-white">
-                                                                    {event.name}
-                                                                    {event.status === 'active' &&
-                                                                        <span className="ml-2 inline-flex items-center text-[10px] text-green-500 font-bold">
-                                                                            CANLI
-                                                                        </span>
-                                                                    }
-                                                                </TableCell>
+                                            <div className="overflow-x-auto">
+                                                <Table>
+                                                    <TableHeader>
+                                                        <TableRow className="border-white/5 hover:bg-transparent">
+                                                            <TableHead className="text-neutral-400 uppercase text-[10px] font-black tracking-widest">Turnuva</TableHead>
+                                                            <TableHead className="text-neutral-400 uppercase text-[10px] font-black tracking-widest">Durum</TableHead>
+                                                            <TableHead className="text-right text-neutral-400 uppercase text-[10px] font-black tracking-widest">Katılımcı</TableHead>
+                                                            <TableHead className="text-right text-neutral-400 uppercase text-[10px] font-black tracking-widest">Tarih</TableHead>
+                                                            <TableHead className="text-right text-neutral-400 uppercase text-[10px] font-black tracking-widest">İşlem</TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {publicEvents.map((event) => (
+                                                            <TableRow key={event.id} className="border-white/5 hover:bg-white/5 transition-colors">
+                                                                <TableCell className="font-bold text-white">{event.name}</TableCell>
                                                                 <TableCell>
-                                                                    <Badge variant={event.status === 'active' ? 'default' : 'secondary'} className="uppercase text-[10px]">
-                                                                        {event.status === 'active' ? 'Aktif' : 'Tamamlandı'}
+                                                                    <Badge variant={event.status === 'active' ? 'default' : 'secondary'} className={event.status === 'active' ? 'bg-emerald-500/20 text-emerald-500 border-none px-3' : 'bg-neutral-800 text-neutral-500 border-none px-3'}>
+                                                                        {event.status === 'active' ? 'AKTİF' : 'TAMAMLANDI'}
                                                                     </Badge>
                                                                 </TableCell>
-                                                                <TableCell className="text-right font-mono">{event.participant_count}</TableCell>
-                                                                <TableCell className="text-right text-xs text-muted-foreground">
-                                                                    <div>{new Date(event.start_date).toLocaleDateString('tr-TR')}</div>
+                                                                <TableCell className="text-right font-mono text-white">{event.participant_count}</TableCell>
+                                                                <TableCell className="text-right text-[10px] text-neutral-500">
+                                                                    <div className="font-bold">{new Date(event.start_date).toLocaleDateString('tr-TR')}</div>
                                                                     <div>{new Date(event.end_date).toLocaleDateString('tr-TR')}</div>
                                                                 </TableCell>
                                                                 <TableCell className="text-right">
-                                                                    <Button size="sm" variant={event.status === 'active' ? "default" : "secondary"}
-                                                                        className="font-bold text-xs"
+                                                                    <Button size="sm" variant={event.status === 'active' ? "default" : "outline"}
+                                                                        className={`font-black text-[10px] uppercase px-4 ${event.status === 'active' ? 'bg-amber-500 text-black hover:bg-amber-400' : 'bg-transparent border-white/10 text-white hover:bg-white/5'}`}
                                                                         disabled={myEnrollments.some(e => e.event_id === event.id)}
-                                                                        onClick={() => event.status === 'active' ? handleJoin(event.id) : toggleLeaderboard(event.id)}>
-                                                                        {myEnrollments.some(e => e.event_id === event.id) ? (
-                                                                            <><CheckCircle2 className="mr-1 h-3 w-3" /> KATILDI</>
-                                                                        ) : (
-                                                                            event.status === 'active' ? (joining ? 'KATIL' : 'HEMEN KATIL') : (expandedEventId === event.id ? 'KAPAT' : 'SIRALAMA')
-                                                                        )}
-                                                                        {!myEnrollments.some(e => e.event_id === event.id) && event.status === 'active' && <ArrowUpRight className="ml-1 h-3 w-3" />}
-                                                                        {!myEnrollments.some(e => e.event_id === event.id) && event.status !== 'active' && <ListIcon className="ml-1 h-3 w-3" />}
+                                                                        onClick={() => event.status === 'active' ? handleJoin(event.id) : handleSwitchEvent(event.id)}>
+                                                                        {myEnrollments.some(e => e.event_id === event.id) ? 'KATILDI' : (event.status === 'active' ? 'KATIL' : 'BİTTİ')}
                                                                     </Button>
                                                                 </TableCell>
                                                             </TableRow>
-                                                            {expandedEventId === event.id && (
-                                                                <TableRow className="bg-black/20 hover:bg-black/20">
-                                                                    <TableCell colSpan={5} className="p-4">
-                                                                        <div className="rounded-lg border border-white/10 overflow-hidden">
-                                                                            <Table>
-                                                                                <TableHeader className="bg-black/40">
-                                                                                    <TableRow>
-                                                                                        <TableHead className="w-[80px]">Sıra</TableHead>
-                                                                                        <TableHead>Kullanıcı</TableHead>
-                                                                                        <TableHead className="text-right">Puan</TableHead>
-                                                                                    </TableRow>
-                                                                                </TableHeader>
-                                                                                <TableBody>
-                                                                                    {loadingLeaderboard ? (
-                                                                                        <TableRow><TableCell colSpan={3} className="text-center py-4"><Loader2 className="animate-spin h-5 w-5 mx-auto" /></TableCell></TableRow>
-                                                                                    ) : expandedLeaderboard.length === 0 ? (
-                                                                                        <TableRow><TableCell colSpan={3} className="text-center py-4">Veri yok</TableCell></TableRow>
-                                                                                    ) : (
-                                                                                        expandedLeaderboard.map((user, idx) => (
-                                                                                            <TableRow key={idx} className={user.username === username ? "bg-primary/10" : ""}>
-                                                                                                <TableCell className="font-mono font-bold">#{idx + 1}</TableCell>
-                                                                                                <TableCell>{user.username === username ? `${user.username} (Sen)` : user.username}</TableCell>
-                                                                                                <TableCell className="text-right font-mono">{(user.score || 0).toLocaleString()}</TableCell>
-                                                                                            </TableRow>
-                                                                                        ))
-                                                                                    )}
-                                                                                </TableBody>
-                                                                            </Table>
-                                                                        </div>
-                                                                    </TableCell>
-                                                                </TableRow>
-                                                            )}
-                                                        </Fragment>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </div>
                                         )}
                                     </>
                                 )}
@@ -687,118 +543,117 @@ export default function UserDashboard() {
                     </TabsContent>
 
                     {/* Rules Tab */}
-                    <TabsContent value="rules" className="mt-6">
-                        <Card className="border-white/10 bg-card/10">
+                    <TabsContent value="rules" className="mt-6 animation-in fade-in slide-in-from-bottom-2">
+                        <Card className="border-white/5 bg-zinc-950/40 backdrop-blur-xl">
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-green-500" /> Turnuva Kuralları ve Ödülleri</CardTitle>
-                                <CardDescription>
-                                    Aktif turnuvalar, katılım şartları ve kazanabileceğiniz ödüller.
-                                </CardDescription>
+                                <CardTitle className="flex items-center gap-2 text-white"><FileText className="h-5 w-5 text-amber-500" /> Turnuva Kuralları</CardTitle>
+                                <CardDescription className="text-neutral-500">Adil bir yarışma için belirtilen kurallara uymanız gerekmektedir.</CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-6">
+                            <CardContent className="space-y-8">
                                 {publicEvents.filter(e => e.status === 'active').length === 0 ? (
-                                    <div className="text-center text-muted-foreground p-8">Aktif turnuva bulunmuyor.</div>
+                                    <div className="text-center p-12 text-neutral-500 italic bg-white/5 rounded-xl border border-dashed border-white/10">Aktif turnuva bulunmuyor.</div>
                                 ) : (
                                     publicEvents.filter(e => e.status === 'active').map(event => {
                                         const rules = event.rules || {}
                                         return (
-                                            <div key={event.id} className="p-6 rounded-2xl border-l-4 border-l-primary border border-white/10 bg-black/60 shadow-2xl space-y-6 relative overflow-hidden group hover:bg-black/80 transition-all">
+                                            <div key={event.id} className="p-8 rounded-2xl border border-white/5 bg-black/60 shadow-2xl space-y-8 relative overflow-hidden group border-l-4 border-l-amber-500">
                                                 <div className="absolute -top-4 -right-4 p-4 opacity-[0.03] pointer-events-none group-hover:opacity-10 transition-opacity">
-                                                    <Trophy className="h-40 w-40 text-primary" />
+                                                    <Trophy className="h-64 w-64 text-amber-500" />
                                                 </div>
-                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="bg-primary/20 p-2 rounded-xl">
-                                                            <Trophy className="h-6 w-6 text-primary" />
+
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-6">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="bg-amber-500/10 p-3 rounded-2xl">
+                                                            <Trophy className="h-8 w-8 text-amber-500" />
                                                         </div>
                                                         <div>
-                                                            <h3 className="text-xl font-black italic uppercase tracking-tighter text-white">
+                                                            <h3 className="text-2xl font-black italic uppercase tracking-tighter text-white">
                                                                 {event.name}
                                                             </h3>
-                                                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Turnuva Katılım Şartları ve Ödül Tablosu</p>
+                                                            <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest mt-1">Katılım Şartları ve Ödül Havuzu</p>
                                                         </div>
                                                     </div>
-                                                    <Badge variant="outline" className="w-fit bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-3 py-1">
-                                                        <CheckCircle2 className="h-3 w-3 mr-1" /> AKTİF TURNUVA
+                                                    <Badge className="bg-emerald-500/10 text-emerald-500 border-none font-black px-4 py-1 animate-pulse">
+                                                        • AKTİF TURNUVA
                                                     </Badge>
                                                 </div>
 
                                                 <div className="grid md:grid-cols-2 gap-4">
-                                                    <div className="p-4 bg-background rounded-lg border border-white/5 flex gap-3 items-start">
-                                                        <div className="mt-1 bg-primary/20 p-1 rounded">
-                                                            <TrendingUp className="h-4 w-4 text-primary" />
+                                                    <div className="p-5 bg-zinc-900/40 rounded-xl border border-white/5 transition-all hover:bg-zinc-900 group/item">
+                                                        <div className="flex items-center gap-3 mb-2">
+                                                            <div className="bg-amber-500/20 p-1.5 rounded-lg">
+                                                                <TrendingUp className="h-4 w-4 text-amber-500" />
+                                                            </div>
+                                                            <h4 className="font-black uppercase tracking-wider text-xs text-white">Yatırım Şartı</h4>
                                                         </div>
-                                                        <div>
-                                                            <h4 className="font-bold text-sm mb-1">Yatırım Şartı</h4>
-                                                            <p className="text-xs text-muted-foreground">Bu ay içerisinde tek seferde minimum <strong className="text-foreground">{rules.min_deposit ?? 1000} TL</strong> yatırım yapmış olmanız gerekmektedir.</p>
-                                                        </div>
+                                                        <p className="text-xs text-neutral-400 font-medium leading-relaxed"> Minimum <strong className="text-amber-500 font-black">{rules.min_deposit ?? 1000} TL</strong> yatırım yapmış olmanız gerekmektedir.</p>
                                                     </div>
 
-                                                    <div className="p-4 bg-background rounded-lg border border-white/5 flex gap-3 items-start">
-                                                        <div className="mt-1 bg-yellow-500/20 p-1 rounded">
-                                                            <ArrowUpRight className="h-4 w-4 text-yellow-500" />
+                                                    <div className="p-5 bg-zinc-900/40 rounded-xl border border-white/5 transition-all hover:bg-zinc-900 group/item">
+                                                        <div className="flex items-center gap-3 mb-2">
+                                                            <div className="bg-amber-500/20 p-1.5 rounded-lg">
+                                                                <ArrowUpRight className="h-4 w-4 text-amber-500" />
+                                                            </div>
+                                                            <h4 className="font-black uppercase tracking-wider text-xs text-white">Minimum Oran</h4>
                                                         </div>
-                                                        <div>
-                                                            <h4 className="font-bold text-sm mb-1">Minimum Oran</h4>
-                                                            <p className="text-xs text-muted-foreground">Kupon başına toplam oran en az <strong className="text-foreground">{(rules.min_odd || 1.5).toFixed(2)}</strong> olmalıdır.</p>
-                                                        </div>
+                                                        <p className="text-xs text-neutral-400 font-medium leading-relaxed">Kupon başı toplam oran en az <strong className="text-amber-500 font-black">{(rules.min_odd || 1.5).toFixed(2)}</strong> olmalıdır.</p>
                                                     </div>
 
-                                                    <div className="p-4 bg-background rounded-lg border border-white/5 flex gap-3 items-start">
-                                                        <div className="mt-1 bg-blue-500/20 p-1 rounded">
-                                                            <Ticket className="h-4 w-4 text-blue-500" />
+                                                    <div className="p-5 bg-zinc-900/40 rounded-xl border border-white/5 transition-all hover:bg-zinc-900 group/item">
+                                                        <div className="flex items-center gap-3 mb-2">
+                                                            <div className="bg-amber-500/20 p-1.5 rounded-lg">
+                                                                <Ticket className="h-4 w-4 text-amber-500" />
+                                                            </div>
+                                                            <h4 className="font-black uppercase tracking-wider text-xs text-white">Kombine Şartı</h4>
                                                         </div>
-                                                        <div>
-                                                            <h4 className="font-bold text-sm mb-1">Kombine Şartı</h4>
-                                                            <p className="text-xs text-muted-foreground">Her kupon en az <strong className="text-foreground">{rules.min_combination || 2} maç</strong> (kombine) içermelidir.</p>
-                                                        </div>
+                                                        <p className="text-xs text-neutral-400 font-medium leading-relaxed">Her kupon en az <strong className="text-amber-500 font-black">{rules.min_combination || 2} maç</strong> (kombine) içermelidir.</p>
                                                     </div>
 
-                                                    <div className="p-4 bg-background rounded-lg border border-white/5 flex gap-3 items-start">
-                                                        <div className="mt-1 bg-purple-500/20 p-1 rounded">
-                                                            <Award className="h-4 w-4 text-purple-500" />
+                                                    <div className="p-5 bg-zinc-900/40 rounded-xl border border-white/5 transition-all hover:bg-zinc-900 group/item">
+                                                        <div className="flex items-center gap-3 mb-2">
+                                                            <div className="bg-amber-500/20 p-1.5 rounded-lg">
+                                                                <Award className="h-4 w-4 text-amber-500" />
+                                                            </div>
+                                                            <h4 className="font-black uppercase tracking-wider text-xs text-white">Minimum Tutar</h4>
                                                         </div>
-                                                        <div>
-                                                            <h4 className="font-bold text-sm mb-1">Kupon Tutarı</h4>
-                                                            <p className="text-xs text-muted-foreground">Kupon tutarı en az <strong className="text-foreground">{rules.min_stake || 100} TL</strong> olmalıdır.</p>
-                                                        </div>
+                                                        <p className="text-xs text-neutral-400 font-medium leading-relaxed">Kupon tutarı en az <strong className="text-amber-500 font-black">{rules.min_stake || 100} TL</strong> olmalıdır.</p>
                                                     </div>
                                                 </div>
 
                                                 {/* Rewards Section */}
                                                 {rules.rewards && rules.rewards.length > 0 && (
-                                                    <div className="space-y-4 mt-6">
-                                                        <div className="flex items-center gap-2">
-                                                            <Gift className="h-4 w-4 text-primary" />
-                                                            <h4 className="font-black italic uppercase tracking-wider text-sm">Turnuva Ödülleri</h4>
+                                                    <div className="space-y-6 pt-6 border-t border-white/5">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="h-1 w-8 bg-amber-500 rounded-full" />
+                                                            <h4 className="font-black italic uppercase tracking-widest text-sm text-white flex items-center gap-2">
+                                                                <Gift className="h-4 w-4 text-amber-500" /> ÖDÜL TABLOSU
+                                                            </h4>
                                                         </div>
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                                             {rules.rewards.map((reward: any, idx: number) => {
                                                                 let rankLabel = "";
                                                                 if (reward.criteria_type === 'rank_exact') {
-                                                                    rankLabel = `${reward.criteria_value}. Sıra`;
+                                                                    rankLabel = `${reward.criteria_value}. SIRA`;
                                                                 } else if (reward.criteria_type === 'rank') {
-                                                                    rankLabel = `İlk ${reward.criteria_value} Kişi`;
+                                                                    rankLabel = `İLK ${reward.criteria_value} KİŞİ`;
                                                                 } else if (reward.criteria_type === 'min_points') {
-                                                                    rankLabel = `+${reward.criteria_value} Puan`;
+                                                                    rankLabel = `+${reward.criteria_value} PUAN`;
                                                                 } else {
-                                                                    rankLabel = "Özel Ödül";
+                                                                    rankLabel = "ÖZEL ÖDÜL";
                                                                 }
 
-                                                                const rewardTypeLabel = reward.reward_type === 'cash' ? 'Nakit' : (reward.reward_type === 'spin' ? 'Free Spin' : 'Free Bet');
-                                                                const rewardColor = reward.reward_type === 'cash' ? 'text-green-500' : (reward.reward_type === 'spin' ? 'text-blue-400' : 'text-orange-400');
-                                                                const rewardBg = reward.reward_type === 'cash' ? 'bg-green-500/10' : (reward.reward_type === 'spin' ? 'bg-blue-500/10' : 'bg-orange-500/10');
+                                                                const rewardTypeLabel = reward.reward_type === 'cash' ? 'TRY' : (reward.reward_type === 'spin' ? 'FRES SPIN' : 'FREE BET');
 
                                                                 return (
-                                                                    <div key={idx} className="flex items-center justify-between p-3 rounded-xl border border-white/5 bg-black/40 group hover:border-primary/30 transition-all">
+                                                                    <div key={idx} className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-zinc-950 transition-all hover:scale-105 hover:border-amber-500/30 group/reward">
                                                                         <div className="flex flex-col">
-                                                                            <span className="text-[10px] font-bold text-muted-foreground uppercase">{rankLabel}</span>
-                                                                            <span className={`text-lg font-black italic ${rewardColor}`}>
-                                                                                {reward.amount} {rewardTypeLabel}
+                                                                            <span className="text-[9px] font-black text-neutral-500 tracking-tighter">{rankLabel}</span>
+                                                                            <span className="text-xl font-black italic text-white tracking-tight">
+                                                                                {reward.amount} <span className="text-[10px] text-amber-500 not-italic ml-1">{rewardTypeLabel}</span>
                                                                             </span>
                                                                         </div>
-                                                                        <div className={`p-2 rounded-lg ${rewardBg} opacity-50 group-hover:opacity-100 transition-opacity`}>
-                                                                            {reward.rank_exact === 1 ? <Trophy className="h-5 w-5 text-yellow-500" /> : <Award className="h-5 w-5" />}
+                                                                        <div className="p-2.5 rounded-xl bg-white/5 group-hover/reward:bg-amber-500/10 transition-colors">
+                                                                            {idx === 0 ? <Trophy className="h-5 w-5 text-amber-500" /> : <Award className="h-5 w-5 text-neutral-600 group-hover/reward:text-amber-500" />}
                                                                         </div>
                                                                     </div>
                                                                 );
@@ -813,48 +668,50 @@ export default function UserDashboard() {
                             </CardContent>
                         </Card>
                     </TabsContent>
-                    <TabsContent value="rewards" className="mt-6">
-                        <Card className="border-white/10 bg-card/30">
+
+                    {/* Rewards Tab */}
+                    <TabsContent value="rewards" className="mt-6 animation-in fade-in slide-in-from-bottom-2">
+                        <Card className="border-white/5 bg-zinc-950/40 backdrop-blur-xl">
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Gift className="h-5 w-5 text-primary" /> Kazandığım Ödüller</CardTitle>
-                                <CardDescription>Hangi turnuvalardan ne kazandığınızı takip edin.</CardDescription>
+                                <CardTitle className="flex items-center gap-2 text-white"><Gift className="h-5 w-5 text-amber-500" /> Kazandığım Ödüller</CardTitle>
+                                <CardDescription className="text-neutral-500">Geçmiş turnuvalarda elde ettiğiniz kazançlar.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 {loadingRewards ? (
-                                    <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
+                                    <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber-500" /></div>
                                 ) : myRewards.length === 0 ? (
-                                    <div className="text-center p-12 flex flex-col items-center gap-4">
-                                        <Gift className="h-12 w-12 text-muted-foreground/30" />
-                                        <p className="text-muted-foreground italic">Henüz bir ödül kazanmadınız. Zirveye oynamaya devam edin!</p>
+                                    <div className="text-center p-12 flex flex-col items-center gap-4 bg-white/5 rounded-xl border border-dashed border-white/10">
+                                        <Gift className="h-12 w-12 text-neutral-700" />
+                                        <p className="text-neutral-500 italic">Henüz bir ödül kazanmadınız. Zirveye oynamaya devam edin!</p>
                                     </div>
                                 ) : (
-                                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                                         {myRewards.map((reward, idx) => (
-                                            <div key={idx} className="p-5 rounded-2xl border border-primary/20 bg-primary/5 flex flex-col gap-3 relative overflow-hidden group hover:bg-primary/10 transition-all shadow-lg animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `${idx * 100}ms` }}>
-                                                <div className="absolute -top-2 -right-2 opacity-5 group-hover:opacity-10 transition-opacity">
-                                                    <Trophy className="h-24 w-24 text-primary" />
+                                            <div key={idx} className="p-6 rounded-2xl border border-white/5 bg-zinc-950 flex flex-col gap-4 relative overflow-hidden group hover:border-amber-500/30 transition-all shadow-xl animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `${idx * 100}ms` }}>
+                                                <div className="absolute -top-4 -right-4 opacity-[0.03] group-hover:opacity-10 transition-opacity">
+                                                    <Trophy className="h-32 w-32 text-amber-500" />
                                                 </div>
 
                                                 <div className="space-y-1 relative z-10">
-                                                    <div className="text-[10px] font-black uppercase tracking-widest text-primary/60">Kampanya</div>
-                                                    <h3 className="text-sm font-bold text-white uppercase tracking-tight">{reward.event_name}</h3>
+                                                    <div className="text-[9px] font-black uppercase tracking-widest text-neutral-500">Kampanya</div>
+                                                    <h3 className="text-[11px] font-bold text-white uppercase tracking-tight line-clamp-1">{reward.event_name}</h3>
                                                 </div>
 
                                                 <div className="py-2 relative z-10">
-                                                    <div className="text-3xl font-black italic text-primary leading-none drop-shadow-sm">
-                                                        {reward.amount} TRY
+                                                    <div className="text-4xl font-black italic text-amber-500 leading-none drop-shadow-sm flex items-end gap-1">
+                                                        {reward.amount} <span className="text-xs not-italic font-black text-neutral-500 mb-1">TL</span>
                                                     </div>
-                                                    <Badge variant="outline" className="mt-2 bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px] uppercase font-bold px-2">
-                                                        {reward.reward_type === 'cash' ? 'Nakit Ödül' : reward.reward_type} Başarıyla Eklendi
+                                                    <Badge className="mt-3 bg-emerald-500/10 text-emerald-500 border-none text-[9px] font-black uppercase tracking-tighter px-2">
+                                                        • İŞLEM TAMAMLANDI
                                                     </Badge>
                                                 </div>
 
-                                                <div className="mt-auto pt-3 border-t border-white/5 flex justify-between items-center relative z-10">
+                                                <div className="mt-auto pt-4 border-t border-white/5 flex justify-between items-center relative z-10">
                                                     <div className="flex flex-col">
-                                                        <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-tighter">İşlem Tarihi</span>
-                                                        <span className="text-xs font-mono font-bold text-white/90">{new Date(reward.timestamp).toLocaleDateString('tr-TR')}</span>
+                                                        <span className="text-[9px] uppercase font-black text-neutral-600 tracking-widest">Tarih</span>
+                                                        <span className="text-xs font-mono font-bold text-neutral-300">{new Date(reward.timestamp).toLocaleDateString('tr-TR')}</span>
                                                     </div>
-                                                    <div className="p-2 rounded-full bg-primary/20 text-primary">
+                                                    <div className="p-2 rounded-full bg-amber-500/10 text-amber-500">
                                                         <CheckCircle2 className="h-4 w-4" />
                                                     </div>
                                                 </div>
@@ -867,6 +724,6 @@ export default function UserDashboard() {
                     </TabsContent>
                 </Tabs>
             </main>
-        </ClientLayout >
+        </ClientLayout>
     )
 }

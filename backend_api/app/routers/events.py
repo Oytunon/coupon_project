@@ -1,12 +1,15 @@
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks, File, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from pydantic import BaseModel, Field
 from io import BytesIO
 import openpyxl
+import uuid
+import shutil
+import os
 
 from shared.database import get_db_session
 from shared.models.event import Event
@@ -55,6 +58,7 @@ class EventCreate(BaseModel):
     end_date: datetime
     won_point_multiplier: float = 1.0
     loss_point_multiplier: float = 0.0
+    image_url: Optional[str] = None
     rules: EventRules
 
 
@@ -67,6 +71,7 @@ class EventUpdate(BaseModel):
     end_date: Optional[datetime] = None
     won_point_multiplier: Optional[float] = None
     loss_point_multiplier: Optional[float] = None
+    image_url: Optional[str] = None
     rules: Optional[EventRules] = None
 
 
@@ -84,6 +89,7 @@ class EventResponse(BaseModel):
     end_date: datetime
     won_point_multiplier: float
     loss_point_multiplier: float
+    image_url: Optional[str]
     rules: dict
     created_at: datetime
     updated_at: datetime
@@ -150,6 +156,7 @@ async def create_event(
             end_date=event_data.end_date,
             won_point_multiplier=event_data.won_point_multiplier,
             loss_point_multiplier=event_data.loss_point_multiplier,
+            image_url=event_data.image_url,
             rules=event_data.rules.dict(),
             created_by=current_admin.id,
             status="draft" 
@@ -653,4 +660,48 @@ async def export_reward_history(
         },
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
+
+
+@router.post("/{event_id}/upload-image", response_model=Dict[str, str])
+async def upload_event_image(
+    event_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db_session),
+    _: AdminUser = Depends(get_current_admin)
+):
+    """Event için görsel yükle."""
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(404, "Event not found")
+        
+    # Validation: Only images
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(400, "Sadece resim dosyaları yüklenebilir.")
+        
+    # Create filename
+    ext = os.path.splitext(file.filename)[1]
+    filename = f"event_{event_id}_{uuid.uuid4().hex}{ext}"
+    
+    # Ensure directory exists
+    upload_dir = "static/uploads"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    file_path = os.path.join(upload_dir, filename)
+    
+    # Save file
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        # Update event model
+        image_url = f"/static/uploads/{filename}"
+        event.image_url = image_url
+        db.commit()
+        
+        return {"image_url": image_url}
+    except Exception as e:
+        import logging
+        logger = logging.getLogger("backend_api")
+        logger.error(f"Image upload failed: {str(e)}")
+        raise HTTPException(500, f"Görsel yükleme başarısız oldu: {str(e)}")
 

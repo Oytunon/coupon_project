@@ -20,6 +20,8 @@ from backend_api.app.routers.events import router as events_router
 from backend_api.app.routers.user_stats import router as user_stats_router
 from backend_api.app.routers.client import router as client_router
 from backend_api.app.middleware import SecurityHeadersMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
 
 # Setup Logging
 logger = setup_logging()
@@ -185,6 +187,10 @@ app.include_router(user_stats_router)
 app.include_router(client_router)
 from backend_api.app.routers.leagues import router as leagues_router
 app.include_router(leagues_router)
+
+# Mount static files
+os.makedirs("static/uploads", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 # Startup event

@@ -31,7 +31,8 @@ import {
     Download,
     ChevronLeft,
     ChevronRight,
-    Gift
+    Gift,
+    ImagePlus
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -95,6 +96,17 @@ const updateEvent = async (eventId: number, eventData: any) => {
 
 const updateEventStatus = async (eventId: number, status: string) => {
     const res = await apiClient.patch(`/admin/events/${eventId}/status`, { status })
+    return res.data
+}
+
+const uploadEventImage = async (eventId: number, file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await apiClient.post(`/admin/events/${eventId}/upload-image`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    })
     return res.data
 }
 
@@ -175,6 +187,7 @@ export default function AdminPage() {
         end_date: "",
         won_point_multiplier: 1.0,
         loss_point_multiplier: 0.0,
+        image_url: "",
         rules: {
             min_stake: 100,
             min_odd: 1.5,
@@ -198,6 +211,9 @@ export default function AdminPage() {
 
     const [viewEventId, setViewEventId] = useState<number | null>(null)
     const [eventStats, setEventStats] = useState<any>(null)
+
+    const [imageUploadLoading, setImageUploadLoading] = useState(false)
+    const [tempImageFile, setTempImageFile] = useState<File | null>(null)
 
     useEffect(() => {
         loadData()
@@ -322,11 +338,23 @@ export default function AdminPage() {
                 start_date: new Date(newEvent.start_date).toISOString(),
                 end_date: new Date(newEvent.end_date).toISOString()
             }
-            await createEvent(payload)
+            const createdEvent = await createEvent(payload)
+
+            // Upload image if selected
+            if (tempImageFile && createdEvent.id) {
+                try {
+                    await uploadEventImage(createdEvent.id, tempImageFile)
+                } catch (imgErr) {
+                    console.error("Image upload failed:", imgErr)
+                    toast({ title: "Uyarı", description: "Kampanya oluşturuldu ama resim yüklenemedi.", variant: "destructive" })
+                }
+            }
+
             setMessage({ type: "success", text: "Kampanya taslağı oluşturuldu." })
             setShowAddEvent(false)
-            const e = await fetchEvents()
-            setEvents(e)
+            setTempImageFile(null)
+            const eList = await fetchEvents()
+            setEvents(eList)
         } catch (err: any) {
             console.error("Create Event Error:", err)
             let msg = "Kampanya oluşturulamadı."
@@ -417,6 +445,37 @@ export default function AdminPage() {
 
         } catch (err: any) {
             setMessage({ type: "error", text: err.response?.data?.detail || "Worker tetiklenemedi" })
+        }
+    }
+
+    const handleImageUpload = async (eventId: number, file: File, isEdit: boolean) => {
+        setImageUploadLoading(true)
+        try {
+            const data = await uploadEventImage(eventId, file)
+            const newImageUrl = data.image_url
+            if (isEdit) {
+                setEditingEvent((prev: any) => ({ ...prev, image_url: newImageUrl }))
+            } else {
+                setNewEvent((prev: any) => ({ ...prev, image_url: newImageUrl }))
+            }
+            toast({ title: "Başarılı", description: "Resim yüklendi." })
+            const eList = await fetchEvents()
+            setEvents(eList)
+        } catch (e: any) {
+            toast({ title: "Hata", description: "Resim yüklenemedi.", variant: "destructive" })
+        } finally {
+            setImageUploadLoading(false)
+        }
+    }
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, eventId?: number) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        if (eventId) {
+            await handleImageUpload(eventId, file, true)
+        } else {
+            setTempImageFile(file)
         }
     }
 
@@ -733,8 +792,15 @@ export default function AdminPage() {
                         <div className="grid grid-cols-1 gap-6">
                             {events.map(event => (
                                 <Card key={event.id} className="bg-card/40 border-white/5 backdrop-blur-xl hover:border-primary/20 transition-all">
-                                    <CardHeader className="flex flex-row items-start justify-between pb-2">
-                                        <div>
+                                    <CardHeader className="flex flex-row items-center gap-4 space-y-0">
+                                        <div className="h-16 w-24 bg-black/40 rounded flex items-center justify-center overflow-hidden border border-white/5 shrink-0 shadow-inner">
+                                            {event.image_url ? (
+                                                <img src={`${apiClient.defaults.baseURL}${event.image_url}`} alt={event.name} className="h-full w-full object-cover" />
+                                            ) : (
+                                                <Trophy className="h-6 w-6 text-white/10" />
+                                            )}
+                                        </div>
+                                        <div className="flex-1">
                                             <div className="flex items-center gap-3 mb-1">
                                                 <Badge variant="outline" className={`font-bold ${event.status === 'active' ? 'bg-green-500/10 text-green-500 border-green-500/20' : event.status === 'draft' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 'text-muted-foreground'}`}>
                                                     {event.status.toUpperCase()}
@@ -880,6 +946,42 @@ export default function AdminPage() {
                                                         <div className="space-y-2">
                                                             <label className="text-xs font-bold text-muted-foreground">Bitiş</label>
                                                             <Input type="datetime-local" value={newEvent.end_date} onChange={e => setNewEvent({ ...newEvent, end_date: e.target.value })} required className="bg-black/20" />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
+                                                            <ImagePlus className="h-3 w-3" /> Kampanya Görseli
+                                                        </label>
+                                                        <div className="flex items-center gap-4 p-3 bg-white/5 rounded-lg border border-white/10">
+                                                            <div className="h-16 w-16 bg-black/40 rounded flex items-center justify-center overflow-hidden border border-white/5">
+                                                                {tempImageFile ? (
+                                                                    <img src={URL.createObjectURL(tempImageFile)} alt="Preview" className="h-full w-full object-cover" />
+                                                                ) : (
+                                                                    <ImagePlus className="h-6 w-6 text-muted-foreground/30" />
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1 space-y-1">
+                                                                <input
+                                                                    type="file"
+                                                                    id="event-image-upload"
+                                                                    className="hidden"
+                                                                    accept="image/*"
+                                                                    onChange={(e) => handleFileChange(e)}
+                                                                />
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => document.getElementById('event-image-upload')?.click()}
+                                                                    className="bg-black/20"
+                                                                >
+                                                                    {tempImageFile ? "Resmi Değiştir" : "Resim Seç"}
+                                                                </Button>
+                                                                <p className="text-[10px] text-muted-foreground italic">
+                                                                    {tempImageFile ? tempImageFile.name : "Banner veya logo (Önerilen: 800x400)"}
+                                                                </p>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1052,6 +1154,43 @@ export default function AdminPage() {
                                                         <div className="space-y-2">
                                                             <label className="text-xs font-bold text-muted-foreground">Bitiş</label>
                                                             <Input type="datetime-local" value={editingEvent.end_date} onChange={e => setEditingEvent({ ...editingEvent, end_date: e.target.value })} required className="bg-black/20" />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
+                                                            <ImagePlus className="h-3 w-3" /> Kampanya Görseli
+                                                        </label>
+                                                        <div className="flex items-center gap-4 p-3 bg-white/5 rounded-lg border border-white/10">
+                                                            <div className="h-16 w-16 bg-black/40 rounded flex items-center justify-center overflow-hidden border border-white/5">
+                                                                {editingEvent.image_url ? (
+                                                                    <img src={`${apiClient.defaults.baseURL}${editingEvent.image_url}`} alt="Event" className="h-full w-full object-cover" />
+                                                                ) : (
+                                                                    <ImagePlus className="h-6 w-6 text-muted-foreground/30" />
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1 space-y-1">
+                                                                <input
+                                                                    type="file"
+                                                                    id="edit-event-image-upload"
+                                                                    className="hidden"
+                                                                    accept="image/*"
+                                                                    onChange={(e) => handleFileChange(e, editingEvent.id)}
+                                                                />
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => document.getElementById('edit-event-image-upload')?.click()}
+                                                                    disabled={imageUploadLoading}
+                                                                    className="bg-black/20"
+                                                                >
+                                                                    {imageUploadLoading ? "Yükleniyor..." : (editingEvent.image_url ? "Resmi Güncelle" : "Resim Yükle")}
+                                                                </Button>
+                                                                <p className="text-[10px] text-muted-foreground italic">
+                                                                    Tavsiye edilen oran 2:1 (Örn: 800x400)
+                                                                </p>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
