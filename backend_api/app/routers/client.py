@@ -53,7 +53,7 @@ async def get_public_events(
             start_date=event.start_date,
             end_date=event.end_date,
             participant_count=p_count or 0,
-            image_url=None,
+            image_url=event.image_url,
             rules=event.rules or {}
         ))
 
