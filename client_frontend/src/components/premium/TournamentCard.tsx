@@ -27,7 +27,7 @@ export function TournamentCard({
     return (
         <Card
             onClick={() => onDetails?.(id)}
-            className="group overflow-hidden bg-black border-primary border-[3px] rounded-[24px] mb-6 cursor-pointer relative shadow-[0_0_30px_rgba(255,184,0,0.05)] transition-all duration-500 hover:shadow-[0_0_50px_rgba(255,184,0,0.15)] hover:border-primary/90 hover:-translate-y-1 active:scale-[0.99]"
+            className="group overflow-hidden bg-black border-primary border-[3px] rounded-[24px] mb-6 cursor-pointer relative shadow-[0_0_30px_rgba(255,184,0,0.05)] transition-all duration-500 hover:shadow-[0_0_80px_rgba(255,184,0,0.3)] hover:border-primary hover:-translate-y-1 active:scale-[0.99] z-10"
         >
             <div className="flex flex-col lg:flex-row h-full min-h-[260px]">
                 {/* Left: Banner Image */}
