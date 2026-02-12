@@ -82,47 +82,51 @@ export function TournamentCard({
                 </CardContent>
 
                 {/* Right Side Area */}
-                <div className="flex-1 flex items-center justify-end pr-10">
-                    {/* Vertical Divider Line */}
-                    <div className="w-px h-24 bg-primary/20 mr-10"></div>
-
-                    <div className="flex items-center gap-12">
-                        {/* Stats Stack */}
-                        <div className="flex flex-col gap-6">
-                            <div className="flex flex-col items-end">
-                                <div className="flex items-center gap-2 text-[10px] text-zinc-500 font-black tracking-widest uppercase mb-1">
+                <div className="flex-1 lg:max-w-[400px] flex items-center justify-center border-l border-white/10 px-8">
+                    <div className="flex flex-col items-center gap-6 w-full py-4">
+                        {/* Stats Row */}
+                        <div className="flex items-center justify-center gap-12 w-full">
+                            <div className="flex flex-col items-center">
+                                <div className="flex items-center gap-2 text-[10px] text-zinc-300 font-black tracking-widest uppercase mb-1">
                                     <CircleDot className="h-3 w-3" /> PUANIM
                                 </div>
-                                <div className="text-5xl font-black text-white tabular-nums leading-none">
+                                <div className="text-4xl font-black text-white tabular-nums leading-none">
                                     {userPoints.toLocaleString('tr-TR')}
                                 </div>
                             </div>
-                            <div className="flex flex-col items-end">
+
+                            {/* Small vertical line between stats */}
+                            <div className="w-px h-8 bg-white/10"></div>
+
+                            <div className="flex flex-col items-center">
                                 <div className="flex items-center gap-2 text-[10px] text-primary font-black tracking-widest uppercase mb-1">
                                     <Trophy className="h-3 w-3" /> SIRALAMA
                                 </div>
-                                <div className="text-5xl font-black text-primary italic leading-none">
+                                <div className="text-4xl font-black text-primary italic leading-none">
                                     #{userRank}
                                 </div>
                             </div>
                         </div>
 
+                        {/* Horizontal Divider Line */}
+                        <div className="w-full h-[2px] bg-primary/20 rounded-full"></div>
+
                         {/* Countdown Grid */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-center gap-3">
                             {[
                                 { value: '15', label: 'GÜN' },
                                 { value: '06', label: 'SAAT' },
                                 { value: '11', label: 'DAK' }
                             ].map((time, idx) => (
-                                <div key={idx} className="flex items-center gap-2">
-                                    <div className="flex flex-col items-center gap-2">
-                                        <div className="w-16 h-16 border-[2px] border-primary/60 rounded-xl flex items-center justify-center text-3xl font-black text-white tabular-nums bg-black/80">
+                                <div key={idx} className="flex items-center gap-3">
+                                    <div className="flex flex-col items-center gap-1.5">
+                                        <div className="w-14 h-14 border-[2px] border-primary/60 rounded-xl flex items-center justify-center text-2xl font-black text-white tabular-nums bg-zinc-900/30">
                                             {time.value}
                                         </div>
                                         <span className="text-[10px] font-black text-zinc-500 tracking-widest">{time.label}</span>
                                     </div>
                                     {idx < 2 && (
-                                        <div className="text-primary/60 font-black text-2xl mb-6">:</div>
+                                        <div className="text-primary/60 font-black text-xl mb-4">:</div>
                                     )}
                                 </div>
                             ))}
