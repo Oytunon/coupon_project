@@ -35,9 +35,21 @@ export default function Lobby() {
         fetchEvents()
     }, [])
 
+    const [activeCategory, setActiveCategory] = useState('all')
+
     const isEventsArray = Array.isArray(events)
-    const activeEvents = isEventsArray ? events.filter(e => e.status === 'active' || e.status === 'paused') : []
-    const pastEvents = isEventsArray ? events.filter(e => e.status === 'ended') : []
+
+    // Filter Logic matching UserDashboard
+    const activeEvents = isEventsArray ? events.filter(e => {
+        if (activeCategory === 'all') return e.status !== 'ended'
+        if (activeCategory === 'active') return e.status === 'active'
+        if (activeCategory === 'upcoming') return e.status === 'paused'
+        return false
+    }) : []
+
+    // Only show past events if category is finished
+    const showPastEvents = activeCategory === 'finished'
+    const pastEvents = isEventsArray && showPastEvents ? events.filter(e => e.status === 'ended') : []
 
     const handleJoin = (eventId: number) => {
         let url = `/event/${eventId}`
@@ -57,7 +69,7 @@ export default function Lobby() {
     }
 
     return (
-        <ClientLayout username={username}>
+        <ClientLayout username={username} activeCategory={activeCategory} onCategoryChange={setActiveCategory}>
             <main className="max-w-7xl mx-auto px-4 py-12 space-y-12">
 
                 {/* Header */}
@@ -70,30 +82,34 @@ export default function Lobby() {
                     </p>
                 </div>
 
-                {/* Active Events Section */}
-                <section className="space-y-6">
-                    <div className="flex items-center gap-2 mb-6">
-                        <PlayCircle className="h-6 w-6 text-green-500" />
-                        <h2 className="text-2xl font-bold uppercase tracking-wider text-green-500">Aktif Turnuvalar</h2>
-                    </div>
+                {/* Active Events Section - Hide if finished */}
+                {activeCategory !== 'finished' && (
+                    <section className="space-y-6">
+                        <div className="flex items-center gap-2 mb-6">
+                            <PlayCircle className="h-6 w-6 text-green-500" />
+                            <h2 className="text-2xl font-bold uppercase tracking-wider text-green-500">
+                                {activeCategory === 'upcoming' ? 'Yakında Başlayacaklar' : 'Aktif Turnuvalar'}
+                            </h2>
+                        </div>
 
-                    {activeEvents.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {activeEvents.map(event => (
-                                <EventCard key={event.id} event={event} onAction={() => handleJoin(event.id)} actionLabel="KATIL" />
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="bg-secondary/20 border border-white/5 rounded-2xl p-8 text-center">
-                            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                            <h3 className="text-lg font-bold text-muted-foreground">Şu an aktif turnuva bulunmuyor.</h3>
-                            <p className="text-sm text-muted-foreground/60 mt-2">Lütfen daha sonra tekrar kontrol edin.</p>
-                        </div>
-                    )}
-                </section>
+                        {activeEvents.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {activeEvents.map(event => (
+                                    <EventCard key={event.id} event={event} onAction={() => handleJoin(event.id)} actionLabel="KATIL" />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="bg-secondary/20 border border-white/5 rounded-2xl p-8 text-center">
+                                <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                                <h3 className="text-lg font-bold text-muted-foreground">Şu an aktif turnuva bulunmuyor.</h3>
+                                <p className="text-sm text-muted-foreground/60 mt-2">Lütfen daha sonra tekrar kontrol edin.</p>
+                            </div>
+                        )}
+                    </section>
+                )}
 
                 {/* Past Events Section */}
-                {pastEvents.length > 0 && (
+                {showPastEvents && pastEvents.length > 0 && (
                     <section className="space-y-6 border-t border-white/10 pt-12">
                         <div className="flex items-center gap-2 mb-6">
                             <History className="h-6 w-6 text-muted-foreground" />
