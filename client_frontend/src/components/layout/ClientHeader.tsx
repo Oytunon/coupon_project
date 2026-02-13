@@ -10,7 +10,7 @@ export function ClientHeader({ username }: ClientHeaderProps) {
         <nav className="border-b border-primary/20 bg-black/90 backdrop-blur-xl sticky top-0 z-50">
             <div className="max-w-[1400px] mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between gap-2 md:gap-4">
                 {/* Logo Section */}
-                <div className="flex-shrink-0 flex items-center gap-2 group cursor-pointer" onClick={() => window.location.href = '/'}>
+                <div className="hidden md:flex flex-shrink-0 items-center gap-2 group cursor-pointer" onClick={() => window.location.href = '/'}>
                     <img src={logo} alt="Extrabet Logo" className="h-8 md:h-12 w-auto transition-transform duration-500 group-hover:scale-105" />
                 </div>
 
