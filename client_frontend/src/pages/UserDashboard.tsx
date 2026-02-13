@@ -164,23 +164,27 @@ export default function UserDashboard() {
 
                 {/* User Info Bar - Responsive */}
                 <div className="space-y-6">
-                    {/* Mobile Compact User Stats */}
-                    <div className="flex md:hidden items-center justify-between gap-2 bg-black/40 p-4 rounded-xl border border-white/10 backdrop-blur-md shadow-lg">
-                        <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 bg-gradient-to-br from-[#FFB800] to-[#FFA500] rounded-full flex items-center justify-center border border-black shadow-[0_0_10px_rgba(255,184,0,0.3)]">
-                                <Users className="w-3.5 h-3.5 text-black" />
-                            </div>
-                            <span className="text-xs font-bold text-white">{username || "Misafir"}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="flex items-baseline gap-1">
-                                <span className="text-lg font-black bg-gradient-to-r from-[#FFB800] to-[#FFA500] bg-clip-text text-transparent tabular-nums">{myEnrollments.length}</span>
-                                <span className="text-[8px] text-white font-medium uppercase">kayıtlı</span>
-                            </div>
-                            <div className="h-4 w-px bg-gradient-to-b from-transparent via-gray-700 to-transparent"></div>
-                            <div className="flex items-baseline gap-1">
-                                <span className="text-lg font-black bg-gradient-to-r from-[#FFA500] to-[#FF8C00] bg-clip-text text-transparent tabular-nums">{publicEvents.filter(e => e.status === 'active').length}</span>
-                                <span className="text-[8px] text-white font-medium uppercase">aktif</span>
+                    {/* Mobile Compact User Stats (User Provided HTML) */}
+                    <div className="md:hidden px-2 pt-2">
+                        <div className="bg-black border border-[#FFB800]/20 rounded-lg p-2 mb-0">
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-7 h-7 bg-gradient-to-br from-[#FFB800] to-[#FFA500] rounded-full flex items-center justify-center border border-black">
+                                        <Users className="w-3.5 h-3.5 text-black" />
+                                    </div>
+                                    <span className="text-xs font-bold text-white">{username || "Misafir"}</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-lg font-black bg-gradient-to-r from-[#FFB800] to-[#FFA500] bg-clip-text text-transparent tabular-nums">{myEnrollments.length}</span>
+                                        <span className="text-[8px] text-white font-medium uppercase">kayıtlı</span>
+                                    </div>
+                                    <div className="h-4 w-px bg-gradient-to-b from-transparent via-gray-700 to-transparent"></div>
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-lg font-black bg-gradient-to-r from-[#FFA500] to-[#FF8C00] bg-clip-text text-transparent tabular-nums">{publicEvents.filter(e => e.status === 'active').length}</span>
+                                        <span className="text-[8px] text-white font-medium uppercase">aktif</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
