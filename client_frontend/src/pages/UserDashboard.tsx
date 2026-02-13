@@ -204,7 +204,7 @@ export default function UserDashboard() {
                                     <div className="w-7 h-7 bg-gradient-to-br from-[#FFB800] to-[#FFA500] rounded-full flex items-center justify-center border border-black">
                                         <Users className="w-3.5 h-3.5 text-black" />
                                     </div>
-                                    <span className="text-xs font-bold text-white">{username || "Misafir"}</span>
+                                    <span className="text-sm font-black text-[#FFB800] uppercase tracking-wide">{username || "MİSAFİR"}</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="flex items-baseline gap-1">
@@ -315,7 +315,7 @@ export default function UserDashboard() {
                         )}
 
                         {/* Enrolled Tournaments (Only show when activeCategory is 'all' and user has enrollments) */}
-                        {activeCategory === 'all' && username && myEnrollments.length > 0 && (() => {
+                        {activeCategory === 'all' && myEnrollments.length > 0 && (() => {
                             const enrolledEvents = publicEvents.filter(e =>
                                 myEnrollments.some(enr => enr.event_id === e.id) && ['active', 'upcoming', 'paused'].includes(e.status)
                             );
