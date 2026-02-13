@@ -138,11 +138,13 @@ export default function UserDashboard() {
 
     // Filter Logic
     // Upcoming Events List
+    // Upcoming Events List
     const upcomingEventsList = publicEvents.filter(e => {
         const now = new Date()
         const start = new Date(e.start_date)
-        const isStarted = now >= start
-        return e.status === 'paused' || (e.status === 'active' && !isStarted)
+        // strict logic: if status is paused OR (active and future start date)
+        const isUpcoming = e.status === 'paused' || (new Date() < new Date(e.start_date))
+        return isUpcoming
     })
 
     // Filter Logic
@@ -245,45 +247,81 @@ export default function UserDashboard() {
                     </div>
                 </div>
 
+
+
                 {/* Show Main Tournament List only if NOT 'finished' or 'report' */}
                 {!['finished', 'report', 'coupons'].includes(activeCategory) && (
-                    <div className="flex flex-col gap-10 opacity-100 transition-opacity duration-300">
-                        <div className="flex items-center gap-4 justify-center">
-                            <div className="h-px bg-gradient-to-r from-transparent to-primary/30 flex-1"></div>
-                            <h3 className="text-xl font-black text-white uppercase italic tracking-widest px-8">
-                                {activeCategory === 'all' ? 'TÜM TURNUVALAR' : activeCategory === 'active' ? 'AKTİF TURNUVALAR' : activeCategory === 'upcoming' ? 'YAKINDA BAŞLAYACAKLAR' : 'KATILDIĞIM TURNUVALAR'}
-                            </h3>
-                            <div className="h-px bg-gradient-to-l from-transparent to-primary/30 flex-1"></div>
+                    <>
+                        <div className="flex flex-col gap-10 opacity-100 transition-opacity duration-300">
+                            <div className="flex items-center gap-4 justify-center">
+                                <div className="h-px bg-gradient-to-r from-transparent to-primary/30 flex-1"></div>
+                                <h3 className="text-xl font-black text-white uppercase italic tracking-widest px-8">
+                                    {activeCategory === 'all' ? 'TÜM TURNUVALAR' : activeCategory === 'active' ? 'AKTİF TURNUVALAR' : activeCategory === 'upcoming' ? 'YAKINDA BAŞLAYACAKLAR' : 'KATILDIĞIM TURNUVALAR'}
+                                </h3>
+                                <div className="h-px bg-gradient-to-l from-transparent to-primary/30 flex-1"></div>
+                            </div>
+
+                            {/* Content */}
+                            <div className="space-y-6">
+                                {filteredEvents.length === 0 ? (
+                                    <div className="text-center p-12 text-neutral-500 italic bg-white/5 rounded-xl border border-dashed border-white/10">
+                                        Bu kategoride turnuva bulunamadı.
+                                    </div>
+                                ) : (
+                                    filteredEvents.map((event) => (
+                                        <TournamentCard
+                                            key={event.id}
+                                            id={event.id}
+                                            name={event.name}
+                                            description={event.description || ""}
+                                            image_url={event.image_url ?? null}
+                                            status={event.status}
+                                            startDate={event.start_date}
+                                            endDate={event.end_date}
+                                            participantCount={event.participant_count}
+                                            isJoined={myEnrollments.some(e => e.event_id === event.id)}
+                                            userPoints={myEnrollments.find(e => e.event_id === event.id)?.score || 0}
+                                            userRank={myEnrollments.find(e => e.event_id === event.id)?.rank || 0}
+                                            onJoin={(id) => handleJoin(id)}
+                                            onDetails={(id) => handleSwitchEvent(id)}
+                                        />
+                                    ))
+                                )}
+                            </div>
                         </div>
 
-                        {/* Content */}
-                        <div className="space-y-6">
-                            {filteredEvents.length === 0 ? (
-                                <div className="text-center p-12 text-neutral-500 italic bg-white/5 rounded-xl border border-dashed border-white/10">
-                                    Bu kategoride turnuva bulunamadı.
+                        {/* Upcoming Tournaments Slider (Only show when activeCategory is 'all' and there are upcoming events) */}
+                        {activeCategory === 'all' && upcomingEventsList.length > 0 && (
+                            <div className="space-y-6 pt-6 border-t border-white/10">
+                                <div className="flex items-center gap-4 justify-center">
+                                    <div className="h-px bg-gradient-to-r from-transparent to-primary/30 flex-1"></div>
+                                    <h3 className="text-xl font-black text-white uppercase italic tracking-widest px-8">
+                                        GELECEK TURNUVALAR
+                                    </h3>
+                                    <div className="h-px bg-gradient-to-l from-transparent to-primary/30 flex-1"></div>
                                 </div>
-                            ) : (
-                                filteredEvents.map((event) => (
-                                    <TournamentCard
-                                        key={event.id}
-                                        id={event.id}
-                                        name={event.name}
-                                        description={event.description || ""}
-                                        image_url={event.image_url ?? null}
-                                        status={event.status}
-                                        startDate={event.start_date}
-                                        endDate={event.end_date}
-                                        participantCount={event.participant_count}
-                                        isJoined={myEnrollments.some(e => e.event_id === event.id)}
-                                        userPoints={myEnrollments.find(e => e.event_id === event.id)?.score || 0}
-                                        userRank={myEnrollments.find(e => e.event_id === event.id)?.rank || 0}
-                                        onJoin={(id) => handleJoin(id)}
-                                        onDetails={(id) => handleSwitchEvent(id)}
-                                    />
-                                ))
-                            )}
-                        </div>
-                    </div>
+                                <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide">
+                                    {upcomingEventsList.map(event => (
+                                        <UpcomingTournamentCard
+                                            key={event.id}
+                                            id={event.id}
+                                            name={event.name}
+                                            image_url={event.image_url}
+                                            participantCount={event.participant_count}
+                                            startDate={event.start_date}
+                                            onDetails={() => {
+                                                setSearchParams(prev => {
+                                                    const newParams = new URLSearchParams(prev)
+                                                    newParams.set('eventId', event.id.toString())
+                                                    return newParams
+                                                })
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </>
                 )}
 
                 {/* Past Tournaments Section (User Provided HTML) - Show ONLY when 'finished' OR standard (bottom) if desired? 
@@ -1010,6 +1048,6 @@ export default function UserDashboard() {
                     </Tabs>
                 </div>
             </main>
-        </ClientLayout>
+        </ClientLayout >
     )
 }
