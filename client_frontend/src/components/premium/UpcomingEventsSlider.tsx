@@ -7,8 +7,7 @@ interface Event {
     start_date: string
     image_url?: string | null
     participant_count?: number
-    // We might not have prize in the event object yet, defaults to placeholder or passed prop if available
-    // For now I'll hardcode or deduce. The user HTML shows '20.000.000₺'
+    rules?: any
 }
 
 interface UpcomingEventsSliderProps {
@@ -69,18 +68,30 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
     const h = timeLeft.hours.toString().padStart(2, '0')
     const m = timeLeft.minutes.toString().padStart(2, '0')
 
-    const goToDetails = () => {
-        // Using search params method as used in UserDashboard
-        const url = new URL(window.location.href);
-        url.searchParams.set("eventId", currentEvent.id.toString());
-        window.history.pushState({}, "", url);
-        // Force re-render or event dispatch? 
-        // Actually, simpler to pass an onDetails prop or use standard navigation if route based.
-        // In UserDashboard we use setSearchParams. 
-        // For now, I'll assume the parent passes a handler or I use this hack, 
-        // BUT better to just let the parent handle it? 
-        // The user code in UserDashboard uses `setSearchParams`.
-        // I'll accept an `onEventSelect` prop.
+    // I'll accept an `onEventSelect` prop.
+
+    // Helper to calculate total prize
+    const calculateTotalPrize = (rules: any) => {
+        console.warn(">>> SLIDER DEBUG:", JSON.stringify(rules, null, 2));
+        if (!rules) return 0;
+
+        let validRules = rules;
+        if (typeof rules === 'string') {
+            try {
+                validRules = JSON.parse(rules);
+            } catch (e) {
+                console.error("Slider failed to parse rules:", e);
+                return 0;
+            }
+        }
+
+        if (!validRules.rewards || !Array.isArray(validRules.rewards)) {
+            return 0;
+        }
+
+        return validRules.rewards.reduce((total: number, reward: any) => {
+            return total + (Number(reward.amount) || 0);
+        }, 0);
     }
 
     return (
@@ -139,7 +150,7 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                                 <span className="text-[8px] text-[#FFB800] font-bold uppercase tracking-wide">Ödül</span>
                                             </div>
                                             <div className="font-oswald text-sm font-black text-[#FFB800] text-center leading-none whitespace-nowrap">
-                                                20.000.000₺
+                                                {calculateTotalPrize(currentEvent.rules).toLocaleString('tr-TR')}₺
                                             </div>
                                         </div>
                                     </div>
@@ -246,7 +257,7 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                                             <span className="text-sm text-[#FFB800] font-bold uppercase tracking-widest">Ödül</span>
                                                         </div>
                                                         <div className="text-center font-oswald text-3xl font-black text-[#FFB800] tracking-tight">
-                                                            20.000.000₺
+                                                            {calculateTotalPrize(currentEvent.rules).toLocaleString('tr-TR')}₺
                                                         </div>
                                                     </div>
                                                 </div>

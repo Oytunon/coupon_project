@@ -194,6 +194,36 @@ export default function UserDashboard() {
 
 
 
+    // Helper to calculate total prize
+    const calculateTotalPrize = (rules: any) => {
+        // Stringify for easier console reading
+        console.warn(">>> PRIZE DEBUG:", JSON.stringify(rules, null, 2));
+
+        if (!rules) return 0;
+
+        let validRules = rules;
+        if (typeof rules === 'string') {
+            try {
+                validRules = JSON.parse(rules);
+            } catch (e) {
+                console.error("Failed to parse rules:", e);
+                return 0;
+            }
+        }
+
+        if (!validRules.rewards || !Array.isArray(validRules.rewards)) {
+            console.log("No rewards array found");
+            return 0;
+        }
+
+        const total = validRules.rewards.reduce((total: number, reward: any) => {
+            return total + (Number(reward.amount) || 0);
+        }, 0);
+
+        console.log("Total prize:", total);
+        return total;
+    }
+
     return (
         <ClientLayout username={username} activeCategory={activeCategory} onCategoryChange={(c) => setActiveCategory(c)}>
             <main className="max-w-[1200px] mx-auto px-2 md:px-6 py-8 space-y-12">
@@ -289,6 +319,7 @@ export default function UserDashboard() {
                                                     isJoined={true}
                                                     userPoints={enrollment?.score || 0}
                                                     userRank={enrollment?.rank || 0}
+                                                    totalPrize={calculateTotalPrize(event.rules)}
                                                     onJoin={(id) => handleJoin(id)}
                                                     onDetails={(id) => handleSwitchEvent(id)}
                                                 />
@@ -329,6 +360,7 @@ export default function UserDashboard() {
                                             isJoined={myEnrollments.some(e => e.event_id === event.id)}
                                             userPoints={myEnrollments.find(e => e.event_id === event.id)?.score || 0}
                                             userRank={myEnrollments.find(e => e.event_id === event.id)?.rank || 0}
+                                            totalPrize={calculateTotalPrize(event.rules)}
                                             onJoin={(id) => handleJoin(id)}
                                             onDetails={(id) => handleSwitchEvent(id)}
                                         />
@@ -389,6 +421,7 @@ export default function UserDashboard() {
                                                 isJoined={!!enrollment}
                                                 userPoints={enrollment?.score || 0}
                                                 userRank={enrollment?.rank || 0}
+                                                totalPrize={calculateTotalPrize(event.rules)}
                                                 onJoin={(id) => handleJoin(id)}
                                                 onDetails={(id) => handleSwitchEvent(id)}
                                             />
