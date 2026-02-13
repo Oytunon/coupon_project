@@ -287,7 +287,10 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                     </div>
 
                                     {/* Countdown and Button */}
-                                    <div className="flex flex-col gap-4 relative z-10 items-end pr-6 py-6 w-auto">
+                                    <div className="flex flex-col gap-4 relative z-10 items-end pr-6 py-6 w-auto min-w-[300px]">
+                                        <div className="text-center mb-4">
+                                            <span className="text-[#FFB800] text-sm font-bold uppercase tracking-widest animate-pulse">BAŞLIYOR</span>
+                                        </div>
                                         <div className="w-full flex flex-col gap-4">
                                             <div className="flex justify-center gap-3">
                                                 {/* Days */}
