@@ -803,41 +803,9 @@ export default function UserDashboard() {
                                                                                 <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber-500" /></div>
                                                                             ) : (
                                                                                 <div className="bg-black rounded-xl border border-[#FFB800]/30 overflow-hidden">
-                                                                                    {/* Top 10 List */}
-                                                                                    {expandedLeaderboard.slice(0, 10).map((user, idx) => {
-                                                                                        const rank = idx + 1;
-                                                                                        // Mask username logic
-                                                                                        const parts = user.username.split(' ');
-                                                                                        const maskedName = parts.map((p: string) => p.length > 1 ? p[0] + '*'.repeat(p.length - 2) + p[p.length - 1] : p).join(' ');
-
-                                                                                        // Initials
-                                                                                        const initial = user.username.substring(0, 2).toUpperCase();
-
-                                                                                        // Rank Colors
-                                                                                        const rankColor = rank === 1 ? 'from-[#FFB800] to-[#FFA500] text-black' :
-                                                                                            rank === 2 ? 'from-[#E0E0E0] to-[#BDBDBD] text-black' :
-                                                                                                rank === 3 ? 'from-[#CD7F32] to-[#8B4513] text-white' :
-                                                                                                    'from-[#5a4a2a] to-[#3a2a1a] text-white';
-
-                                                                                        return (
-                                                                                            <div key={idx} className="flex items-center justify-between px-3 md:px-6 py-3 md:py-4 hover:bg-black/50 transition-all border-b border-[#FFB800]/30 last:border-none">
-                                                                                                <div className="flex items-center gap-2 md:gap-4">
-                                                                                                    <div className="w-8 h-8 md:w-12 md:h-12 bg-black border border-[#FFB800]/30 rounded-full flex items-center justify-center text-gray-300 font-bold text-xs md:text-base">
-                                                                                                        {rank}
-                                                                                                    </div>
-                                                                                                    <div className={`w-8 h-8 md:w-12 md:h-12 rounded-full bg-gradient-to-br ${rankColor} flex items-center justify-center font-bold text-sm md:text-lg`}>
-                                                                                                        {initial}
-                                                                                                    </div>
-                                                                                                    <div className="font-medium text-gray-200 text-sm md:text-base">
-                                                                                                        {maskedName}
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                                <div className="text-base md:text-xl font-bold text-white">
-                                                                                                    {(user.score || 0).toLocaleString()}
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        );
-                                                                                    })}
+                                                                                    <div className="text-center p-4 text-gray-500 italic text-sm">
+                                                                                        Detaylı sıralama için turnuva detay sayfasına gidiniz.
+                                                                                    </div>
 
                                                                                     {/* Current User Rank Fixed Footer */}
                                                                                     <div className="mt-6 bg-black rounded-xl border-2 border-[#FFB800] overflow-hidden">

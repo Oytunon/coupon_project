@@ -138,7 +138,16 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
 
     // Helpers
     const maskUsername = (u: string) => {
-        if (!u || u.length < 3) return u
+        if (!u || u.length < 2) return u;
+        // Split by space to handle names like "Vahit Ar"
+        const parts = u.split(' ');
+        if (parts.length > 1) {
+            return parts.map(p => {
+                if (p.length < 2) return p;
+                return p[0] + '*'.repeat(Math.min(p.length - 2, 5)) + p[p.length - 1];
+            }).join(' ');
+        }
+        // Fallback for single names
         const first = u[0]
         const last = u[u.length - 1]
         const stars = "*".repeat(Math.min(u.length - 2, 5))
@@ -484,65 +493,120 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                 <div className="text-center p-8 text-gray-500">Henüz sıralama verisi yok.</div>
                             ) : (
                                 <>
-                                    <div className="relative py-8 md:py-12 mb-8">
-                                        <div className="flex justify-center items-end gap-2 md:gap-4">
-                                            {leaderboard[1] && (
-                                                <div className="flex flex-col items-center">
-                                                    <div className="relative mb-2 md:mb-4">
-                                                        <div className="w-12 h-12 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-[#5a4a2a] to-[#3a2a1a] flex items-center justify-center text-base md:text-2xl font-bold border-2 md:border-4 border-black shadow-xl">
-                                                            {getInitials(leaderboard[1].username)}
-                                                        </div>
+                                    {
+                                        leaderboard.length > 0 ? (
+                                            <>
+                                                {/* Podium for Top 3 */}
+                                                <div className="relative py-8 md:py-12 mb-8">
+                                                    <div className="flex justify-center items-end gap-2 md:gap-4">
+                                                        {/* 2nd Place */}
+                                                        {leaderboard[1] && (
+                                                            <div className="flex flex-col items-center">
+                                                                <div className="relative mb-2 md:mb-4">
+                                                                    <div className="w-12 h-12 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-[#E0E0E0] to-[#BDBDBD] flex items-center justify-center text-base md:text-2xl font-bold border-2 md:border-4 border-black shadow-xl text-black">
+                                                                        {getInitials(leaderboard[1].username)}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-center mb-2">
+                                                                    <div className="font-bold text-xs md:text-base text-gray-300">{maskUsername(leaderboard[1].username)}</div>
+                                                                    <div className="text-[#E0E0E0] font-bold text-xs md:text-base">{leaderboard[1].score.toLocaleString('tr-TR')}</div>
+                                                                </div>
+                                                                <div className="rounded-t-xl flex items-center justify-center text-2xl md:text-5xl font-bold bg-gradient-to-b from-gray-700 to-gray-800 w-20 h-16 md:w-32 md:h-28 text-[#E0E0E0] border-t border-x border-[#E0E0E0]/30 shadow-[0_-5px_20px_rgba(224,224,224,0.1)]">2</div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* 1st Place */}
+                                                        {leaderboard[0] && (
+                                                            <div className="flex flex-col items-center z-10">
+                                                                <div className="relative mb-2 md:mb-4 scale-110">
+                                                                    <Crown className="w-8 h-8 absolute -top-8 md:-top-10 left-1/2 -translate-x-1/2 text-[#FFB800] drop-shadow-[0_0_10px_rgba(255,184,0,0.5)] animate-bounce" />
+                                                                    <div className="w-12 h-12 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-[#FFB800] to-[#FFA500] flex items-center justify-center text-base md:text-2xl font-bold border-2 md:border-4 border-black shadow-[0_0_20px_rgba(255,184,0,0.4)] text-black relative z-10">
+                                                                        {getInitials(leaderboard[0].username)}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-center mb-2">
+                                                                    <div className="font-bold text-xs md:text-base text-gray-200">{maskUsername(leaderboard[0].username)}</div>
+                                                                    <div className="text-[#FFB800] font-bold text-xs md:text-base">{leaderboard[0].score.toLocaleString('tr-TR')}</div>
+                                                                </div>
+                                                                <div className="rounded-t-xl flex items-center justify-center text-3xl md:text-6xl font-bold bg-gradient-to-b from-yellow-600 to-yellow-800 w-24 h-24 md:w-36 md:h-40 text-[#FFB800] border-t border-x border-[#FFB800]/30 shadow-[0_-10px_30px_rgba(255,184,0,0.2)]">1</div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* 3rd Place */}
+                                                        {leaderboard[2] && (
+                                                            <div className="flex flex-col items-center">
+                                                                <div className="relative mb-2 md:mb-4">
+                                                                    <div className="w-12 h-12 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-[#CD7F32] to-[#8B4513] flex items-center justify-center text-base md:text-2xl font-bold border-2 md:border-4 border-black shadow-xl text-white">
+                                                                        {getInitials(leaderboard[2].username)}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-center mb-2">
+                                                                    <div className="font-bold text-xs md:text-base text-gray-300">{maskUsername(leaderboard[2].username)}</div>
+                                                                    <div className="text-[#CD7F32] font-bold text-xs md:text-base">{leaderboard[2].score.toLocaleString('tr-TR')}</div>
+                                                                </div>
+                                                                <div className="rounded-t-xl flex items-center justify-center text-2xl md:text-5xl font-bold bg-gradient-to-b from-amber-800 to-amber-900 w-20 h-12 md:w-32 md:h-20 text-[#CD7F32] border-t border-x border-[#CD7F32]/30 shadow-[0_-5px_20px_rgba(205,127,50,0.1)]">3</div>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    <div className="text-center mb-2">
-                                                        <div className="font-bold text-xs md:text-base">{maskUsername(leaderboard[1].username)}</div>
-                                                        <div className="text-yellow-500 font-bold text-xs md:text-base">{leaderboard[1].score.toLocaleString('tr-TR')}</div>
-                                                    </div>
-                                                    <div className="rounded-t-xl flex items-center justify-center text-2xl md:text-5xl font-bold bg-gradient-to-b from-gray-700 to-gray-800 w-20 h-16 md:w-32 md:h-28">2</div>
                                                 </div>
-                                            )}
-                                            {leaderboard[0] && (
-                                                <div className="flex flex-col items-center">
-                                                    <div className="relative mb-2 md:mb-4 scale-110">
-                                                        <Crown className="w-8 h-8 absolute -top-6 md:-top-8 left-1/2 -translate-x-1/2 text-yellow-500" />
-                                                        <div className="w-12 h-12 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-[#FFB800] to-[#FFA500] flex items-center justify-center text-base md:text-2xl font-bold border-2 md:border-4 border-black shadow-xl text-black">
-                                                            {getInitials(leaderboard[0].username)}
-                                                        </div>
+
+                                                {/* Ranks 4-10 List */}
+                                                {leaderboard.length > 3 && (
+                                                    <div className="bg-black rounded-xl border border-[#FFB800]/30 overflow-hidden mb-8">
+                                                        {leaderboard.slice(3, 10).map((user, idx) => {
+                                                            const rank = idx + 4;
+                                                            const initial = user.username ? user.username.substring(0, 2).toUpperCase() : "??";
+                                                            // Using the generic brown/bronze rank color for 4+ as requested or similar to previous
+                                                            const rankColor = 'from-[#5a4a2a] to-[#3a2a1a] text-white';
+
+                                                            return (
+                                                                <div key={idx} className="flex items-center justify-between px-3 md:px-6 py-3 md:py-4 hover:bg-black/50 transition-all border-b border-[#FFB800]/30 last:border-none">
+                                                                    <div className="flex items-center gap-2 md:gap-4">
+                                                                        <div className="w-8 h-8 md:w-12 md:h-12 bg-black border border-[#FFB800]/30 rounded-full flex items-center justify-center text-gray-300 font-bold text-xs md:text-base">
+                                                                            {rank}
+                                                                        </div>
+                                                                        <div className={`w-8 h-8 md:w-12 md:h-12 rounded-full bg-gradient-to-br ${rankColor} flex items-center justify-center font-bold text-sm md:text-lg shadow-lg`}>
+                                                                            {initial}
+                                                                        </div>
+                                                                        <div className="font-medium text-gray-200 text-sm md:text-base">
+                                                                            {maskUsername(user.username)}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="text-base md:text-xl font-bold text-white">
+                                                                        {(user.score || 0).toLocaleString()}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
-                                                    <div className="text-center mb-2">
-                                                        <div className="font-bold text-xs md:text-base">{maskUsername(leaderboard[0].username)}</div>
-                                                        <div className="text-yellow-500 font-bold text-xs md:text-base">{leaderboard[0].score.toLocaleString('tr-TR')}</div>
+                                                )}
+                                            </>
+                                        ) : null
+                                    }
+
+                                    {/* Fixed User Rank Footer */}
+                                    {isJoined && (
+                                        <div className="mt-6 bg-black rounded-xl border-2 border-[#FFB800] overflow-hidden sticky bottom-0 z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.8)]">
+                                            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 md:px-6 py-4 md:py-5">
+                                                <div className="flex items-center gap-3 md:gap-4">
+                                                    <div className="w-10 h-10 md:w-12 md:h-12 bg-black border-2 border-[#FFB800] rounded-full flex items-center justify-center text-[#FFB800] font-bold text-sm md:text-base shadow-[0_0_10px_rgba(255,184,0,0.3)]">
+                                                        {userRank || '-'}
                                                     </div>
-                                                    <div className="rounded-t-xl flex items-center justify-center text-2xl md:text-5xl font-bold bg-gradient-to-b from-yellow-600 to-yellow-700 w-20 h-24 md:w-32 md:h-40">1</div>
+                                                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-[#FFB800] to-[#FFA500] flex items-center justify-center font-bold text-base md:text-lg text-black shadow-lg">
+                                                        {username ? username.substring(0, 2).toUpperCase() : 'ME'}
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-gray-400 text-xs font-semibold uppercase tracking-wide">Senin Sıran</div>
+                                                        <div className="text-[#FFB800] font-bold text-sm md:text-base">#{userRank || '-'}</div>
+                                                    </div>
                                                 </div>
-                                            )}
-                                            {leaderboard[2] && (
-                                                <div className="flex flex-col items-center">
-                                                    <div className="relative mb-2 md:mb-4">
-                                                        <div className="w-12 h-12 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-[#4a3a1a] to-[#2a1a0a] flex items-center justify-center text-base md:text-2xl font-bold border-2 md:border-4 border-black shadow-xl">
-                                                            {getInitials(leaderboard[2].username)}
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-center mb-2">
-                                                        <div className="font-bold text-xs md:text-base">{maskUsername(leaderboard[2].username)}</div>
-                                                        <div className="text-yellow-500 font-bold text-xs md:text-base">{leaderboard[2].score.toLocaleString('tr-TR')}</div>
-                                                    </div>
-                                                    <div className="rounded-t-xl flex items-center justify-center text-2xl md:text-5xl font-bold bg-gradient-to-b from-amber-800 to-amber-900 w-20 h-12 md:w-32 md:h-20">3</div>
+                                                <div className="text-center sm:text-right">
+                                                    <div className="text-gray-400 text-xs font-semibold uppercase tracking-wide">Puanın</div>
+                                                    <div className="text-lg md:text-xl font-bold text-white">{userPoints.toLocaleString('tr-TR')}</div>
                                                 </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="bg-black rounded-xl border border-[#FFB800]/30 overflow-hidden">
-                                        {leaderboard.slice(3).map((user: any, idx: number) => (
-                                            <div key={idx} className="flex items-center justify-between px-3 md:px-6 py-3 md:py-4 hover:bg-black/50 transition-all border-b border-[#FFB800]/30 last:border-0">
-                                                <div className="flex items-center gap-2 md:gap-4">
-                                                    <div className="w-8 h-8 md:w-12 md:h-12 bg-black border border-[#FFB800]/30 rounded-full flex items-center justify-center text-gray-300 font-bold text-xs md:text-base">{idx + 4}</div>
-                                                    <div className="w-8 h-8 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-[#4a3a1a] to-[#2a1a0a] flex items-center justify-center font-bold text-sm md:text-lg">{getInitials(user.username)}</div>
-                                                    <div className="font-medium text-gray-200 text-sm md:text-base">{maskUsername(user.username)}</div>
-                                                </div>
-                                                <div className="text-base md:text-xl font-bold text-white">{user.score.toLocaleString('tr-TR')}</div>
                                             </div>
-                                        ))}
-                                    </div>
+                                        </div>
+                                    )}
                                 </>
                             )}
                         </div>
