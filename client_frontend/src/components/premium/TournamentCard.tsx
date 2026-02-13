@@ -230,7 +230,7 @@ export function TournamentCard({
 
             {/* DESKTOP VIEW (hidden lg:block) - Based on User HTML */}
             <div className="hidden lg:block">
-                <div className="relative rounded-xl overflow-hidden bg-black border-2 border-[#FFB800] shadow-2xl hover:shadow-[0_0_30px_rgba(255,184,0,0.4)] transition-transform duration-300 hover:scale-[1.01]">
+                <div className="relative rounded-xl overflow-hidden bg-black border-2 border-[#FFB800] shadow-2xl hover:shadow-[0_0_30px_rgba(255,184,0,0.4)] transition-transform duration-300 hover:scale-[1.01] min-h-[260px]">
 
                     {/* Status Badge */}
                     <div className="absolute top-0 right-0 z-30 overflow-hidden pointer-events-none">
