@@ -69,7 +69,7 @@ export default function Lobby() {
     }
 
     return (
-        <ClientLayout username={username} activeCategory={activeCategory} onCategoryChange={setActiveCategory}>
+        <ClientLayout username={username} activeCategory={activeCategory} onCategoryChange={(c) => setActiveCategory(c)}>
             <main className="max-w-7xl mx-auto px-4 py-12 space-y-12">
 
                 {/* Header */}

@@ -172,7 +172,7 @@ export default function UserDashboard() {
     const pastEvents = publicEvents.filter(e => e.status === 'ended')
 
     return (
-        <ClientLayout username={username} activeCategory={activeCategory} onCategoryChange={setActiveCategory}>
+        <ClientLayout username={username} activeCategory={activeCategory} onCategoryChange={(c) => setActiveCategory(c)}>
             <main className="max-w-[1200px] mx-auto px-6 py-8 space-y-12">
 
                 {/* User Info Bar - Responsive */}
@@ -523,7 +523,7 @@ export default function UserDashboard() {
 
                 {/* Keeping the detailed tabs hidden but available if needed */}
                 <div className="hidden">
-                    <Tabs defaultValue="leaderboard" className="w-full" value={activeTab} onValueChange={setActiveTab}>
+                    <Tabs defaultValue="leaderboard" className="w-full" value={activeTab} onValueChange={(v) => setActiveTab(v)}>
                         <TabsContent value="leaderboard" className="mt-6 animation-in fade-in slide-in-from-bottom-2">
                             <Card className="border-white/5 bg-zinc-950/40 backdrop-blur-xl">
                                 <CardHeader>
