@@ -158,6 +158,8 @@ export default function UserDashboard() {
         }
     }
 
+    const pastEvents = publicEvents.filter(e => e.status === 'ended')
+
     return (
         <ClientLayout username={username}>
             <main className="max-w-[1200px] mx-auto px-6 py-8 space-y-12">
@@ -245,6 +247,157 @@ export default function UserDashboard() {
                         ))}
                     </div>
                 </div>
+
+                {/* Past Tournaments Section (User Provided HTML) */}
+                {pastEvents.length > 0 && (
+                    <div id="past" className="mt-12">
+                        <div className="px-2 lg:px-4 mb-2 lg:mb-6">
+                            <div className="flex items-center justify-center gap-2 lg:gap-3">
+                                <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent to-gray-500"></div>
+                                <h2 className="text-xs lg:text-xl font-semibold text-white uppercase tracking-wide whitespace-nowrap px-2">Geçmiş Turnuvalar</h2>
+                                <div className="h-[2px] flex-1 bg-gradient-to-r from-gray-500 to-transparent"></div>
+                            </div>
+                        </div>
+                        <div className="space-y-2 lg:space-y-4 px-2 lg:px-4">
+                            {pastEvents.map(event => {
+                                const enrollment = myEnrollments.find(e => e.event_id === event.id);
+                                const isParticipated = !!enrollment;
+                                const reward = myRewards.find(r => r.event_name === event.name);
+                                const userPrize = reward ? `${Number(reward.amount).toLocaleString()}₺` : null;
+
+                                return (
+                                    <div key={event.id}>
+                                        {/* Mobile Card */}
+                                        <div className="lg:hidden">
+                                            <div className="relative rounded-lg overflow-hidden cursor-pointer bg-black border-2 border-[#FFB800] shadow-xl" onClick={() => handleSwitchEvent(event.id)}>
+                                                <div className="flex items-stretch gap-0 p-1.5">
+                                                    <div className="flex-shrink-0 w-32 h-34 rounded-l border-r-2 border-[#FFB800]/50 overflow-hidden">
+                                                        <img src={event.image_url || "/5.jpg"} alt={event.name} className="w-full h-full object-cover" />
+                                                    </div>
+                                                    <div className="flex-1 flex flex-col gap-1.5 pl-2 pr-1 py-1 min-w-0">
+                                                        <h3 className="text-xs font-black text-white tracking-tight leading-tight line-clamp-2">{event.name}</h3>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="flex-1 bg-[#1a1a1a] border-2 border-[#FFB800] rounded-lg px-2 py-1.5">
+                                                                <div className="flex items-center justify-center gap-1 mb-1">
+                                                                    <Users className="w-3 h-3 text-[#FFB800]" />
+                                                                    <span className="text-[8px] text-[#FFB800] font-bold uppercase tracking-wide">Katılımcı</span>
+                                                                </div>
+                                                                <div className="text-sm font-black text-white text-center leading-none">{event.participant_count.toLocaleString()}</div>
+                                                            </div>
+                                                            <div className="flex-1 bg-gradient-to-br from-[#FFB800]/20 to-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5">
+                                                                <div className="flex items-center justify-center gap-1 mb-1">
+                                                                    <Trophy className="w-3 h-3 text-[#FFB800]" />
+                                                                    <span className="text-[8px] text-[#FFB800] font-bold uppercase tracking-wide">Ödül</span>
+                                                                </div>
+                                                                <div className="text-[11px] font-black text-[#FFB800] text-center leading-none">1.500.000₺</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Desktop Card */}
+                                        <div className="hidden lg:block border-2 border-[#FFB800] rounded-xl lg:rounded-2xl overflow-hidden hover:scale-[1.01] transition-transform duration-300">
+                                            <div className="relative rounded-xl overflow-hidden cursor-pointer transition-transform duration-300 bg-black border-2 border-[#FFB800] shadow-2xl hover:shadow-[0_0_30px_rgba(255,184,0,0.4)]" onClick={() => handleSwitchEvent(event.id)}>
+                                                <div className="absolute top-0 right-0 z-30 overflow-hidden">
+                                                    <div className="relative">
+                                                        <div className="absolute top-0 right-0 w-24 h-24 md:w-32 md:h-32 overflow-hidden">
+                                                            <div className="absolute top-6 -right-6 md:top-8 md:-right-8 w-32 md:w-40 bg-gradient-to-r from-gray-600 to-gray-500 transform rotate-45 shadow-lg border-t border-b border-gray-400/30">
+                                                                <div className="flex items-center justify-center py-1.5 md:py-2">
+                                                                    <span className="text-white text-[10px] md:text-xs font-bold tracking-wider">SONUÇLANMIŞ</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="relative">
+                                                    <div className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4 md:gap-0">
+                                                        <div className="flex flex-col md:flex-row items-start md:items-center gap-0 flex-1 relative z-10 w-full">
+                                                            <div className="w-full h-28 md:w-[280px] md:h-full shrink-0 md:border-r-2 border-[#FFB800]">
+                                                                <img src={event.image_url || "/5.jpg"} alt={event.name} className="w-full h-full object-cover" />
+                                                            </div>
+                                                            <div className="flex flex-col flex-1 px-3 md:px-6 py-3 md:py-6 w-full">
+                                                                <div className="text-center mb-2 md:mb-4">
+                                                                    <h3 className="text-base md:text-2xl lg:text-3xl font-black text-white tracking-tight leading-tight mb-1 md:mb-2 px-2">{event.name}</h3>
+                                                                    <div className="h-0.5 w-12 md:w-16 mx-auto bg-gradient-to-r from-transparent via-[#FFB800] to-transparent rounded-full"></div>
+                                                                </div>
+                                                                <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4">
+                                                                    <div className="group relative bg-[#1a1a1a] border-2 border-[#FFB800] rounded-xl md:rounded-2xl p-3 md:p-8 hover:border-[#FFA500] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#1a1a1a]/20 hover:shadow-xl hover:shadow-[#FFB800]/40 flex-1 min-w-[110px] md:min-w-[130px] max-w-[150px] md:max-w-[180px]">
+                                                                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl md:rounded-2xl"></div>
+                                                                        <div className="relative">
+                                                                            <div className="flex items-center justify-center gap-1 md:gap-2 mb-1 md:mb-2">
+                                                                                <Users className="w-3 h-3 md:w-6 md:h-6 text-[#FFB800]" />
+                                                                                <span className="text-[9px] md:text-xs text-[#FFB800] font-bold uppercase tracking-wide md:tracking-widest">Katılımcı</span>
+                                                                            </div>
+                                                                            <div className="text-center text-base md:text-2xl lg:text-3xl font-black text-white">{event.participant_count.toLocaleString()}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="group relative bg-gradient-to-br from-[#FFB800]/20 via-[#FFA500]/10 to-black border-2 border-[#FFB800] rounded-xl md:rounded-2xl p-3 md:p-8 hover:border-[#FFA500] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#FFB800]/20 hover:shadow-[#FFB800]/40 hover:shadow-xl flex-1 min-w-[110px] md:min-w-[130px] max-w-[150px] md:max-w-[180px]">
+                                                                        <div className="absolute inset-0 bg-gradient-to-br from-[#FFB800]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl md:rounded-2xl"></div>
+                                                                        <div className="relative">
+                                                                            <div className="flex items-center justify-center gap-1 md:gap-2 mb-1 md:mb-2">
+                                                                                <Trophy className="w-3 h-3 md:w-6 md:h-6 text-[#FFB800]" />
+                                                                                <span className="text-[9px] md:text-xs text-[#FFB800] font-bold uppercase tracking-wide md:tracking-widest">Ödül</span>
+                                                                            </div>
+                                                                            <div className="text-center text-sm md:text-lg lg:text-xl font-black text-[#FFB800]">1.500.000₺</div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex flex-col gap-2 md:gap-4 relative z-10 items-stretch md:items-end px-3 md:pr-6 pb-3 md:py-6 w-full md:w-auto">
+                                                            {isParticipated ? (
+                                                                <>
+                                                                    <div className="flex items-center gap-2 md:gap-4 justify-center md:justify-end">
+                                                                        <div className="text-center">
+                                                                            <div className="flex items-center justify-center gap-1 md:gap-2 text-gray-400 mb-0.5 md:mb-1">
+                                                                                <Zap className="w-3 h-3 md:w-4 md:h-4" />
+                                                                                <span className="text-[9px] md:text-xs uppercase tracking-wide">Puanım</span>
+                                                                            </div>
+                                                                            <div className="text-lg md:text-3xl lg:text-4xl font-bold text-white">{enrollment.score.toLocaleString()}</div>
+                                                                        </div>
+                                                                        <div className="w-px h-10 md:h-16 bg-[#FFB800]/30"></div>
+                                                                        <div className="text-center">
+                                                                            <div className="flex items-center justify-center gap-1 md:gap-2 text-[#FFB800] mb-0.5 md:mb-1">
+                                                                                <Trophy className="w-3 h-3 md:w-4 md:h-4" />
+                                                                                <span className="text-[9px] md:text-xs uppercase tracking-wide">Sıralama</span>
+                                                                            </div>
+                                                                            <div className="text-lg md:text-3xl lg:text-4xl font-bold text-[#FFB800]">#{enrollment.rank}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    {userPrize && (
+                                                                        <div className="bg-gradient-to-r from-[#FFB800]/20 to-[#FFA500]/20 border-2 border-[#FFB800] rounded-xl px-3 md:px-6 py-2.5 md:py-4">
+                                                                            <div className="text-center">
+                                                                                <p className="text-gray-400 text-[10px] md:text-xs uppercase tracking-wide mb-1">Kazandığınız Ödül</p>
+                                                                                <p className="text-[#FFB800] text-xl md:text-3xl font-bold">{userPrize}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                </>
+                                                            ) : (
+                                                                <div className="bg-black border border-[#FFB800]/30 rounded-xl px-4 md:px-6 py-3 md:py-4">
+                                                                    <p className="text-gray-400 text-xs md:text-sm font-semibold text-center md:text-left">Bu turnuvaya katılmadınız</p>
+                                                                </div>
+                                                            )}
+                                                            <button
+                                                                onClick={() => handleSwitchEvent(event.id)}
+                                                                className="px-4 md:px-8 py-1.5 md:py-3 bg-[#FFB800] hover:bg-[#FFA500] text-black rounded-lg md:rounded-xl font-bold text-xs md:text-base shadow-lg hover:shadow-xl transition-all w-full md:w-auto"
+                                                            >
+                                                                Sonuçları Gör
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+                )}
 
                 {/* Keeping the detailed tabs hidden but available if needed */}
                 <div className="hidden">
