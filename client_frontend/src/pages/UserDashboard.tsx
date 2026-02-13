@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { TournamentCard } from "@/components/premium/TournamentCard"
 import { UpcomingTournamentCard } from "@/components/premium/UpcomingTournamentCard"
+import { UpcomingEventsSlider } from "@/components/premium/UpcomingEventsSlider"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
@@ -300,25 +301,16 @@ export default function UserDashboard() {
                                     </h3>
                                     <div className="h-px bg-gradient-to-l from-transparent to-primary/30 flex-1"></div>
                                 </div>
-                                <div className="flex overflow-x-auto gap-4 pb-4 scrollbar-hide">
-                                    {upcomingEventsList.map(event => (
-                                        <UpcomingTournamentCard
-                                            key={event.id}
-                                            id={event.id}
-                                            name={event.name}
-                                            image_url={event.image_url}
-                                            participantCount={event.participant_count}
-                                            startDate={event.start_date}
-                                            onDetails={() => {
-                                                setSearchParams(prev => {
-                                                    const newParams = new URLSearchParams(prev)
-                                                    newParams.set('eventId', event.id.toString())
-                                                    return newParams
-                                                })
-                                            }}
-                                        />
-                                    ))}
-                                </div>
+                                <UpcomingEventsSlider
+                                    events={upcomingEventsList}
+                                    onDetails={(id) => {
+                                        setSearchParams(prev => {
+                                            const newParams = new URLSearchParams(prev)
+                                            newParams.set('eventId', id.toString())
+                                            return newParams
+                                        })
+                                    }}
+                                />
                             </div>
                         )}
                     </>
