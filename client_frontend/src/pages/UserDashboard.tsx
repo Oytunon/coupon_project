@@ -254,9 +254,9 @@ export default function UserDashboard() {
                 {!['finished', 'report', 'coupons'].includes(activeCategory) && (
                     <>
                         <div className="flex flex-col gap-10 opacity-100 transition-opacity duration-300">
-                            <div className="flex items-center gap-4 justify-center">
+                            <div className="flex items-center gap-2 lg:gap-4 justify-center">
                                 <div className="h-px bg-gradient-to-r from-transparent to-primary/30 flex-1"></div>
-                                <h3 className="text-xl font-black text-white uppercase italic tracking-widest px-8">
+                                <h3 className="text-sm lg:text-xl font-black text-white uppercase italic tracking-widest px-2 lg:px-8 whitespace-nowrap">
                                     {activeCategory === 'all' ? 'AKTİF TURNUVALAR' : activeCategory === 'active' ? 'AKTİF TURNUVALAR' : activeCategory === 'upcoming' ? 'YAKINDA BAŞLAYACAKLAR' : 'KATILDIĞIM TURNUVALAR'}
                                 </h3>
                                 <div className="h-px bg-gradient-to-l from-transparent to-primary/30 flex-1"></div>
@@ -294,9 +294,9 @@ export default function UserDashboard() {
                         {/* Upcoming Tournaments Slider (Only show when activeCategory is 'all' and there are upcoming events) */}
                         {activeCategory === 'all' && upcomingEventsList.length > 0 && (
                             <div className="space-y-6 pt-6 border-t border-white/10">
-                                <div className="flex items-center gap-4 justify-center">
+                                <div className="flex items-center gap-2 lg:gap-4 justify-center">
                                     <div className="h-px bg-gradient-to-r from-transparent to-primary/30 flex-1"></div>
-                                    <h3 className="text-xl font-black text-white uppercase italic tracking-widest px-8">
+                                    <h3 className="text-sm lg:text-xl font-black text-white uppercase italic tracking-widest px-2 lg:px-8 whitespace-nowrap">
                                         GELECEK TURNUVALAR
                                     </h3>
                                     <div className="h-px bg-gradient-to-l from-transparent to-primary/30 flex-1"></div>
@@ -322,9 +322,9 @@ export default function UserDashboard() {
                             if (enrolledEvents.length === 0) return null;
                             return (
                                 <div className="space-y-6 pt-6 border-t border-white/10">
-                                    <div className="flex items-center gap-4 justify-center">
+                                    <div className="flex items-center gap-2 lg:gap-4 justify-center">
                                         <div className="h-px bg-gradient-to-r from-transparent to-primary/30 flex-1"></div>
-                                        <h3 className="text-xl font-black text-white uppercase italic tracking-widest px-8">
+                                        <h3 className="text-sm lg:text-xl font-black text-white uppercase italic tracking-widest px-2 lg:px-8 whitespace-nowrap">
                                             KAYITLI TURNUVALARIM
                                         </h3>
                                         <div className="h-px bg-gradient-to-l from-transparent to-primary/30 flex-1"></div>
@@ -359,9 +359,9 @@ export default function UserDashboard() {
                         {/* Past Tournaments (Only show when activeCategory is 'all' and there are past events) */}
                         {activeCategory === 'all' && pastEvents.length > 0 && (
                             <div className="space-y-6 pt-6 border-t border-white/10">
-                                <div className="flex items-center gap-4 justify-center">
+                                <div className="flex items-center gap-2 lg:gap-4 justify-center">
                                     <div className="h-px bg-gradient-to-r from-transparent to-primary/30 flex-1"></div>
-                                    <h3 className="text-xl font-black text-white uppercase italic tracking-widest px-8">
+                                    <h3 className="text-sm lg:text-xl font-black text-white uppercase italic tracking-widest px-2 lg:px-8 whitespace-nowrap">
                                         GEÇMİŞ TURNUVALAR
                                     </h3>
                                     <div className="h-px bg-gradient-to-l from-transparent to-primary/30 flex-1"></div>
