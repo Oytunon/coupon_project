@@ -140,12 +140,15 @@ export default function UserDashboard() {
     // Filter Logic
     // Upcoming Events List
     // Upcoming Events List
+    // Upcoming Events List
     const upcomingEventsList = publicEvents.filter(e => {
         const now = new Date()
         const start = new Date(e.start_date)
         // strict logic: if status is paused OR (active and future start date)
         const isUpcoming = e.status === 'paused' || (new Date() < new Date(e.start_date))
-        return isUpcoming
+        // Exclude if already joined
+        const isJoined = myEnrollments.some(enr => enr.event_id === e.id)
+        return isUpcoming && !isJoined
     })
 
     // Filter Logic
@@ -153,11 +156,12 @@ export default function UserDashboard() {
         const now = new Date()
         const start = new Date(e.start_date)
         const isStarted = now >= start
+        const isJoined = myEnrollments.some(enr => enr.event_id === e.id)
 
-        if (activeCategory === 'all') return e.status === 'active' && isStarted
+        if (activeCategory === 'all') return e.status === 'active' && isStarted && !isJoined
         if (activeCategory === 'active') return e.status === 'active' && isStarted
         if (activeCategory === 'upcoming') return e.status === 'paused' || (e.status === 'active' && !isStarted)
-        if (activeCategory === 'enrollments') return myEnrollments.some(enr => enr.event_id === e.id)
+        if (activeCategory === 'enrollments') return isJoined
         return false
     })
 
