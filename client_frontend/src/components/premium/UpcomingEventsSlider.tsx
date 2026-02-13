@@ -226,24 +226,40 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                         {/* Middle: Title and Stats Boxes */}
                                         <div className="flex flex-col flex-1 px-4 py-3 w-full justify-center">
                                             <div className="text-center mb-2">
-                                                <h3 className="font-oswald text-xl font-black text-white tracking-tight leading-tight mb-1 px-2 uppercase">
+                                                <h3 className="font-oswald text-4xl font-black text-white tracking-tight leading-tight mb-2 px-2 uppercase">
                                                     {currentEvent.name}
                                                 </h3>
                                                 <div className="h-0.5 w-12 mx-auto bg-gradient-to-r from-transparent via-[#FFB800] to-transparent rounded-full"></div>
                                             </div>
 
                                             <div className="flex flex-wrap items-center justify-center gap-3">
+                                                {/* Participants Box */}
+                                                <div className="group relative bg-[#1a1a1a] border-2 border-[#FFB800] rounded-2xl p-6 hover:border-[#FFA500] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#1a1a1a]/20 hover:shadow-xl hover:shadow-[#FFB800]/40 flex-1 min-w-[180px] max-w-[220px]">
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
+                                                    <div className="relative flex flex-col items-center justify-center gap-2">
+                                                        <div className="flex items-center justify-center gap-2 mb-1">
+                                                            <svg className="w-6 h-6 text-[#FFB800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                                            </svg>
+                                                            <span className="text-sm text-[#FFB800] font-bold uppercase tracking-widest">Katılımcı</span>
+                                                        </div>
+                                                        <div className="text-center font-oswald text-4xl font-black text-white tracking-tight">
+                                                            {(currentEvent.participant_count || 0).toLocaleString('tr-TR')}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
                                                 {/* Prize Box */}
-                                                <div className="group relative bg-gradient-to-br from-[#FFB800]/20 via-[#FFA500]/10 to-black border-2 border-[#FFB800] rounded-xl p-3 hover:border-[#FFA500] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#FFB800]/20 hover:shadow-[#FFB800]/40 hover:shadow-xl flex-1 min-w-[100px] max-w-[140px]">
-                                                    <div className="absolute inset-0 bg-gradient-to-br from-[#FFB800]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
-                                                    <div className="relative">
-                                                        <div className="flex items-center justify-center gap-1.5 mb-1">
-                                                            <svg className="w-4 h-4 text-[#FFB800]" fill="currentColor" viewBox="0 0 24 24">
+                                                <div className="group relative bg-gradient-to-br from-[#FFB800]/20 via-[#FFA500]/10 to-black border-2 border-[#FFB800] rounded-2xl p-6 hover:border-[#FFA500] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#FFB800]/20 hover:shadow-[#FFB800]/40 hover:shadow-xl flex-1 min-w-[180px] max-w-[220px]">
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-[#FFB800]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
+                                                    <div className="relative flex flex-col items-center justify-center gap-2">
+                                                        <div className="flex items-center justify-center gap-2 mb-1">
+                                                            <svg className="w-6 h-6 text-[#FFB800]" fill="currentColor" viewBox="0 0 24 24">
                                                                 <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"></path>
                                                             </svg>
-                                                            <span className="text-[10px] text-[#FFB800] font-bold uppercase tracking-wide">Ödül</span>
+                                                            <span className="text-sm text-[#FFB800] font-bold uppercase tracking-widest">Ödül</span>
                                                         </div>
-                                                        <div className="text-center font-oswald text-base font-black text-[#FFB800]">
+                                                        <div className="text-center font-oswald text-3xl font-black text-[#FFB800] tracking-tight">
                                                             20.000.000₺
                                                         </div>
                                                     </div>
