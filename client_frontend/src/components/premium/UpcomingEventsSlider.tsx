@@ -209,7 +209,7 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
 
                     {/* DESKTOP VIEW */}
                     <div className="hidden lg:block">
-                        <div className="relative rounded-xl overflow-hidden bg-black border-2 border-[#FFB800] shadow-2xl hover:shadow-[0_0_30px_rgba(255,184,0,0.4)] transition-transform duration-300 hover:scale-[1.01] cursor-pointer min-h-[260px]">
+                        <div className="relative rounded-xl overflow-hidden bg-black border-2 border-[#FFB800] shadow-2xl hover:shadow-[0_0_30px_rgba(255,184,0,0.4)] transition-transform duration-300 hover:scale-[1.01] cursor-pointer h-[280px]">
 
                             {/* Status Badge */}
                             <div className="absolute top-0 right-0 z-30 overflow-hidden pointer-events-none">
@@ -226,11 +226,11 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                 </div>
                             </div>
 
-                            <div className="relative">
-                                <div className="flex flex-row items-center justify-between">
-                                    <div className="flex flex-row items-center gap-0 flex-1 relative z-10 w-full">
+                            <div className="relative h-full">
+                                <div className="flex flex-row items-stretch justify-between h-full">
+                                    <div className="flex flex-row items-stretch gap-0 flex-1 relative z-10 w-full">
                                         {/* Image */}
-                                        <div className="w-[280px] h-full shrink-0 border-r-2 border-[#FFB800] min-h-[200px]">
+                                        <div className="w-[280px] shrink-0 border-r-2 border-[#FFB800]">
                                             <img
                                                 src={currentEvent.image_url || "/placeholder-tournament.jpg"}
                                                 alt={currentEvent.name}
@@ -239,7 +239,7 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                         </div>
 
                                         {/* Middle: Title and Stats Boxes */}
-                                        <div className="flex flex-col flex-1 px-6 py-6 w-full">
+                                        <div className="flex flex-col flex-1 px-6 py-6 w-full justify-center">
                                             <div className="text-center mb-4">
                                                 <h3 className="font-oswald text-3xl font-black text-white tracking-tight leading-tight mb-2 px-2 uppercase">
                                                     {currentEvent.name}
@@ -287,7 +287,7 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                     </div>
 
                                     {/* Countdown and Button */}
-                                    <div className="flex flex-col gap-4 relative z-10 items-end pr-6 py-6 w-auto min-w-[300px]">
+                                    <div className="flex flex-col gap-4 relative z-10 items-end pr-6 py-6 w-auto min-w-[300px] justify-center">
                                         <div className="text-center mb-4">
                                             <span className="text-[#FFB800] text-sm font-bold uppercase tracking-widest animate-pulse">BAŞLIYOR</span>
                                         </div>

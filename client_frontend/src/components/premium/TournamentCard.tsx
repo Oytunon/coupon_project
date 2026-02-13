@@ -230,7 +230,7 @@ export function TournamentCard({
 
             {/* DESKTOP VIEW (hidden lg:block) - Based on User HTML */}
             <div className="hidden lg:block">
-                <div className="relative rounded-xl overflow-hidden bg-black border-2 border-[#FFB800] shadow-2xl hover:shadow-[0_0_30px_rgba(255,184,0,0.4)] transition-transform duration-300 hover:scale-[1.01] min-h-[260px]">
+                <div className="relative rounded-xl overflow-hidden bg-black border-2 border-[#FFB800] shadow-2xl hover:shadow-[0_0_30px_rgba(255,184,0,0.4)] transition-transform duration-300 hover:scale-[1.01] h-[280px]">
 
                     {/* Status Badge */}
                     <div className="absolute top-0 right-0 z-30 overflow-hidden pointer-events-none">
@@ -248,13 +248,13 @@ export function TournamentCard({
                         </div>
                     </div>
 
-                    <div className="relative">
-                        <div className="flex flex-row items-center justify-between">
+                    <div className="relative h-full">
+                        <div className="flex flex-row items-stretch justify-between h-full">
 
                             {/* Left Section: Image and Basic Info */}
-                            <div className="flex flex-row items-center gap-0 flex-1 relative z-10 w-full">
+                            <div className="flex flex-row items-stretch gap-0 flex-1 relative z-10 w-full">
                                 {/* Image */}
-                                <div className="w-[280px] h-full shrink-0 border-r-2 border-[#FFB800] min-h-[200px]">
+                                <div className="w-[280px] shrink-0 border-r-2 border-[#FFB800]">
                                     {image_url ? (
                                         <img src={`${baseUrl}${image_url}`} alt={name} className="w-full h-full object-cover" />
                                     ) : (
@@ -265,7 +265,7 @@ export function TournamentCard({
                                 </div>
 
                                 {/* Middle: Title and Stats Boxes */}
-                                <div className="flex flex-col flex-1 px-6 py-6 w-full">
+                                <div className="flex flex-col flex-1 px-6 py-6 w-full justify-center">
                                     <div className="text-center mb-4">
                                         <h3 className="font-oswald text-3xl font-black text-white tracking-tight leading-tight mb-2 px-2 uppercase">
                                             {name}
@@ -306,7 +306,7 @@ export function TournamentCard({
                             </div>
 
                             {/* Right Section: User Status and Countdown */}
-                            <div className="flex flex-col gap-4 relative z-10 items-end pr-6 py-6 w-auto min-w-[300px]">
+                            <div className="flex flex-col gap-4 relative z-10 items-end pr-6 py-6 w-auto min-w-[300px] justify-center">
                                 {isJoined ? (
                                     <div className="flex items-center gap-4 justify-end mb-4">
                                         <div className="text-center">
