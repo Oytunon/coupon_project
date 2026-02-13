@@ -18,13 +18,15 @@ interface TournamentCardProps {
 
 export function TournamentCard({
     id, name, image_url, participantCount,
-    userPoints, userRank, onJoin, onDetails, status, endDate, isJoined
+    userPoints, userRank, onJoin, onDetails, status, startDate, endDate, isJoined
 }: TournamentCardProps) {
     const baseUrl = import.meta.env.VITE_API_URL || ""
 
+    const isUpcoming = new Date() < new Date(startDate)
+
     // Calculate time remaining
     const calculateTimeRemaining = () => {
-        const end = new Date(endDate).getTime();
+        const end = isUpcoming ? new Date(startDate).getTime() : new Date(endDate).getTime();
         const now = new Date().getTime();
         const distance = end - now;
 
@@ -68,7 +70,7 @@ export function TournamentCard({
                                     <div className="flex items-center justify-center gap-0.5">
                                         {status === 'active' && <div className="w-1 h-1 bg-black rounded-full animate-pulse"></div>}
                                         <span className={`font-oswald ${status === 'active' ? 'text-black' : 'text-white'} text-[7px] font-bold tracking-wide uppercase`}>
-                                            {status === 'active' ? 'AKTİF' : 'BİTTİ'}
+                                            {status === 'active' ? (isUpcoming ? 'YAKINDA' : 'AKTİF') : 'BİTTİ'}
                                         </span>
                                     </div>
                                 </div>
@@ -144,6 +146,13 @@ export function TournamentCard({
                             {/* Countdown */}
                             <div className="mt-auto">
                                 {status === 'active' ? (
+                                    isUpcoming ? (
+                                        <div className="mb-1 text-center">
+                                            <span className="text-[#FFB800] text-[10px] font-bold uppercase tracking-widest animate-pulse">BAŞLIYOR</span>
+                                        </div>
+                                    ) : null
+                                ) : null}
+                                {status === 'active' ? (
                                     <div className="flex justify-center gap-1">
                                         {/* Days */}
                                         <div className="text-center">
@@ -198,7 +207,7 @@ export function TournamentCard({
                                     <div className="flex items-center justify-center gap-1.5">
                                         {status === 'active' && <div className="w-1.5 h-1.5 bg-black rounded-full animate-pulse"></div>}
                                         <span className={`font-oswald ${status === 'active' ? 'text-black' : 'text-white'} text-xs font-bold tracking-wider uppercase`}>
-                                            {status === 'active' ? 'AKTİF' : 'SONUÇLANMIŞ'}
+                                            {status === 'active' ? (isUpcoming ? 'YAKINDA' : 'AKTİF') : 'SONUÇLANMIŞ'}
                                         </span>
                                     </div>
                                 </div>
@@ -294,6 +303,11 @@ export function TournamentCard({
                                 )}
 
                                 <div className="w-full flex flex-col gap-4">
+                                    {status === 'active' && isUpcoming && (
+                                        <div className="text-center mb-[-10px]">
+                                            <span className="text-[#FFB800] text-sm font-bold uppercase tracking-widest animate-pulse">BAŞLIYOR</span>
+                                        </div>
+                                    )}
                                     {status === 'active' ? (
                                         <div className="flex justify-center gap-3">
                                             {/* Days */}

@@ -137,9 +137,13 @@ export default function UserDashboard() {
 
     // Filter Logic
     const filteredEvents = publicEvents.filter(e => {
+        const now = new Date()
+        const start = new Date(e.start_date)
+        const isStarted = now >= start
+
         if (activeCategory === 'all') return e.status !== 'ended'
-        if (activeCategory === 'active') return e.status === 'active'
-        if (activeCategory === 'upcoming') return e.status === 'paused' // Assuming paused/draft is upcoming
+        if (activeCategory === 'active') return e.status === 'active' && isStarted
+        if (activeCategory === 'upcoming') return e.status === 'paused' || (e.status === 'active' && !isStarted)
         if (activeCategory === 'enrollments') return myEnrollments.some(enr => enr.event_id === e.id)
         return false
     })
