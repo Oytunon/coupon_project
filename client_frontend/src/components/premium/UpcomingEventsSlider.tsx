@@ -208,38 +208,76 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                     </div>
 
                     {/* DESKTOP VIEW */}
-                    <div className="hidden lg:block border-2 border-[#FFB800] rounded-xl lg:rounded-2xl overflow-hidden hover:scale-[1.01] transition-transform duration-300">
-                        <div className="relative rounded-xl overflow-hidden cursor-pointer transition-transform duration-300 bg-black border-2 border-[#FFB800] shadow-2xl hover:shadow-[0_0_30px_rgba(255,184,0,0.4)]">
+                    <div className="hidden lg:block">
+                        <div className="relative rounded-xl overflow-hidden bg-black border-2 border-[#FFB800] shadow-2xl hover:shadow-[0_0_30px_rgba(255,184,0,0.4)] transition-transform duration-300 hover:scale-[1.01] cursor-pointer">
+
+                            {/* Status Badge */}
+                            <div className="absolute top-0 right-0 z-30 overflow-hidden pointer-events-none">
+                                <div className="relative">
+                                    <div className="absolute top-0 right-0 w-32 h-32 overflow-hidden">
+                                        <div className="absolute top-8 -right-8 w-40 transform rotate-45 shadow-lg flex justify-center py-2 bg-gradient-to-r from-gray-600 to-gray-500 border-t border-b border-gray-400/30">
+                                            <div className="flex items-center justify-center gap-1.5">
+                                                <span className="font-oswald text-white text-xs font-bold tracking-wider uppercase">
+                                                    YAKINDA
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="relative">
-                                <div className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4 md:gap-0">
-                                    <div className="flex flex-col md:flex-row items-start md:items-center gap-0 flex-1 relative z-10 w-full">
-                                        <div className="w-full h-28 md:w-[280px] md:h-full shrink-0 md:border-r-2 border-[#FFB800] md:min-h-[200px]">
+                                <div className="flex flex-row items-center justify-between">
+                                    <div className="flex flex-row items-center gap-0 flex-1 relative z-10 w-full">
+                                        {/* Image */}
+                                        <div className="w-[280px] h-full shrink-0 border-r-2 border-[#FFB800] min-h-[200px]">
                                             <img
                                                 src={currentEvent.image_url || "/placeholder-tournament.jpg"}
                                                 alt={currentEvent.name}
                                                 className="w-full h-full object-cover"
                                             />
                                         </div>
-                                        <div className="flex flex-col flex-1 px-3 md:px-6 py-3 md:py-6 w-full">
-                                            <div className="text-center mb-2 md:mb-4">
-                                                <h3 className="text-base md:text-2xl lg:text-3xl font-black text-white tracking-tight leading-tight mb-1 md:mb-2 px-2">
+
+                                        {/* Middle: Title and Stats Boxes */}
+                                        <div className="flex flex-col flex-1 px-6 py-6 w-full">
+                                            <div className="text-center mb-4">
+                                                <h3 className="font-oswald text-3xl font-black text-white tracking-tight leading-tight mb-2 px-2 uppercase">
                                                     {currentEvent.name}
                                                 </h3>
-                                                <div className="h-0.5 w-12 md:w-16 mx-auto bg-gradient-to-r from-transparent via-[#FFB800] to-transparent rounded-full"></div>
+                                                <div className="h-0.5 w-16 mx-auto bg-gradient-to-r from-transparent via-[#FFB800] to-transparent rounded-full"></div>
                                             </div>
 
-                                            <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4">
-                                                {/* Prize Box */}
-                                                <div className="group relative bg-gradient-to-br from-[#FFB800]/20 via-[#FFA500]/10 to-black border-2 border-[#FFB800] rounded-xl md:rounded-2xl p-3 md:p-8 hover:border-[#FFA500] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#FFB800]/20 hover:shadow-[#FFB800]/40 hover:shadow-xl flex-1 min-w-[110px] md:min-w-[130px] max-w-[150px] md:max-w-[180px]">
-                                                    <div className="absolute inset-0 bg-gradient-to-br from-[#FFB800]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl md:rounded-2xl"></div>
+                                            <div className="flex flex-wrap items-center justify-center gap-4">
+                                                {/* Participants Box */}
+                                                <div className="group relative bg-[#1a1a1a] border-2 border-[#FFB800] rounded-2xl p-8 hover:border-[#FFA500] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#1a1a1a]/20 hover:shadow-xl hover:shadow-[#FFB800]/40 flex-1 min-w-[130px] max-w-[180px]">
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
                                                     <div className="relative">
-                                                        <div className="flex items-center justify-center gap-1 md:gap-2 mb-1 md:mb-2">
-                                                            <svg className="w-3 h-3 md:w-6 md:h-6 text-[#FFB800]" fill="currentColor" viewBox="0 0 24 24">
+                                                        <div className="flex items-center justify-center gap-2 mb-2">
+                                                            <svg className="w-6 h-6 text-[#FFB800]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                                                                <circle cx="9" cy="7" r="4"></circle>
+                                                                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                                                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                                            </svg>
+                                                            <span className="text-xs text-[#FFB800] font-bold uppercase tracking-widest">Katılımcı</span>
+                                                        </div>
+                                                        <div className="text-center font-oswald text-3xl font-black text-white">
+                                                            {(currentEvent.participant_count || 0).toLocaleString('tr-TR')}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Prize Box */}
+                                                <div className="group relative bg-gradient-to-br from-[#FFB800]/20 via-[#FFA500]/10 to-black border-2 border-[#FFB800] rounded-2xl p-8 hover:border-[#FFA500] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#FFB800]/20 hover:shadow-[#FFB800]/40 hover:shadow-xl flex-1 min-w-[130px] max-w-[180px]">
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-[#FFB800]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
+                                                    <div className="relative">
+                                                        <div className="flex items-center justify-center gap-2 mb-2">
+                                                            <svg className="w-6 h-6 text-[#FFB800]" fill="currentColor" viewBox="0 0 24 24">
                                                                 <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"></path>
                                                             </svg>
-                                                            <span className="text-[9px] md:text-xs text-[#FFB800] font-bold uppercase tracking-wide md:tracking-widest">Ödül</span>
+                                                            <span className="text-xs text-[#FFB800] font-bold uppercase tracking-widest">Ödül</span>
                                                         </div>
-                                                        <div className="text-center text-sm md:text-lg lg:text-xl font-black text-[#FFB800]">
+                                                        <div className="text-center text-xl font-black text-[#FFB800]">
                                                             20.000.000₺
                                                         </div>
                                                     </div>
@@ -249,73 +287,73 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                     </div>
 
                                     {/* Countdown and Button */}
-                                    <div className="flex flex-col gap-2 md:gap-4 relative z-10 items-stretch md:items-end px-3 md:pr-6 pb-3 md:py-6 w-full md:w-auto">
-                                        <div className="w-full flex flex-col gap-2 md:gap-4">
-                                            <div className="flex justify-center gap-1 lg:gap-3">
+                                    <div className="flex flex-col gap-4 relative z-10 items-end pr-6 py-6 w-auto">
+                                        <div className="w-full flex flex-col gap-4">
+                                            <div className="flex justify-center gap-3">
                                                 {/* Days */}
                                                 <div className="text-center">
-                                                    <div className="bg-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5 lg:px-3 lg:py-2.5 shadow-lg shadow-[#FFB800]/20">
-                                                        <div className="flex gap-0.5 lg:gap-1">
+                                                    <div className="bg-black border-2 border-[#FFB800] rounded-lg px-3 py-2.5 shadow-lg shadow-[#FFB800]/20">
+                                                        <div className="flex gap-1">
                                                             {d.split('').map((digit, i) => (
-                                                                <div key={i} className="relative w-[18px] h-[28px] lg:w-[24px] lg:h-[40px] overflow-hidden">
+                                                                <div key={i} className="relative w-[24px] h-[40px] overflow-hidden">
                                                                     <div
                                                                         className="absolute inset-0 flex items-center justify-center bg-black rounded"
                                                                         style={{
                                                                             animation: mounted ? `digitSlideIn 0.5s ${i * 0.08}s cubic-bezier(0.34, 1.56, 0.64, 1) both` : 'none',
                                                                         }}
                                                                     >
-                                                                        <span className="text-xl lg:text-3xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
+                                                                        <span className="text-3xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
                                                                     </div>
-                                                                    <div className="absolute top-1/2 left-0 right-0 h-[0.5px] lg:h-[1px] bg-black/60 z-10"></div>
+                                                                    <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-black/60 z-10"></div>
                                                                 </div>
                                                             ))}
                                                         </div>
                                                     </div>
-                                                    <div className="text-[9px] lg:text-xs text-white mt-1 lg:mt-1.5 font-bold uppercase tracking-wide">GÜN</div>
+                                                    <div className="text-xs text-white mt-1.5 font-bold uppercase tracking-wide">GÜN</div>
                                                 </div>
-                                                <div className="text-xl lg:text-2xl font-bold text-[#FFB800]/70 self-center pb-4 lg:pb-5 animate-pulse">:</div>
+                                                <div className="text-2xl font-bold text-[#FFB800]/70 self-center pb-5 animate-pulse">:</div>
                                                 {/* Hours */}
                                                 <div className="text-center">
-                                                    <div className="bg-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5 lg:px-3 lg:py-2.5 shadow-lg shadow-[#FFB800]/20">
-                                                        <div className="flex gap-0.5 lg:gap-1">
+                                                    <div className="bg-black border-2 border-[#FFB800] rounded-lg px-3 py-2.5 shadow-lg shadow-[#FFB800]/20">
+                                                        <div className="flex gap-1">
                                                             {h.split('').map((digit, i) => (
-                                                                <div key={i} className="relative w-[18px] h-[28px] lg:w-[24px] lg:h-[40px] overflow-hidden">
+                                                                <div key={i} className="relative w-[24px] h-[40px] overflow-hidden">
                                                                     <div
                                                                         className="absolute inset-0 flex items-center justify-center bg-black rounded"
                                                                         style={{
                                                                             animation: mounted ? `digitSlideIn 0.5s ${(2 + i) * 0.08}s cubic-bezier(0.34, 1.56, 0.64, 1) both` : 'none',
                                                                         }}
                                                                     >
-                                                                        <span className="text-xl lg:text-3xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
+                                                                        <span className="text-3xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
                                                                     </div>
-                                                                    <div className="absolute top-1/2 left-0 right-0 h-[0.5px] lg:h-[1px] bg-black/60 z-10"></div>
+                                                                    <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-black/60 z-10"></div>
                                                                 </div>
                                                             ))}
                                                         </div>
                                                     </div>
-                                                    <div className="text-[9px] lg:text-xs text-white mt-1 lg:mt-1.5 font-bold uppercase tracking-wide">SAAT</div>
+                                                    <div className="text-xs text-white mt-1.5 font-bold uppercase tracking-wide">SAAT</div>
                                                 </div>
-                                                <div className="text-xl lg:text-2xl font-bold text-[#FFB800]/70 self-center pb-4 lg:pb-5 animate-pulse">:</div>
+                                                <div className="text-2xl font-bold text-[#FFB800]/70 self-center pb-5 animate-pulse">:</div>
                                                 {/* Minutes */}
                                                 <div className="text-center">
-                                                    <div className="bg-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5 lg:px-3 lg:py-2.5 shadow-lg shadow-[#FFB800]/20">
-                                                        <div className="flex gap-0.5 lg:gap-1">
+                                                    <div className="bg-black border-2 border-[#FFB800] rounded-lg px-3 py-2.5 shadow-lg shadow-[#FFB800]/20">
+                                                        <div className="flex gap-1">
                                                             {m.split('').map((digit, i) => (
-                                                                <div key={i} className="relative w-[18px] h-[28px] lg:w-[24px] lg:h-[40px] overflow-hidden">
+                                                                <div key={i} className="relative w-[24px] h-[40px] overflow-hidden">
                                                                     <div
                                                                         className="absolute inset-0 flex items-center justify-center bg-black rounded"
                                                                         style={{
                                                                             animation: mounted ? `digitSlideIn 0.5s ${(4 + i) * 0.08}s cubic-bezier(0.34, 1.56, 0.64, 1) both` : 'none',
                                                                         }}
                                                                     >
-                                                                        <span className="text-xl lg:text-3xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
+                                                                        <span className="text-3xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
                                                                     </div>
-                                                                    <div className="absolute top-1/2 left-0 right-0 h-[0.5px] lg:h-[1px] bg-black/60 z-10"></div>
+                                                                    <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-black/60 z-10"></div>
                                                                 </div>
                                                             ))}
                                                         </div>
                                                     </div>
-                                                    <div className="text-[9px] lg:text-xs text-white mt-1 lg:mt-1.5 font-bold uppercase tracking-wide">DAK</div>
+                                                    <div className="text-xs text-white mt-1.5 font-bold uppercase tracking-wide">DAK</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -325,7 +363,7 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                                 e.stopPropagation();
                                                 onDetails(currentEvent.id);
                                             }}
-                                            className="px-4 md:px-8 py-1.5 md:py-3 bg-[#FFB800] hover:bg-[#FFA500] text-black rounded-lg md:rounded-xl font-bold text-xs md:text-base shadow-lg hover:shadow-xl transition-all w-full md:w-auto"
+                                            className="px-8 py-3 bg-[#FFB800] hover:bg-[#FFA500] text-black rounded-xl font-bold text-base shadow-lg hover:shadow-xl transition-all w-auto"
                                         >
                                             Detayları Gör
                                         </button>
