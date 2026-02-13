@@ -158,10 +158,21 @@ export default function UserDashboard() {
         }
     }
 
+    const [activeCategory, setActiveCategory] = useState("all")
+
+    // Filter Logic
+    const filteredEvents = publicEvents.filter(e => {
+        if (activeCategory === 'all') return e.status !== 'ended'
+        if (activeCategory === 'active') return e.status === 'active'
+        if (activeCategory === 'upcoming') return e.status === 'paused' // Assuming paused/draft is upcoming
+        if (activeCategory === 'enrollments') return myEnrollments.some(enr => enr.event_id === e.id)
+        return false
+    })
+
     const pastEvents = publicEvents.filter(e => e.status === 'ended')
 
     return (
-        <ClientLayout username={username}>
+        <ClientLayout username={username} activeCategory={activeCategory} onCategoryChange={setActiveCategory}>
             <main className="max-w-[1200px] mx-auto px-6 py-8 space-y-12">
 
                 {/* User Info Bar - Responsive */}
@@ -218,39 +229,56 @@ export default function UserDashboard() {
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-10">
-                    <div className="flex items-center gap-4 justify-center">
-                        <div className="h-px bg-gradient-to-r from-transparent to-primary/30 flex-1"></div>
-                        <h3 className="text-xl font-black text-white uppercase italic tracking-widest px-8">KAYITLI TURNUVALARIM ({myEnrollments.length})</h3>
-                        <div className="h-px bg-gradient-to-l from-transparent to-primary/30 flex-1"></div>
-                    </div>
+                {/* Show Main Tournament List only if NOT 'finished' or 'report' */}
+                {!['finished', 'report', 'coupons'].includes(activeCategory) && (
+                    <div className="flex flex-col gap-10 opacity-100 transition-opacity duration-300">
+                        <div className="flex items-center gap-4 justify-center">
+                            <div className="h-px bg-gradient-to-r from-transparent to-primary/30 flex-1"></div>
+                            <h3 className="text-xl font-black text-white uppercase italic tracking-widest px-8">
+                                {activeCategory === 'all' ? 'TÜM TURNUVALAR' : activeCategory === 'active' ? 'AKTİF TURNUVALAR' : activeCategory === 'upcoming' ? 'YAKINDA BAŞLAYACAKLAR' : 'KATILDIĞIM TURNUVALAR'}
+                            </h3>
+                            <div className="h-px bg-gradient-to-l from-transparent to-primary/30 flex-1"></div>
+                        </div>
 
-                    {/* Content */}
-                    <div className="space-y-6">
-                        {publicEvents.map((event) => (
-                            <TournamentCard
-                                key={event.id}
-                                id={event.id}
-                                name={event.name}
-                                description={event.description || ""}
-                                image_url={event.image_url ?? null}
-                                status={event.status}
-                                startDate={event.start_date}
-                                endDate={event.end_date}
-                                participantCount={event.participant_count}
-                                isJoined={myEnrollments.some(e => e.event_id === event.id)}
-                                userPoints={myEnrollments.find(e => e.event_id === event.id)?.score || 0}
-                                userRank={myEnrollments.find(e => e.event_id === event.id)?.rank || 0}
-                                onJoin={(id) => handleJoin(id)}
-                                onDetails={(id) => handleSwitchEvent(id)}
-                            />
-                        ))}
+                        {/* Content */}
+                        <div className="space-y-6">
+                            {filteredEvents.length === 0 ? (
+                                <div className="text-center p-12 text-neutral-500 italic bg-white/5 rounded-xl border border-dashed border-white/10">
+                                    Bu kategoride turnuva bulunamadı.
+                                </div>
+                            ) : (
+                                filteredEvents.map((event) => (
+                                    <TournamentCard
+                                        key={event.id}
+                                        id={event.id}
+                                        name={event.name}
+                                        description={event.description || ""}
+                                        image_url={event.image_url ?? null}
+                                        status={event.status}
+                                        startDate={event.start_date}
+                                        endDate={event.end_date}
+                                        participantCount={event.participant_count}
+                                        isJoined={myEnrollments.some(e => e.event_id === event.id)}
+                                        userPoints={myEnrollments.find(e => e.event_id === event.id)?.score || 0}
+                                        userRank={myEnrollments.find(e => e.event_id === event.id)?.rank || 0}
+                                        onJoin={(id) => handleJoin(id)}
+                                        onDetails={(id) => handleSwitchEvent(id)}
+                                    />
+                                ))
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
 
-                {/* Past Tournaments Section (User Provided HTML) */}
-                {pastEvents.length > 0 && (
-                    <div id="past" className="mt-12">
+                {/* Past Tournaments Section (User Provided HTML) - Show ONLY when 'finished' OR standard (bottom) if desired? 
+                    User said "seçildiğinde alta geçmiş turnuvalar görülecek" which implies when selected.
+                    But also "sonuçlanan kısmına basınca".
+                    Let's show it if activeCategory === 'finished' OR maybe always show it at bottom?
+                    Refined: "sonuçlanan kısmına basınca ... görülecek".
+                    So I will show it ONLY when activeCategory === 'finished'.
+                */}
+                {activeCategory === 'finished' && (
+                    <div id="past" className="mt-12 opacity-100 transition-opacity duration-300">
                         <div className="px-2 lg:px-4 mb-2 lg:mb-6">
                             <div className="flex items-center justify-center gap-2 lg:gap-3">
                                 <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent to-gray-500"></div>
@@ -258,144 +286,238 @@ export default function UserDashboard() {
                                 <div className="h-[2px] flex-1 bg-gradient-to-r from-gray-500 to-transparent"></div>
                             </div>
                         </div>
-                        <div className="space-y-2 lg:space-y-4 px-2 lg:px-4">
-                            {pastEvents.map(event => {
-                                const enrollment = myEnrollments.find(e => e.event_id === event.id);
-                                const isParticipated = !!enrollment;
-                                const reward = myRewards.find(r => r.event_name === event.name);
-                                const userPrize = reward ? `${Number(reward.amount).toLocaleString()}₺` : null;
 
-                                return (
-                                    <div key={event.id}>
-                                        {/* Mobile Card */}
-                                        <div className="lg:hidden">
-                                            <div className="relative rounded-lg overflow-hidden cursor-pointer bg-black border-2 border-[#FFB800] shadow-xl" onClick={() => handleSwitchEvent(event.id)}>
-                                                <div className="flex items-stretch gap-0 p-1.5">
-                                                    <div className="flex-shrink-0 w-32 h-34 rounded-l border-r-2 border-[#FFB800]/50 overflow-hidden">
-                                                        <img src={event.image_url || "/5.jpg"} alt={event.name} className="w-full h-full object-cover" />
-                                                    </div>
-                                                    <div className="flex-1 flex flex-col gap-1.5 pl-2 pr-1 py-1 min-w-0">
-                                                        <h3 className="text-xs font-black text-white tracking-tight leading-tight line-clamp-2">{event.name}</h3>
-                                                        <div className="flex items-center gap-1.5">
-                                                            <div className="flex-1 bg-[#1a1a1a] border-2 border-[#FFB800] rounded-lg px-2 py-1.5">
-                                                                <div className="flex items-center justify-center gap-1 mb-1">
-                                                                    <Users className="w-3 h-3 text-[#FFB800]" />
-                                                                    <span className="text-[8px] text-[#FFB800] font-bold uppercase tracking-wide">Katılımcı</span>
+                        {pastEvents.length === 0 ? (
+                            <div className="text-center p-12 text-neutral-500 italic bg-white/5 rounded-xl border border-dashed border-white/10">
+                                <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                <p>Henüz sonuçlanmış turnuva bulunmuyor.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2 lg:space-y-4 px-2 lg:px-4">
+                                {pastEvents.map(event => {
+                                    const enrollment = myEnrollments.find(e => e.event_id === event.id);
+                                    const isParticipated = !!enrollment;
+                                    const reward = myRewards.find(r => r.event_name === event.name);
+                                    const userPrize = reward ? `${Number(reward.amount).toLocaleString()}₺` : null;
+
+                                    return (
+                                        <div key={event.id}>
+                                            {/* Mobile Card */}
+                                            <div className="lg:hidden">
+                                                <div className="relative rounded-lg overflow-hidden cursor-pointer bg-black border-2 border-[#FFB800] shadow-xl" onClick={() => handleSwitchEvent(event.id)}>
+                                                    <div className="flex items-stretch gap-0 p-1.5">
+                                                        <div className="flex-shrink-0 w-32 h-34 rounded-l border-r-2 border-[#FFB800]/50 overflow-hidden">
+                                                            <img src={event.image_url || "/5.jpg"} alt={event.name} className="w-full h-full object-cover" />
+                                                        </div>
+                                                        <div className="flex-1 flex flex-col gap-1.5 pl-2 pr-1 py-1 min-w-0">
+                                                            <h3 className="text-xs font-black text-white tracking-tight leading-tight line-clamp-2">{event.name}</h3>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className="flex-1 bg-[#1a1a1a] border-2 border-[#FFB800] rounded-lg px-2 py-1.5">
+                                                                    <div className="flex items-center justify-center gap-1 mb-1">
+                                                                        <Users className="w-3 h-3 text-[#FFB800]" />
+                                                                        <span className="text-[8px] text-[#FFB800] font-bold uppercase tracking-wide">Katılımcı</span>
+                                                                    </div>
+                                                                    <div className="text-sm font-black text-white text-center leading-none">{event.participant_count.toLocaleString()}</div>
                                                                 </div>
-                                                                <div className="text-sm font-black text-white text-center leading-none">{event.participant_count.toLocaleString()}</div>
-                                                            </div>
-                                                            <div className="flex-1 bg-gradient-to-br from-[#FFB800]/20 to-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5">
-                                                                <div className="flex items-center justify-center gap-1 mb-1">
-                                                                    <Trophy className="w-3 h-3 text-[#FFB800]" />
-                                                                    <span className="text-[8px] text-[#FFB800] font-bold uppercase tracking-wide">Ödül</span>
+                                                                <div className="flex-1 bg-gradient-to-br from-[#FFB800]/20 to-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5">
+                                                                    <div className="flex items-center justify-center gap-1 mb-1">
+                                                                        <Trophy className="w-3 h-3 text-[#FFB800]" />
+                                                                        <span className="text-[8px] text-[#FFB800] font-bold uppercase tracking-wide">Ödül</span>
+                                                                    </div>
+                                                                    <div className="text-[11px] font-black text-[#FFB800] text-center leading-none">1.500.000₺</div>
                                                                 </div>
-                                                                <div className="text-[11px] font-black text-[#FFB800] text-center leading-none">1.500.000₺</div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        {/* Desktop Card */}
-                                        <div className="hidden lg:block border-2 border-[#FFB800] rounded-xl lg:rounded-2xl overflow-hidden hover:scale-[1.01] transition-transform duration-300">
-                                            <div className="relative rounded-xl overflow-hidden cursor-pointer transition-transform duration-300 bg-black border-2 border-[#FFB800] shadow-2xl hover:shadow-[0_0_30px_rgba(255,184,0,0.4)]" onClick={() => handleSwitchEvent(event.id)}>
-                                                <div className="absolute top-0 right-0 z-30 overflow-hidden">
+                                            {/* Desktop Card */}
+                                            <div className="hidden lg:block border-2 border-[#FFB800] rounded-xl lg:rounded-2xl overflow-hidden hover:scale-[1.01] transition-transform duration-300">
+                                                <div className="relative rounded-xl overflow-hidden cursor-pointer transition-transform duration-300 bg-black border-2 border-[#FFB800] shadow-2xl hover:shadow-[0_0_30px_rgba(255,184,0,0.4)]" onClick={() => handleSwitchEvent(event.id)}>
+                                                    <div className="absolute top-0 right-0 z-30 overflow-hidden">
+                                                        <div className="relative">
+                                                            <div className="absolute top-0 right-0 w-24 h-24 md:w-32 md:h-32 overflow-hidden">
+                                                                <div className="absolute top-6 -right-6 md:top-8 md:-right-8 w-32 md:w-40 bg-gradient-to-r from-gray-600 to-gray-500 transform rotate-45 shadow-lg border-t border-b border-gray-400/30">
+                                                                    <div className="flex items-center justify-center py-1.5 md:py-2">
+                                                                        <span className="text-white text-[10px] md:text-xs font-bold tracking-wider">SONUÇLANMIŞ</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                     <div className="relative">
-                                                        <div className="absolute top-0 right-0 w-24 h-24 md:w-32 md:h-32 overflow-hidden">
-                                                            <div className="absolute top-6 -right-6 md:top-8 md:-right-8 w-32 md:w-40 bg-gradient-to-r from-gray-600 to-gray-500 transform rotate-45 shadow-lg border-t border-b border-gray-400/30">
-                                                                <div className="flex items-center justify-center py-1.5 md:py-2">
-                                                                    <span className="text-white text-[10px] md:text-xs font-bold tracking-wider">SONUÇLANMIŞ</span>
+                                                        <div className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4 md:gap-0">
+                                                            <div className="flex flex-col md:flex-row items-start md:items-center gap-0 flex-1 relative z-10 w-full">
+                                                                <div className="w-full h-28 md:w-[280px] md:h-full shrink-0 md:border-r-2 border-[#FFB800]">
+                                                                    <img src={event.image_url || "/5.jpg"} alt={event.name} className="w-full h-full object-cover" />
                                                                 </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="relative">
-                                                    <div className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4 md:gap-0">
-                                                        <div className="flex flex-col md:flex-row items-start md:items-center gap-0 flex-1 relative z-10 w-full">
-                                                            <div className="w-full h-28 md:w-[280px] md:h-full shrink-0 md:border-r-2 border-[#FFB800]">
-                                                                <img src={event.image_url || "/5.jpg"} alt={event.name} className="w-full h-full object-cover" />
-                                                            </div>
-                                                            <div className="flex flex-col flex-1 px-3 md:px-6 py-3 md:py-6 w-full">
-                                                                <div className="text-center mb-2 md:mb-4">
-                                                                    <h3 className="text-base md:text-2xl lg:text-3xl font-black text-white tracking-tight leading-tight mb-1 md:mb-2 px-2">{event.name}</h3>
-                                                                    <div className="h-0.5 w-12 md:w-16 mx-auto bg-gradient-to-r from-transparent via-[#FFB800] to-transparent rounded-full"></div>
-                                                                </div>
-                                                                <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4">
-                                                                    <div className="group relative bg-[#1a1a1a] border-2 border-[#FFB800] rounded-xl md:rounded-2xl p-3 md:p-8 hover:border-[#FFA500] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#1a1a1a]/20 hover:shadow-xl hover:shadow-[#FFB800]/40 flex-1 min-w-[110px] md:min-w-[130px] max-w-[150px] md:max-w-[180px]">
-                                                                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl md:rounded-2xl"></div>
-                                                                        <div className="relative">
-                                                                            <div className="flex items-center justify-center gap-1 md:gap-2 mb-1 md:mb-2">
-                                                                                <Users className="w-3 h-3 md:w-6 md:h-6 text-[#FFB800]" />
-                                                                                <span className="text-[9px] md:text-xs text-[#FFB800] font-bold uppercase tracking-wide md:tracking-widest">Katılımcı</span>
-                                                                            </div>
-                                                                            <div className="text-center text-base md:text-2xl lg:text-3xl font-black text-white">{event.participant_count.toLocaleString()}</div>
-                                                                        </div>
+                                                                <div className="flex flex-col flex-1 px-3 md:px-6 py-3 md:py-6 w-full">
+                                                                    <div className="text-center mb-2 md:mb-4">
+                                                                        <h3 className="text-base md:text-2xl lg:text-3xl font-black text-white tracking-tight leading-tight mb-1 md:mb-2 px-2">{event.name}</h3>
+                                                                        <div className="h-0.5 w-12 md:w-16 mx-auto bg-gradient-to-r from-transparent via-[#FFB800] to-transparent rounded-full"></div>
                                                                     </div>
-                                                                    <div className="group relative bg-gradient-to-br from-[#FFB800]/20 via-[#FFA500]/10 to-black border-2 border-[#FFB800] rounded-xl md:rounded-2xl p-3 md:p-8 hover:border-[#FFA500] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#FFB800]/20 hover:shadow-[#FFB800]/40 hover:shadow-xl flex-1 min-w-[110px] md:min-w-[130px] max-w-[150px] md:max-w-[180px]">
-                                                                        <div className="absolute inset-0 bg-gradient-to-br from-[#FFB800]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl md:rounded-2xl"></div>
-                                                                        <div className="relative">
-                                                                            <div className="flex items-center justify-center gap-1 md:gap-2 mb-1 md:mb-2">
-                                                                                <Trophy className="w-3 h-3 md:w-6 md:h-6 text-[#FFB800]" />
-                                                                                <span className="text-[9px] md:text-xs text-[#FFB800] font-bold uppercase tracking-wide md:tracking-widest">Ödül</span>
+                                                                    <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4">
+                                                                        <div className="group relative bg-[#1a1a1a] border-2 border-[#FFB800] rounded-xl md:rounded-2xl p-3 md:p-8 hover:border-[#FFA500] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#1a1a1a]/20 hover:shadow-xl hover:shadow-[#FFB800]/40 flex-1 min-w-[110px] md:min-w-[130px] max-w-[150px] md:max-w-[180px]">
+                                                                            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl md:rounded-2xl"></div>
+                                                                            <div className="relative">
+                                                                                <div className="flex items-center justify-center gap-1 md:gap-2 mb-1 md:mb-2">
+                                                                                    <Users className="w-3 h-3 md:w-6 md:h-6 text-[#FFB800]" />
+                                                                                    <span className="text-[9px] md:text-xs text-[#FFB800] font-bold uppercase tracking-wide md:tracking-widest">Katılımcı</span>
+                                                                                </div>
+                                                                                <div className="text-center text-base md:text-2xl lg:text-3xl font-black text-white">{event.participant_count.toLocaleString()}</div>
                                                                             </div>
-                                                                            <div className="text-center text-sm md:text-lg lg:text-xl font-black text-[#FFB800]">1.500.000₺</div>
+                                                                        </div>
+                                                                        <div className="group relative bg-gradient-to-br from-[#FFB800]/20 via-[#FFA500]/10 to-black border-2 border-[#FFB800] rounded-xl md:rounded-2xl p-3 md:p-8 hover:border-[#FFA500] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#FFB800]/20 hover:shadow-[#FFB800]/40 hover:shadow-xl flex-1 min-w-[110px] md:min-w-[130px] max-w-[150px] md:max-w-[180px]">
+                                                                            <div className="absolute inset-0 bg-gradient-to-br from-[#FFB800]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl md:rounded-2xl"></div>
+                                                                            <div className="relative">
+                                                                                <div className="flex items-center justify-center gap-1 md:gap-2 mb-1 md:mb-2">
+                                                                                    <Trophy className="w-3 h-3 md:w-6 md:h-6 text-[#FFB800]" />
+                                                                                    <span className="text-[9px] md:text-xs text-[#FFB800] font-bold uppercase tracking-wide md:tracking-widest">Ödül</span>
+                                                                                </div>
+                                                                                <div className="text-center text-sm md:text-lg lg:text-xl font-black text-[#FFB800]">1.500.000₺</div>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
 
-                                                        <div className="flex flex-col gap-2 md:gap-4 relative z-10 items-stretch md:items-end px-3 md:pr-6 pb-3 md:py-6 w-full md:w-auto">
-                                                            {isParticipated ? (
-                                                                <>
-                                                                    <div className="flex items-center gap-2 md:gap-4 justify-center md:justify-end">
-                                                                        <div className="text-center">
-                                                                            <div className="flex items-center justify-center gap-1 md:gap-2 text-gray-400 mb-0.5 md:mb-1">
-                                                                                <Zap className="w-3 h-3 md:w-4 md:h-4" />
-                                                                                <span className="text-[9px] md:text-xs uppercase tracking-wide">Puanım</span>
-                                                                            </div>
-                                                                            <div className="text-lg md:text-3xl lg:text-4xl font-bold text-white">{enrollment.score.toLocaleString()}</div>
-                                                                        </div>
-                                                                        <div className="w-px h-10 md:h-16 bg-[#FFB800]/30"></div>
-                                                                        <div className="text-center">
-                                                                            <div className="flex items-center justify-center gap-1 md:gap-2 text-[#FFB800] mb-0.5 md:mb-1">
-                                                                                <Trophy className="w-3 h-3 md:w-4 md:h-4" />
-                                                                                <span className="text-[9px] md:text-xs uppercase tracking-wide">Sıralama</span>
-                                                                            </div>
-                                                                            <div className="text-lg md:text-3xl lg:text-4xl font-bold text-[#FFB800]">#{enrollment.rank}</div>
-                                                                        </div>
-                                                                    </div>
-                                                                    {userPrize && (
-                                                                        <div className="bg-gradient-to-r from-[#FFB800]/20 to-[#FFA500]/20 border-2 border-[#FFB800] rounded-xl px-3 md:px-6 py-2.5 md:py-4">
+                                                            <div className="flex flex-col gap-2 md:gap-4 relative z-10 items-stretch md:items-end px-3 md:pr-6 pb-3 md:py-6 w-full md:w-auto">
+                                                                {isParticipated ? (
+                                                                    <>
+                                                                        <div className="flex items-center gap-2 md:gap-4 justify-center md:justify-end">
                                                                             <div className="text-center">
-                                                                                <p className="text-gray-400 text-[10px] md:text-xs uppercase tracking-wide mb-1">Kazandığınız Ödül</p>
-                                                                                <p className="text-[#FFB800] text-xl md:text-3xl font-bold">{userPrize}</p>
+                                                                                <div className="flex items-center justify-center gap-1 md:gap-2 text-gray-400 mb-0.5 md:mb-1">
+                                                                                    <Zap className="w-3 h-3 md:w-4 md:h-4" />
+                                                                                    <span className="text-[9px] md:text-xs uppercase tracking-wide">Puanım</span>
+                                                                                </div>
+                                                                                <div className="text-lg md:text-3xl lg:text-4xl font-bold text-white">{enrollment.score.toLocaleString()}</div>
+                                                                            </div>
+                                                                            <div className="w-px h-10 md:h-16 bg-[#FFB800]/30"></div>
+                                                                            <div className="text-center">
+                                                                                <div className="flex items-center justify-center gap-1 md:gap-2 text-[#FFB800] mb-0.5 md:mb-1">
+                                                                                    <Trophy className="w-3 h-3 md:w-4 md:h-4" />
+                                                                                    <span className="text-[9px] md:text-xs uppercase tracking-wide">Sıralama</span>
+                                                                                </div>
+                                                                                <div className="text-lg md:text-3xl lg:text-4xl font-bold text-[#FFB800]">#{enrollment.rank}</div>
                                                                             </div>
                                                                         </div>
-                                                                    )}
-                                                                </>
-                                                            ) : (
-                                                                <div className="bg-black border border-[#FFB800]/30 rounded-xl px-4 md:px-6 py-3 md:py-4">
-                                                                    <p className="text-gray-400 text-xs md:text-sm font-semibold text-center md:text-left">Bu turnuvaya katılmadınız</p>
-                                                                </div>
-                                                            )}
-                                                            <button
-                                                                onClick={() => handleSwitchEvent(event.id)}
-                                                                className="px-4 md:px-8 py-1.5 md:py-3 bg-[#FFB800] hover:bg-[#FFA500] text-black rounded-lg md:rounded-xl font-bold text-xs md:text-base shadow-lg hover:shadow-xl transition-all w-full md:w-auto"
-                                                            >
-                                                                Sonuçları Gör
-                                                            </button>
+                                                                        {userPrize && (
+                                                                            <div className="bg-gradient-to-r from-[#FFB800]/20 to-[#FFA500]/20 border-2 border-[#FFB800] rounded-xl px-3 md:px-6 py-2.5 md:py-4">
+                                                                                <div className="text-center">
+                                                                                    <p className="text-gray-400 text-[10px] md:text-xs uppercase tracking-wide mb-1">Kazandığınız Ödül</p>
+                                                                                    <p className="text-[#FFB800] text-xl md:text-3xl font-bold">{userPrize}</p>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                    </>
+                                                                ) : (
+                                                                    <div className="bg-black border border-[#FFB800]/30 rounded-xl px-4 md:px-6 py-3 md:py-4">
+                                                                        <p className="text-gray-400 text-xs md:text-sm font-semibold text-center md:text-left">Bu turnuvaya katılmadınız</p>
+                                                                    </div>
+                                                                )}
+                                                                <button
+                                                                    onClick={() => handleSwitchEvent(event.id)}
+                                                                    className="px-4 md:px-8 py-1.5 md:py-3 bg-[#FFB800] hover:bg-[#FFA500] text-black rounded-lg md:rounded-xl font-bold text-xs md:text-base shadow-lg hover:shadow-xl transition-all w-full md:w-auto"
+                                                                >
+                                                                    Sonuçları Gör
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Report View */}
+                {activeCategory === 'report' && (
+                    <div className="mt-6 animation-in fade-in slide-in-from-bottom-2">
+                        <Card className="border-white/5 bg-zinc-950/40 backdrop-blur-xl">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-white"><Trophy className="h-5 w-5 text-amber-500" /> Sıralamarım</CardTitle>
+                                <CardDescription className="text-neutral-500">Katıldığınız aktif ve geçmiş turnuvalardaki durumunuz.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {loadingEnrollments ? (
+                                    <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber-500" /></div>
+                                ) : myEnrollments.length === 0 ? (
+                                    <div className="text-center p-12 text-neutral-500 italic bg-white/5 rounded-xl border border-dashed border-white/10">Henüz hiçbir turnuvaya katılmadınız.</div>
+                                ) : (
+                                    <div className="overflow-x-auto">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow className="hover:bg-transparent border-white/5">
+                                                    <TableHead className="text-neutral-400 uppercase text-[10px] font-black tracking-widest">Turnuva</TableHead>
+                                                    <TableHead className="text-neutral-400 uppercase text-[10px] font-black tracking-widest">Durum</TableHead>
+                                                    <TableHead className="text-right text-neutral-400 uppercase text-[10px] font-black tracking-widest">Puan</TableHead>
+                                                    <TableHead className="text-right text-neutral-400 uppercase text-[10px] font-black tracking-widest">Sıralama</TableHead>
+                                                    <TableHead className="text-right text-neutral-400 uppercase text-[10px] font-black tracking-widest">Detay</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {myEnrollments.map((enr) => (
+                                                    <Fragment key={enr.event_id}>
+                                                        <TableRow className="border-white/5 hover:bg-white/5 transition-colors">
+                                                            <TableCell className="font-bold text-white">{enr.event_name}</TableCell>
+                                                            <TableCell>
+                                                                <Badge variant={enr.status === 'active' ? 'default' : 'secondary'} className={enr.status === 'active' ? 'bg-emerald-500/20 text-emerald-500 border-none' : 'bg-white/5 text-neutral-500 border-none'}>
+                                                                    {enr.status === 'active' ? 'AKTİF' : 'TAMAMLANDI'}
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell className="text-right font-mono text-amber-500 font-bold">{enr.score.toLocaleString()}</TableCell>
+                                                            <TableCell className="text-right font-black text-xl text-white italic">#{enr.rank}</TableCell>
+                                                            <TableCell className="text-right">
+                                                                <Button size="sm" variant="ghost" className="text-amber-500 hover:text-amber-400 hover:bg-amber-500/10" onClick={() => toggleLeaderboard(enr.event_id)}>
+                                                                    {expandedEventId === enr.event_id ? 'Kapat' : 'Sıralama'}
+                                                                </Button>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                        {expandedEventId === enr.event_id && (
+                                                            <TableRow className="bg-black/40 border-none">
+                                                                <TableCell colSpan={5} className="p-4">
+                                                                    <div className="rounded-xl border border-white/5 overflow-hidden animate-in fade-in zoom-in-95">
+                                                                        <Table>
+                                                                            <TableHeader className="bg-white/5">
+                                                                                <TableRow className="border-none">
+                                                                                    <TableHead className="w-[80px] text-[10px] uppercase font-bold">Sıra</TableHead>
+                                                                                    <TableHead className="text-[10px] uppercase font-bold">Kullanıcı</TableHead>
+                                                                                    <TableHead className="text-right text-[10px] uppercase font-bold">Puan</TableHead>
+                                                                                </TableRow>
+                                                                            </TableHeader>
+                                                                            <TableBody>
+                                                                                {loadingLeaderboard ? (
+                                                                                    <TableRow><TableCell colSpan={3} className="text-center py-4"><Loader2 className="animate-spin h-5 w-5 mx-auto text-amber-500" /></TableCell></TableRow>
+                                                                                ) : (
+                                                                                    expandedLeaderboard.map((user, idx) => (
+                                                                                        <TableRow key={idx} className={user.username === username ? "bg-amber-500/10 border-amber-500/20" : "border-white/5"}>
+                                                                                            <TableCell className="font-mono font-bold text-white">#{idx + 1}</TableCell>
+                                                                                            <TableCell className={user.username === username ? "text-amber-500 font-bold" : "text-neutral-300"}>
+                                                                                                {user.username === username ? `${user.username} (SEN)` : user.username}
+                                                                                            </TableCell>
+                                                                                            <TableCell className="text-right font-mono text-white">{(user.score || 0).toLocaleString()}</TableCell>
+                                                                                        </TableRow>
+                                                                                    ))
+                                                                                )}
+                                                                            </TableBody>
+                                                                        </Table>
+                                                                    </div>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        )}
+                                                    </Fragment>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
                                     </div>
-                                )
-                            })}
-                        </div>
+                                )}
+                            </CardContent>
+                        </Card>
                     </div>
                 )}
 
