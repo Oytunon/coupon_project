@@ -94,58 +94,43 @@ export function TournamentCard({
 
             {/* MOBILE VIEW (lg:hidden) */}
             <div className="lg:hidden">
-                <div className="relative rounded-lg overflow-hidden bg-black border-2 border-[#FFB800] shadow-xl">
-                    {/* Status Badge */}
-                    <div className="absolute top-0 right-0 z-30 overflow-hidden pointer-events-none">
-                        <div className="relative">
-                            <div className="absolute top-0 right-0 w-16 overflow-hidden">
-                                <div className={`absolute top-3 -right-4 w-24 transform rotate-45 shadow-lg flex justify-center py-0.5 ${status === 'active' ? 'bg-gradient-to-r from-[#FFB800] to-[#FFA500]' : 'bg-zinc-600'}`}>
-                                    <div className="flex items-center justify-center gap-0.5">
-                                        {status === 'active' && <div className="w-1 h-1 bg-black rounded-full animate-pulse"></div>}
-                                        <span className={`font-oswald ${status === 'active' ? 'text-black' : 'text-white'} text-[7px] font-bold tracking-wide uppercase`}>
-                                            {status === 'active' ? (isUpcoming ? 'YAKINDA' : 'AKTİF') : 'BİTTİ'}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div className="relative rounded-xl overflow-hidden bg-black border-2 border-[#FFB800] shadow-xl">
 
-                    <div className="flex items-stretch gap-0 p-1.5">
+                    <div className="flex items-stretch gap-0">
                         {/* Image */}
-                        <div className="flex-shrink-0 w-32 h-34 rounded-l border-r-2 border-[#FFB800]/50 overflow-hidden">
+                        <div className="flex-shrink-0 w-28 border-r-2 border-[#FFB800] overflow-hidden">
                             {image_url ? (
                                 <img src={`${baseUrl}${image_url}`} alt={name} className="w-full h-full object-cover" />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-zinc-900 border-r border-[#FFB800]/20">
+                                <div className="w-full h-full flex items-center justify-center bg-zinc-900">
                                     <Trophy className="w-10 h-10 text-[#FFB800]/20" />
                                 </div>
                             )}
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1 flex flex-col gap-1.5 pl-2 pr-1 py-1 min-w-0">
-                            <h3 className="font-oswald text-xs font-black text-white tracking-tight leading-tight line-clamp-2 uppercase">
+                        <div className="flex-1 flex flex-col gap-1.5 p-2 min-w-0">
+                            <h3 className="font-oswald text-sm font-black text-white tracking-tight leading-tight line-clamp-2 uppercase">
                                 {name}
                             </h3>
 
                             {/* Stats */}
-                            <div className="flex items-center gap-1.5">
-                                <div className="flex-1 bg-[#1a1a1a] border-2 border-[#FFB800] rounded-lg px-2 py-1.5 flex flex-col items-center justify-center">
-                                    <div className="flex items-center justify-center gap-1 mb-1">
+                            <div className="flex items-stretch gap-1.5">
+                                <div className="flex-1 bg-[#1a1a1a] border-2 border-[#FFB800] rounded-lg px-1.5 py-1.5 flex flex-col items-center justify-center">
+                                    <div className="flex items-center justify-center gap-1 mb-0.5">
                                         <Users className="w-3 h-3 text-[#FFB800]" />
                                         <span className="text-[8px] text-[#FFB800] font-bold uppercase tracking-wide">Katılımcı</span>
                                     </div>
-                                    <div className="font-oswald text-sm font-black text-white text-center leading-none">
+                                    <div className="font-oswald text-base font-black text-white text-center leading-none">
                                         {participantCount.toLocaleString('tr-TR')}
                                     </div>
                                 </div>
-                                <div className="flex-1 bg-gradient-to-br from-[#FFB800]/20 to-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5 flex flex-col items-center justify-center">
-                                    <div className="flex items-center justify-center gap-1 mb-1">
+                                <div className="flex-1 bg-gradient-to-br from-[#FFB800]/20 to-black border-2 border-[#FFB800] rounded-lg px-1.5 py-1.5 flex flex-col items-center justify-center">
+                                    <div className="flex items-center justify-center gap-1 mb-0.5">
                                         <Award className="w-3 h-3 text-[#FFB800]" />
                                         <span className="text-[8px] text-[#FFB800] font-bold uppercase tracking-wide">Ödül</span>
                                     </div>
-                                    <div className="font-oswald text-[11px] font-black text-[#FFB800] text-center leading-none whitespace-nowrap">
+                                    <div className="font-oswald text-sm font-black text-[#FFB800] text-center leading-none whitespace-nowrap">
                                         10.000.000₺
                                     </div>
                                 </div>
@@ -153,23 +138,23 @@ export function TournamentCard({
 
                             {/* User Stats */}
                             {isJoined && (
-                                <div className="flex items-center gap-2 bg-black/40 rounded-lg p-1.5 border border-[#FFB800]/30">
+                                <div className="flex items-center gap-2 bg-black/40 rounded-lg px-2 py-1.5 border border-[#FFB800]/30">
                                     <div className="flex-1 text-center">
-                                        <div className="flex items-center justify-center gap-1 mb-1">
+                                        <div className="flex items-center justify-center gap-1 mb-0.5">
                                             <Target className="w-3 h-3 text-gray-400" />
                                             <span className="text-[8px] text-gray-400 font-bold uppercase">Puanım</span>
                                         </div>
-                                        <div className="font-oswald text-sm font-black text-white leading-none">
+                                        <div className="font-oswald text-base font-black text-white leading-none">
                                             {userPoints.toLocaleString('tr-TR')}
                                         </div>
                                     </div>
                                     <div className="w-px h-8 bg-[#FFB800]/30"></div>
                                     <div className="flex-1 text-center">
-                                        <div className="flex items-center justify-center gap-1 mb-1">
+                                        <div className="flex items-center justify-center gap-1 mb-0.5">
                                             <Trophy className="w-3 h-3 text-[#FFB800]" />
                                             <span className="text-[8px] text-[#FFB800] font-bold uppercase">Sıra</span>
                                         </div>
-                                        <div className="font-oswald text-sm font-black text-[#FFB800] leading-none">
+                                        <div className="font-oswald text-base font-black text-[#FFB800] leading-none">
                                             #{userRank}
                                         </div>
                                     </div>
@@ -186,30 +171,30 @@ export function TournamentCard({
                                     ) : null
                                 ) : null}
                                 {status === 'active' ? (
-                                    <div className="flex justify-center gap-1">
+                                    <div className="flex justify-center items-end gap-1.5">
                                         {/* Days */}
                                         <div className="text-center">
-                                            <div className="bg-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5 shadow-lg shadow-[#FFB800]/20">
+                                            <div className="bg-black border-2 border-[#FFB800] rounded-lg px-1.5 py-1 shadow-lg shadow-[#FFB800]/20">
                                                 <div className="flex gap-0.5">
                                                     {renderDigits(timeRemaining.days, false, 0)}
                                                 </div>
                                             </div>
                                             <div className="text-[9px] text-white mt-1 font-bold uppercase tracking-wide">GÜN</div>
                                         </div>
-                                        <div className="font-oswald text-xl font-bold text-[#FFB800]/70 self-center pb-4 animate-pulse">:</div>
+                                        <div className="font-oswald text-2xl font-bold text-[#FFB800]/70 pb-5 animate-pulse">:</div>
                                         {/* Hours */}
                                         <div className="text-center">
-                                            <div className="bg-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5 shadow-lg shadow-[#FFB800]/20">
+                                            <div className="bg-black border-2 border-[#FFB800] rounded-lg px-1.5 py-1 shadow-lg shadow-[#FFB800]/20">
                                                 <div className="flex gap-0.5">
                                                     {renderDigits(timeRemaining.hours, false, 1)}
                                                 </div>
                                             </div>
                                             <div className="text-[9px] text-white mt-1 font-bold uppercase tracking-wide">SAAT</div>
                                         </div>
-                                        <div className="font-oswald text-xl font-bold text-[#FFB800]/70 self-center pb-4 animate-pulse">:</div>
+                                        <div className="font-oswald text-2xl font-bold text-[#FFB800]/70 pb-5 animate-pulse">:</div>
                                         {/* Minutes */}
                                         <div className="text-center">
-                                            <div className="bg-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5 shadow-lg shadow-[#FFB800]/20">
+                                            <div className="bg-black border-2 border-[#FFB800] rounded-lg px-1.5 py-1 shadow-lg shadow-[#FFB800]/20">
                                                 <div className="flex gap-0.5">
                                                     {renderDigits(timeRemaining.minutes, false, 2)}
                                                 </div>
