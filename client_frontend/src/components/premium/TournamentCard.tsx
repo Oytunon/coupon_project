@@ -98,7 +98,7 @@ export function TournamentCard({
 
                     <div className="flex items-stretch gap-0">
                         {/* Image */}
-                        <div className="flex-shrink-0 w-28 border-r-2 border-[#FFB800] overflow-hidden">
+                        <div className="flex-shrink-0 w-32 border-r-2 border-[#FFB800] overflow-hidden">
                             {image_url ? (
                                 <img src={`${baseUrl}${image_url}`} alt={name} className="w-full h-full object-cover" />
                             ) : (
@@ -109,28 +109,28 @@ export function TournamentCard({
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1 flex flex-col gap-1.5 p-2 min-w-0">
-                            <h3 className="font-oswald text-sm font-black text-white tracking-tight leading-tight line-clamp-2 uppercase">
+                        <div className="flex-1 flex flex-col gap-1 p-2 min-w-0">
+                            <h3 className="font-oswald text-base font-black text-white tracking-tight leading-tight line-clamp-2 uppercase">
                                 {name}
                             </h3>
 
                             {/* Stats */}
                             <div className="flex items-stretch gap-1.5">
-                                <div className="flex-1 bg-[#1a1a1a] border-2 border-[#FFB800] rounded-lg px-1.5 py-1.5 flex flex-col items-center justify-center">
+                                <div className="flex-1 bg-[#1a1a1a] border-2 border-[#FFB800] rounded-lg px-2 py-1.5 flex flex-col items-center justify-center">
                                     <div className="flex items-center justify-center gap-1 mb-0.5">
-                                        <Users className="w-3 h-3 text-[#FFB800]" />
-                                        <span className="text-[8px] text-[#FFB800] font-bold uppercase tracking-wide">Katılımcı</span>
+                                        <Users className="w-3.5 h-3.5 text-[#FFB800]" />
+                                        <span className="text-[9px] text-[#FFB800] font-bold uppercase tracking-wide">Katılımcı</span>
                                     </div>
-                                    <div className="font-oswald text-base font-black text-white text-center leading-none">
+                                    <div className="font-oswald text-lg font-black text-white text-center leading-none">
                                         {participantCount.toLocaleString('tr-TR')}
                                     </div>
                                 </div>
-                                <div className="flex-1 bg-gradient-to-br from-[#FFB800]/20 to-black border-2 border-[#FFB800] rounded-lg px-1.5 py-1.5 flex flex-col items-center justify-center">
+                                <div className="flex-1 bg-gradient-to-br from-[#FFB800]/20 to-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5 flex flex-col items-center justify-center">
                                     <div className="flex items-center justify-center gap-1 mb-0.5">
-                                        <Award className="w-3 h-3 text-[#FFB800]" />
-                                        <span className="text-[8px] text-[#FFB800] font-bold uppercase tracking-wide">Ödül</span>
+                                        <Award className="w-3.5 h-3.5 text-[#FFB800]" />
+                                        <span className="text-[9px] text-[#FFB800] font-bold uppercase tracking-wide">Ödül</span>
                                     </div>
-                                    <div className="font-oswald text-sm font-black text-[#FFB800] text-center leading-none whitespace-nowrap">
+                                    <div className="font-oswald text-base font-black text-[#FFB800] text-center leading-none whitespace-nowrap">
                                         10.000.000₺
                                     </div>
                                 </div>
