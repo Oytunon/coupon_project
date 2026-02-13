@@ -3,7 +3,7 @@ import { getParticipationStatus, joinCampaign, getLeaderboard, getMyCoupons, get
 import { getPublicEvents, PublicEvent } from "../api/client"
 import { getUsernameFromUrl } from "../utils/useUsername"
 import {
-    Trophy, Loader2, FileText, Award, Gift,
+    ArrowLeft, Trophy, Loader2, FileText, Award, Gift,
     TrendingUp, ArrowUpRight, CheckCircle2, Ticket, List as ListIcon, LayoutGrid, Zap, BarChart3, Users
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -599,90 +599,195 @@ export default function UserDashboard() {
                 )}
 
                 {/* Report View */}
-                {activeCategory === 'report' && (
-                    <div className="mt-6 animation-in fade-in slide-in-from-bottom-2">
-                        <Card className="border-white/5 bg-zinc-950/40 backdrop-blur-xl">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-white"><Trophy className="h-5 w-5 text-amber-500" /> Sıralamarım</CardTitle>
-                                <CardDescription className="text-neutral-500">Katıldığınız aktif ve geçmiş turnuvalardaki durumunuz.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {loadingEnrollments ? (
-                                    <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber-500" /></div>
-                                ) : myEnrollments.length === 0 ? (
-                                    <div className="text-center p-12 text-neutral-500 italic bg-white/5 rounded-xl border border-dashed border-white/10">Henüz hiçbir turnuvaya katılmadınız.</div>
-                                ) : (
-                                    <div className="overflow-x-auto">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow className="hover:bg-transparent border-white/5">
-                                                    <TableHead className="text-neutral-400 uppercase text-[10px] font-black tracking-widest">Turnuva</TableHead>
-                                                    <TableHead className="text-neutral-400 uppercase text-[10px] font-black tracking-widest">Durum</TableHead>
-                                                    <TableHead className="text-right text-neutral-400 uppercase text-[10px] font-black tracking-widest">Puan</TableHead>
-                                                    <TableHead className="text-right text-neutral-400 uppercase text-[10px] font-black tracking-widest">Sıralama</TableHead>
-                                                    <TableHead className="text-right text-neutral-400 uppercase text-[10px] font-black tracking-widest">Detay</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {myEnrollments.map((enr) => (
-                                                    <Fragment key={enr.event_id}>
-                                                        <TableRow className="border-white/5 hover:bg-white/5 transition-colors">
-                                                            <TableCell className="font-bold text-white">{enr.event_name}</TableCell>
-                                                            <TableCell>
-                                                                <Badge variant={enr.status === 'active' ? 'default' : 'secondary'} className={enr.status === 'active' ? 'bg-emerald-500/20 text-emerald-500 border-none' : 'bg-white/5 text-neutral-500 border-none'}>
-                                                                    {enr.status === 'active' ? 'AKTİF' : 'TAMAMLANDI'}
-                                                                </Badge>
-                                                            </TableCell>
-                                                            <TableCell className="text-right font-mono text-amber-500 font-bold">{enr.score.toLocaleString()}</TableCell>
-                                                            <TableCell className="text-right font-black text-xl text-white italic">#{enr.rank}</TableCell>
-                                                            <TableCell className="text-right">
-                                                                <Button size="sm" variant="ghost" className="text-amber-500 hover:text-amber-400 hover:bg-amber-500/10" onClick={() => toggleLeaderboard(enr.event_id)}>
-                                                                    {expandedEventId === enr.event_id ? 'Kapat' : 'Sıralama'}
-                                                                </Button>
-                                                            </TableCell>
-                                                        </TableRow>
-                                                        {expandedEventId === enr.event_id && (
-                                                            <TableRow className="bg-black/40 border-none">
-                                                                <TableCell colSpan={5} className="p-4">
-                                                                    <div className="rounded-xl border border-white/5 overflow-hidden animate-in fade-in zoom-in-95">
-                                                                        <Table>
-                                                                            <TableHeader className="bg-white/5">
-                                                                                <TableRow className="border-none">
-                                                                                    <TableHead className="w-[80px] text-[10px] uppercase font-bold">Sıra</TableHead>
-                                                                                    <TableHead className="text-[10px] uppercase font-bold">Kullanıcı</TableHead>
-                                                                                    <TableHead className="text-right text-[10px] uppercase font-bold">Puan</TableHead>
-                                                                                </TableRow>
-                                                                            </TableHeader>
-                                                                            <TableBody>
-                                                                                {loadingLeaderboard ? (
-                                                                                    <TableRow><TableCell colSpan={3} className="text-center py-4"><Loader2 className="animate-spin h-5 w-5 mx-auto text-amber-500" /></TableCell></TableRow>
-                                                                                ) : (
-                                                                                    expandedLeaderboard.map((user, idx) => (
-                                                                                        <TableRow key={idx} className={user.username === username ? "bg-amber-500/10 border-amber-500/20" : "border-white/5"}>
-                                                                                            <TableCell className="font-mono font-bold text-white">#{idx + 1}</TableCell>
-                                                                                            <TableCell className={user.username === username ? "text-amber-500 font-bold" : "text-neutral-300"}>
-                                                                                                {user.username === username ? `${user.username} (SEN)` : user.username}
-                                                                                            </TableCell>
-                                                                                            <TableCell className="text-right font-mono text-white">{(user.score || 0).toLocaleString()}</TableCell>
-                                                                                        </TableRow>
-                                                                                    ))
-                                                                                )}
-                                                                            </TableBody>
-                                                                        </Table>
-                                                                    </div>
+                {activeCategory === 'report' && (() => {
+                    // Calculate Statistics
+                    const totalWinnings = myRewards.reduce((sum, r) => sum + (Number(r.amount) || 0), 0)
+
+                    const validRanks = myEnrollments.filter(e => e.rank && e.rank > 0).map(e => e.rank)
+                    const avgRank = validRanks.length > 0 ? Math.round(validRanks.reduce((a, b) => a + b, 0) / validRanks.length) : '-'
+                    const bestRank = validRanks.length > 0 ? Math.min(...validRanks) : '-'
+
+                    const participationCount = myEnrollments.length
+                    const top3Count = validRanks.filter(r => r <= 3).length
+                    const successRate = participationCount > 0 ? ((top3Count / participationCount) * 100).toFixed(2) : '0.00'
+
+                    return (
+                        <div className="mt-6 animation-in fade-in slide-in-from-bottom-2">
+                            {/* Back Button */}
+                            <button
+                                onClick={() => setActiveCategory('all')}
+                                className="flex items-center gap-2 px-6 py-3 bg-black border border-[#FFB800] hover:bg-[#FFA500] hover:text-black text-[#FFB800] rounded-xl transition-all font-bold shadow-lg mb-8 group"
+                            >
+                                <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                                <span>ANA SAYFA</span>
+                            </button>
+
+                            <div className="flex items-center justify-center gap-3 mb-8">
+                                <BarChart3 className="w-8 h-8 text-[#FFB800]" />
+                                <h2 className="text-3xl font-black text-white uppercase tracking-wide">TURNUVA RAPORUM</h2>
+                            </div>
+
+                            {/* Stats Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                {/* Total Winnings */}
+                                <div className="bg-black border-2 border-[#FFB800] rounded-2xl p-6 md:p-8 hover:shadow-[0_0_30px_rgba(255,184,0,0.2)] transition-shadow">
+                                    <div className="flex flex-col h-full justify-between">
+                                        <div>
+                                            <div className="text-[#FFB800] mb-2"><Trophy className="w-6 h-6" /></div>
+                                            <div className="text-gray-400 text-sm font-medium uppercase tracking-wide">Toplam Kazanç</div>
+                                        </div>
+                                        <div className="text-4xl md:text-5xl font-black text-[#FFB800] mt-4 font-oswald">
+                                            {totalWinnings.toLocaleString('tr-TR')}₺
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Average Rank */}
+                                <div className="bg-black border-2 border-[#FFB800] rounded-2xl p-6 md:p-8 hover:shadow-[0_0_30px_rgba(255,184,0,0.2)] transition-shadow">
+                                    <div className="flex flex-col h-full justify-between">
+                                        <div>
+                                            <div className="text-[#FFB800] mb-2"><Users className="w-6 h-6" /></div>
+                                            <div className="text-gray-400 text-sm font-medium uppercase tracking-wide">Ortalama Sıralama</div>
+                                        </div>
+                                        <div className="text-4xl md:text-5xl font-black text-white mt-4 font-oswald">
+                                            #{avgRank}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Best Rank */}
+                                <div className="bg-black border-2 border-[#FFB800] rounded-2xl p-6 md:p-8 hover:shadow-[0_0_30px_rgba(255,184,0,0.2)] transition-shadow">
+                                    <div className="flex flex-col h-full justify-between">
+                                        <div>
+                                            <div className="text-[#FFB800] mb-2"><Award className="w-6 h-6" /></div>
+                                            <div className="text-gray-400 text-sm font-medium uppercase tracking-wide">En İyi Sıralama</div>
+                                        </div>
+                                        <div className="text-4xl md:text-5xl font-black text-[#FFB800] mt-4 font-oswald">
+                                            #{bestRank}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                                {/* Participation */}
+                                <div className="bg-black border border-[#FFB800]/30 rounded-xl p-6 flex justify-between items-center">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <Ticket className="w-4 h-4 text-[#FFB800]" />
+                                            <span className="text-gray-400 text-sm font-bold uppercase">Katılım</span>
+                                        </div>
+                                        <div className="text-[10px] text-gray-500">Toplam Turnuva</div>
+                                    </div>
+                                    <div className="text-3xl font-black text-white">{participationCount}</div>
+                                </div>
+
+                                {/* Top 3 */}
+                                <div className="bg-black border border-[#FFB800]/30 rounded-xl p-6 flex justify-between items-center">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <Trophy className="w-4 h-4 text-[#FFB800]" />
+                                            <span className="text-gray-400 text-sm font-bold uppercase">İlk 3</span>
+                                        </div>
+                                        <div className="text-[10px] text-gray-500">Derece Sayısı</div>
+                                    </div>
+                                    <div className="text-3xl font-black text-white">{top3Count}</div>
+                                </div>
+
+                                {/* Success Rate */}
+                                <div className="bg-black border border-[#FFB800]/30 rounded-xl p-6 flex justify-between items-center">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <TrendingUp className="w-4 h-4 text-[#FFB800]" />
+                                            <span className="text-gray-400 text-sm font-bold uppercase">Başarı</span>
+                                        </div>
+                                        <div className="text-[10px] text-gray-500">Kazanma Oranı</div>
+                                    </div>
+                                    <div className="text-3xl font-black text-white">%{successRate}</div>
+                                </div>
+                            </div>
+
+                            {/* Detailed List */}
+                            <Card className="border-white/5 bg-zinc-950/40 backdrop-blur-xl">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2 text-white"><ListIcon className="h-5 w-5 text-amber-500" /> Detaylı Turnuva Geçmişi</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    {myEnrollments.length === 0 ? (
+                                        <div className="text-center p-12 text-neutral-500 italic bg-white/5 rounded-xl border border-dashed border-white/10">Henüz hiçbir turnuvaya katılmadınız.</div>
+                                    ) : (
+                                        <div className="overflow-x-auto">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow className="hover:bg-transparent border-white/5">
+                                                        <TableHead className="text-neutral-400 uppercase text-[10px] font-black tracking-widest">Turnuva</TableHead>
+                                                        <TableHead className="text-neutral-400 uppercase text-[10px] font-black tracking-widest">Durum</TableHead>
+                                                        <TableHead className="text-right text-neutral-400 uppercase text-[10px] font-black tracking-widest">Puan</TableHead>
+                                                        <TableHead className="text-right text-neutral-400 uppercase text-[10px] font-black tracking-widest">Sıralama</TableHead>
+                                                        <TableHead className="text-right text-neutral-400 uppercase text-[10px] font-black tracking-widest">Detay</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {myEnrollments.map((enr) => (
+                                                        <Fragment key={enr.event_id}>
+                                                            <TableRow className="border-white/5 hover:bg-white/5 transition-colors">
+                                                                <TableCell className="font-bold text-white">{enr.event_name}</TableCell>
+                                                                <TableCell>
+                                                                    <Badge variant={enr.status === 'active' ? 'default' : 'secondary'} className={enr.status === 'active' ? 'bg-emerald-500/20 text-emerald-500 border-none' : 'bg-white/5 text-neutral-500 border-none'}>
+                                                                        {enr.status === 'active' ? 'AKTİF' : 'TAMAMLANDI'}
+                                                                    </Badge>
+                                                                </TableCell>
+                                                                <TableCell className="text-right font-mono text-amber-500 font-bold">{enr.score.toLocaleString()}</TableCell>
+                                                                <TableCell className="text-right font-black text-xl text-white italic">#{enr.rank}</TableCell>
+                                                                <TableCell className="text-right">
+                                                                    <Button size="sm" variant="ghost" className="text-amber-500 hover:text-amber-400 hover:bg-amber-500/10" onClick={() => toggleLeaderboard(enr.event_id)}>
+                                                                        {expandedEventId === enr.event_id ? 'Kapat' : 'Sıralama'}
+                                                                    </Button>
                                                                 </TableCell>
                                                             </TableRow>
-                                                        )}
-                                                    </Fragment>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
-                )}
+                                                            {expandedEventId === enr.event_id && (
+                                                                <TableRow className="bg-black/40 border-none">
+                                                                    <TableCell colSpan={5} className="p-4">
+                                                                        <div className="rounded-xl border border-white/5 overflow-hidden animate-in fade-in zoom-in-95">
+                                                                            <Table>
+                                                                                <TableHeader className="bg-white/5">
+                                                                                    <TableRow className="border-none">
+                                                                                        <TableHead className="w-[80px] text-[10px] uppercase font-bold">Sıra</TableHead>
+                                                                                        <TableHead className="text-[10px] uppercase font-bold">Kullanıcı</TableHead>
+                                                                                        <TableHead className="text-right text-[10px] uppercase font-bold">Puan</TableHead>
+                                                                                    </TableRow>
+                                                                                </TableHeader>
+                                                                                <TableBody>
+                                                                                    {loadingLeaderboard ? (
+                                                                                        <TableRow><TableCell colSpan={3} className="text-center py-4"><Loader2 className="animate-spin h-5 w-5 mx-auto text-amber-500" /></TableCell></TableRow>
+                                                                                    ) : (
+                                                                                        expandedLeaderboard.map((user, idx) => (
+                                                                                            <TableRow key={idx} className={user.username === username ? "bg-amber-500/10 border-amber-500/20" : "border-white/5"}>
+                                                                                                <TableCell className="font-mono font-bold text-white">#{idx + 1}</TableCell>
+                                                                                                <TableCell className={user.username === username ? "text-amber-500 font-bold" : "text-neutral-300"}>
+                                                                                                    {user.username === username ? `${user.username} (SEN)` : user.username}
+                                                                                                </TableCell>
+                                                                                                <TableCell className="text-right font-mono text-white">{(user.score || 0).toLocaleString()}</TableCell>
+                                                                                            </TableRow>
+                                                                                        ))
+                                                                                    )}
+                                                                                </TableBody>
+                                                                            </Table>
+                                                                        </div>
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            )}
+                                                        </Fragment>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )
+                })()}
 
                 {/* Keeping the detailed tabs hidden but available if needed */}
                 <div className="hidden">
