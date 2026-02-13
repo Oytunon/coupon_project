@@ -4,7 +4,7 @@ import { getPublicEvents, PublicEvent } from "../api/client"
 import { getUsernameFromUrl } from "../utils/useUsername"
 import {
     ArrowLeft, Trophy, Loader2, FileText, Award, Gift,
-    TrendingUp, ArrowUpRight, CheckCircle2, Ticket, List as ListIcon, LayoutGrid, Zap, BarChart3, Users
+    TrendingUp, ArrowUpRight, CheckCircle2, Ticket, List as ListIcon, LayoutGrid, Zap, BarChart3, Users, DollarSign, Medal, Calendar, Activity
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TournamentCard } from "@/components/premium/TournamentCard"
@@ -612,7 +612,7 @@ export default function UserDashboard() {
                     const successRate = participationCount > 0 ? ((top3Count / participationCount) * 100).toFixed(2) : '0.00'
 
                     return (
-                        <div className="mt-6 animation-in fade-in slide-in-from-bottom-2">
+                        <div className="mt-6 animation-in fade-in slide-in-from-bottom-2 max-w-7xl mx-auto">
                             {/* Back Button */}
                             <button
                                 onClick={() => setActiveCategory('all')}
@@ -622,169 +622,131 @@ export default function UserDashboard() {
                                 <span>ANA SAYFA</span>
                             </button>
 
-                            <div className="flex items-center justify-center gap-3 mb-8">
-                                <BarChart3 className="w-8 h-8 text-[#FFB800]" />
-                                <h2 className="text-3xl font-black text-white uppercase tracking-wide">TURNUVA RAPORUM</h2>
-                            </div>
-
-                            {/* Stats Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                {/* Total Winnings */}
-                                <div className="bg-black border-2 border-[#FFB800] rounded-2xl p-6 md:p-8 hover:shadow-[0_0_30px_rgba(255,184,0,0.2)] transition-shadow">
-                                    <div className="flex flex-col h-full justify-between">
-                                        <div>
-                                            <div className="text-[#FFB800] mb-2"><Trophy className="w-6 h-6" /></div>
-                                            <div className="text-gray-400 text-sm font-medium uppercase tracking-wide">Toplam Kazanç</div>
+                            <div className="space-y-6 md:space-y-8">
+                                {/* Top Row - Key Stats */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+                                    <div className="bg-gradient-to-br from-[#FFB800]/20 via-[#FFB800]/10 to-black border-2 border-[#FFB800] rounded-xl p-4 md:p-6 hover:scale-105 transition-transform">
+                                        <div className="flex flex-col gap-2">
+                                            <DollarSign className="w-6 h-6 text-[#FFB800]" />
+                                            <p className="text-gray-400 text-xs md:text-sm">Toplam Kazanç</p>
+                                            <p className="text-2xl md:text-3xl font-black text-[#FFB800]">{totalWinnings.toLocaleString('tr-TR')}₺</p>
                                         </div>
-                                        <div className="text-4xl md:text-5xl font-black text-[#FFB800] mt-4 font-oswald">
-                                            {totalWinnings.toLocaleString('tr-TR')}₺
+                                    </div>
+                                    <div className="bg-gradient-to-br from-[#FFB800]/20 via-[#FFB800]/10 to-black border-2 border-[#FFB800] rounded-xl p-4 md:p-6 hover:scale-105 transition-transform">
+                                        <div className="flex flex-col gap-2">
+                                            <Award className="w-6 h-6 text-[#FFB800]" />
+                                            <p className="text-gray-400 text-xs md:text-sm">Ortalama Sıralama</p>
+                                            <p className="text-2xl md:text-3xl font-black text-[#FFB800]">#{avgRank}</p>
+                                        </div>
+                                    </div>
+                                    <div className="bg-gradient-to-br from-[#FFB800]/20 via-[#FFB800]/10 to-black border-2 border-[#FFB800] rounded-xl p-4 md:p-6 hover:scale-105 transition-transform">
+                                        <div className="flex flex-col gap-2">
+                                            <Medal className="w-6 h-6 text-[#FFB800]" />
+                                            <p className="text-gray-400 text-xs md:text-sm">En İyi Sıralama</p>
+                                            <p className="text-2xl md:text-3xl font-black text-[#FFB800]">#{bestRank}</p>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Average Rank */}
-                                <div className="bg-black border-2 border-[#FFB800] rounded-2xl p-6 md:p-8 hover:shadow-[0_0_30px_rgba(255,184,0,0.2)] transition-shadow">
-                                    <div className="flex flex-col h-full justify-between">
-                                        <div>
-                                            <div className="text-[#FFB800] mb-2"><Users className="w-6 h-6" /></div>
-                                            <div className="text-gray-400 text-sm font-medium uppercase tracking-wide">Ortalama Sıralama</div>
+                                {/* Middle Row - Secondary Stats */}
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
+                                    <div className="bg-black border-2 border-[#FFB800]/30 rounded-xl p-4 md:p-6 hover:border-[#FFB800] transition-colors">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <Calendar className="w-5 h-5 text-[#FFB800]" />
+                                                <p className="text-sm font-semibold text-gray-400">Katılım</p>
+                                            </div>
+                                            <p className="text-2xl font-black text-white">{participationCount}</p>
                                         </div>
-                                        <div className="text-4xl md:text-5xl font-black text-white mt-4 font-oswald">
-                                            #{avgRank}
+                                        <p className="text-xs text-gray-500">Toplam Turnuva</p>
+                                    </div>
+                                    <div className="bg-black border-2 border-[#FFB800]/30 rounded-xl p-4 md:p-6 hover:border-[#FFB800] transition-colors">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <Trophy className="w-5 h-5 text-[#FFB800]" />
+                                                <p className="text-sm font-semibold text-gray-400">İlk 3</p>
+                                            </div>
+                                            <p className="text-2xl font-black text-white">{top3Count}</p>
                                         </div>
+                                        <p className="text-xs text-gray-500">Derece Sayısı</p>
+                                    </div>
+                                    <div className="bg-black border-2 border-[#FFB800]/30 rounded-xl p-4 md:p-6 hover:border-[#FFB800] transition-colors">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <Activity className="w-5 h-5 text-[#FFB800]" />
+                                                <p className="text-sm font-semibold text-gray-400">Başarı</p>
+                                            </div>
+                                            <p className="text-2xl font-black text-white">%{successRate}</p>
+                                        </div>
+                                        <p className="text-xs text-gray-500">Kazanma Oranı</p>
                                     </div>
                                 </div>
 
-                                {/* Best Rank */}
-                                <div className="bg-black border-2 border-[#FFB800] rounded-2xl p-6 md:p-8 hover:shadow-[0_0_30px_rgba(255,184,0,0.2)] transition-shadow">
-                                    <div className="flex flex-col h-full justify-between">
-                                        <div>
-                                            <div className="text-[#FFB800] mb-2"><Award className="w-6 h-6" /></div>
-                                            <div className="text-gray-400 text-sm font-medium uppercase tracking-wide">En İyi Sıralama</div>
-                                        </div>
-                                        <div className="text-4xl md:text-5xl font-black text-[#FFB800] mt-4 font-oswald">
-                                            #{bestRank}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                                {/* Tournament History Table */}
+                                <div className="bg-black border-2 border-[#FFB800]/30 rounded-xl p-4 md:p-6">
+                                    <h2 className="text-lg md:text-xl font-bold mb-4 md:mb-6 flex items-center gap-2">
+                                        <Trophy className="w-6 h-6 text-[#FFB800]" />
+                                        Turnuva Geçmişi
+                                    </h2>
+                                    <div className="overflow-x-auto">
+                                        {myEnrollments.length === 0 ? (
+                                            <div className="text-center p-8 text-gray-500 italic">Henüz katılım bulunmamaktadır.</div>
+                                        ) : (
+                                            <table className="w-full">
+                                                <thead>
+                                                    <tr className="border-b-2 border-[#FFB800]/30">
+                                                        <th className="text-left py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold">Turnuva</th>
+                                                        {/* Adding Date if available in data, otherwise hidden or static placeholder for layout fidelity */}
+                                                        <th className="text-center py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold hidden md:table-cell">Durum</th>
+                                                        <th className="text-center py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold">Sıra</th>
+                                                        <th className="text-center py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold hidden lg:table-cell">Puan</th>
+                                                        <th className="text-right py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold">Kazanç</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {myEnrollments.map((enr, idx) => {
+                                                        const userWinnings = myRewards
+                                                            .filter(r => r.event_id === enr.event_id)
+                                                            .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                                {/* Participation */}
-                                <div className="bg-black border border-[#FFB800]/30 rounded-xl p-6 flex justify-between items-center">
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <Ticket className="w-4 h-4 text-[#FFB800]" />
-                                            <span className="text-gray-400 text-sm font-bold uppercase">Katılım</span>
-                                        </div>
-                                        <div className="text-[10px] text-gray-500">Toplam Turnuva</div>
-                                    </div>
-                                    <div className="text-3xl font-black text-white">{participationCount}</div>
-                                </div>
-
-                                {/* Top 3 */}
-                                <div className="bg-black border border-[#FFB800]/30 rounded-xl p-6 flex justify-between items-center">
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <Trophy className="w-4 h-4 text-[#FFB800]" />
-                                            <span className="text-gray-400 text-sm font-bold uppercase">İlk 3</span>
-                                        </div>
-                                        <div className="text-[10px] text-gray-500">Derece Sayısı</div>
-                                    </div>
-                                    <div className="text-3xl font-black text-white">{top3Count}</div>
-                                </div>
-
-                                {/* Success Rate */}
-                                <div className="bg-black border border-[#FFB800]/30 rounded-xl p-6 flex justify-between items-center">
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <TrendingUp className="w-4 h-4 text-[#FFB800]" />
-                                            <span className="text-gray-400 text-sm font-bold uppercase">Başarı</span>
-                                        </div>
-                                        <div className="text-[10px] text-gray-500">Kazanma Oranı</div>
-                                    </div>
-                                    <div className="text-3xl font-black text-white">%{successRate}</div>
-                                </div>
-                            </div>
-
-                            {/* Detailed List */}
-                            <Card className="border-white/5 bg-zinc-950/40 backdrop-blur-xl">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-white"><ListIcon className="h-5 w-5 text-amber-500" /> Detaylı Turnuva Geçmişi</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    {myEnrollments.length === 0 ? (
-                                        <div className="text-center p-12 text-neutral-500 italic bg-white/5 rounded-xl border border-dashed border-white/10">Henüz hiçbir turnuvaya katılmadınız.</div>
-                                    ) : (
-                                        <div className="overflow-x-auto">
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow className="hover:bg-transparent border-white/5">
-                                                        <TableHead className="text-neutral-400 uppercase text-[10px] font-black tracking-widest">Turnuva</TableHead>
-                                                        <TableHead className="text-neutral-400 uppercase text-[10px] font-black tracking-widest">Durum</TableHead>
-                                                        <TableHead className="text-right text-neutral-400 uppercase text-[10px] font-black tracking-widest">Puan</TableHead>
-                                                        <TableHead className="text-right text-neutral-400 uppercase text-[10px] font-black tracking-widest">Sıralama</TableHead>
-                                                        <TableHead className="text-right text-neutral-400 uppercase text-[10px] font-black tracking-widest">Detay</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {myEnrollments.map((enr) => (
-                                                        <Fragment key={enr.event_id}>
-                                                            <TableRow className="border-white/5 hover:bg-white/5 transition-colors">
-                                                                <TableCell className="font-bold text-white">{enr.event_name}</TableCell>
-                                                                <TableCell>
+                                                        return (
+                                                            <tr key={enr.event_id} className="border-b border-[#FFB800]/10 hover:bg-[#FFB800]/5 transition-colors cursor-pointer" onClick={() => toggleLeaderboard(enr.event_id)}>
+                                                                <td className="py-3 md:py-4 px-2 md:px-4">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="hidden md:flex w-6 h-6 rounded-full bg-gradient-to-br from-[#FFB800] to-[#FFA500] items-center justify-center text-black text-xs font-bold">{idx + 1}</div>
+                                                                        <div>
+                                                                            <div className="font-bold text-xs md:text-sm text-white">{enr.event_name}</div>
+                                                                            {/* Placeholder user count as data is not available yet */}
+                                                                            <div className="text-[10px] md:text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                                                                                <Users className="w-3 h-3" />
+                                                                                Katılımcı
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-3 md:py-4 px-2 md:px-4 text-center text-xs text-gray-300 hidden md:table-cell">
                                                                     <Badge variant={enr.status === 'active' ? 'default' : 'secondary'} className={enr.status === 'active' ? 'bg-emerald-500/20 text-emerald-500 border-none' : 'bg-white/5 text-neutral-500 border-none'}>
                                                                         {enr.status === 'active' ? 'AKTİF' : 'TAMAMLANDI'}
                                                                     </Badge>
-                                                                </TableCell>
-                                                                <TableCell className="text-right font-mono text-amber-500 font-bold">{enr.score.toLocaleString()}</TableCell>
-                                                                <TableCell className="text-right font-black text-xl text-white italic">#{enr.rank}</TableCell>
-                                                                <TableCell className="text-right">
-                                                                    <Button size="sm" variant="ghost" className="text-amber-500 hover:text-amber-400 hover:bg-amber-500/10" onClick={() => toggleLeaderboard(enr.event_id)}>
-                                                                        {expandedEventId === enr.event_id ? 'Kapat' : 'Sıralama'}
-                                                                    </Button>
-                                                                </TableCell>
-                                                            </TableRow>
-                                                            {expandedEventId === enr.event_id && (
-                                                                <TableRow className="bg-black/40 border-none">
-                                                                    <TableCell colSpan={5} className="p-4">
-                                                                        <div className="rounded-xl border border-white/5 overflow-hidden animate-in fade-in zoom-in-95">
-                                                                            <Table>
-                                                                                <TableHeader className="bg-white/5">
-                                                                                    <TableRow className="border-none">
-                                                                                        <TableHead className="w-[80px] text-[10px] uppercase font-bold">Sıra</TableHead>
-                                                                                        <TableHead className="text-[10px] uppercase font-bold">Kullanıcı</TableHead>
-                                                                                        <TableHead className="text-right text-[10px] uppercase font-bold">Puan</TableHead>
-                                                                                    </TableRow>
-                                                                                </TableHeader>
-                                                                                <TableBody>
-                                                                                    {loadingLeaderboard ? (
-                                                                                        <TableRow><TableCell colSpan={3} className="text-center py-4"><Loader2 className="animate-spin h-5 w-5 mx-auto text-amber-500" /></TableCell></TableRow>
-                                                                                    ) : (
-                                                                                        expandedLeaderboard.map((user, idx) => (
-                                                                                            <TableRow key={idx} className={user.username === username ? "bg-amber-500/10 border-amber-500/20" : "border-white/5"}>
-                                                                                                <TableCell className="font-mono font-bold text-white">#{idx + 1}</TableCell>
-                                                                                                <TableCell className={user.username === username ? "text-amber-500 font-bold" : "text-neutral-300"}>
-                                                                                                    {user.username === username ? `${user.username} (SEN)` : user.username}
-                                                                                                </TableCell>
-                                                                                                <TableCell className="text-right font-mono text-white">{(user.score || 0).toLocaleString()}</TableCell>
-                                                                                            </TableRow>
-                                                                                        ))
-                                                                                    )}
-                                                                                </TableBody>
-                                                                            </Table>
-                                                                        </div>
-                                                                    </TableCell>
-                                                                </TableRow>
-                                                            )}
-                                                        </Fragment>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
+                                                                </td>
+                                                                <td className="py-3 md:py-4 px-2 md:px-4 text-center">
+                                                                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs font-bold ${enr.rank <= 3 ? 'bg-[#FFB800]/30 text-[#FFB800]' : 'bg-gray-800 text-gray-400'}`}>
+                                                                        #{enr.rank || '-'}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="py-3 md:py-4 px-2 md:px-4 text-center text-xs font-semibold hidden lg:table-cell text-gray-300">{enr.score.toLocaleString()}</td>
+                                                                <td className="text-right py-3 md:py-4 px-2 md:px-4 font-bold text-[#FFB800] text-xs md:text-sm">
+                                                                    {userWinnings > 0 ? `${userWinnings.toLocaleString('tr-TR')}₺` : '-'}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )
                 })()}
