@@ -15,7 +15,7 @@ export function ClientHeader({ username }: ClientHeaderProps) {
                 </div>
 
                 {/* Mobile Navigation - Compact Static */}
-                <div className="flex md:hidden items-center justify-center gap-1 overflow-x-auto scrollbar-hide">
+                <div className="flex md:hidden items-center justify-end flex-1 gap-1 overflow-x-auto scrollbar-hide ml-2">
                     <button className="flex-shrink-0 flex flex-col items-center justify-center gap-0.5 px-2 py-1 rounded font-bold text-[8px] transition-all border border-[#FFB800] bg-[#FFB800] text-black shadow-[0_0_10px_rgba(255,184,0,0.3)] min-w-[36px]">
                         <LayoutGrid className="h-3.5 w-3.5" />
                         <span className="leading-none mt-0.5">TÜMÜ</span>
@@ -68,8 +68,8 @@ export function ClientHeader({ username }: ClientHeaderProps) {
                     </button>
 
                     {username && (
-                        <div className="flex items-center gap-4 pl-0 md:pl-6 md:border-l border-white/10 ml-0 md:ml-3">
-                            <div className="h-8 w-8 md:h-10 md:w-10 rounded-xl bg-primary flex items-center justify-center text-black font-black shadow-[0_0_15px_rgba(255,188,0,0.3)] text-xs md:text-base">
+                        <div className="hidden md:flex items-center gap-4 pl-6 border-l border-white/10 ml-3">
+                            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-black font-black shadow-[0_0_15px_rgba(255,188,0,0.3)]">
                                 {username[0].toUpperCase()}
                             </div>
                         </div>
