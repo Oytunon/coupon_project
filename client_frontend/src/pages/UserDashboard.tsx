@@ -38,6 +38,7 @@ export default function UserDashboard() {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
     // Filters & Expanded Items
+    const [activeCategory, setActiveCategory] = useState("all")
     const [eventId, setEventId] = useState<number | null>(null)
     const [slug, setSlug] = useState<string | null>(null)
     const [expandedEventId, setExpandedEventId] = useState<number | null>(null)
@@ -133,6 +134,18 @@ export default function UserDashboard() {
 
     // Detail View Logic
     const targetEventId = paramEventId ? Number(paramEventId) : null
+
+    // Filter Logic
+    const filteredEvents = publicEvents.filter(e => {
+        if (activeCategory === 'all') return e.status !== 'ended'
+        if (activeCategory === 'active') return e.status === 'active'
+        if (activeCategory === 'upcoming') return e.status === 'paused' // Assuming paused/draft is upcoming
+        if (activeCategory === 'enrollments') return myEnrollments.some(enr => enr.event_id === e.id)
+        return false
+    })
+
+    const pastEvents = publicEvents.filter(e => e.status === 'ended')
+
     if (targetEventId) {
         const selectedEvent = publicEvents.find(e => e.id === targetEventId)
         const enrollment = myEnrollments.find(e => e.event_id === targetEventId)
@@ -158,18 +171,7 @@ export default function UserDashboard() {
         }
     }
 
-    const [activeCategory, setActiveCategory] = useState("all")
 
-    // Filter Logic
-    const filteredEvents = publicEvents.filter(e => {
-        if (activeCategory === 'all') return e.status !== 'ended'
-        if (activeCategory === 'active') return e.status === 'active'
-        if (activeCategory === 'upcoming') return e.status === 'paused' // Assuming paused/draft is upcoming
-        if (activeCategory === 'enrollments') return myEnrollments.some(enr => enr.event_id === e.id)
-        return false
-    })
-
-    const pastEvents = publicEvents.filter(e => e.status === 'ended')
 
     return (
         <ClientLayout username={username} activeCategory={activeCategory} onCategoryChange={(c) => setActiveCategory(c)}>
