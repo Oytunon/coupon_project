@@ -19,6 +19,7 @@ interface UpcomingEventsSliderProps {
 export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSliderProps) {
     const [currentIndex, setCurrentIndex] = useState(0)
     const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0 })
+    const [mounted, setMounted] = useState(false)
     const navigate = useNavigate()
 
     const currentEvent = events[currentIndex]
@@ -53,9 +54,10 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
         }
 
         setTimeLeft(calculateTimeLeft())
+        setMounted(true)
         const timer = setInterval(() => {
             setTimeLeft(calculateTimeLeft())
-        }, 60000) // Update every minute is enough for D/H/M display
+        }, 1000)
 
         return () => clearInterval(timer)
     }, [currentEvent])
@@ -83,6 +85,19 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
 
     return (
         <div className="w-full max-w-5xl mx-auto px-2 lg:px-4">
+            {/* Slide-in animation keyframes */}
+            <style>{`
+                @keyframes digitSlideIn {
+                    0% {
+                        transform: translateY(-100%);
+                        opacity: 0;
+                    }
+                    100% {
+                        transform: translateY(0);
+                        opacity: 1;
+                    }
+                }
+            `}</style>
             <div className="relative overflow-hidden">
                 <div className="transition-opacity duration-300 opacity-100">
 
@@ -136,7 +151,12 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                                     <div className="flex gap-0.5 lg:gap-1">
                                                         {d.split('').map((digit, i) => (
                                                             <div key={i} className="relative w-[18px] h-[28px] lg:w-[24px] lg:h-[40px] overflow-hidden">
-                                                                <div className="absolute inset-0 flex items-center justify-center bg-black rounded">
+                                                                <div
+                                                                    className="absolute inset-0 flex items-center justify-center bg-black rounded"
+                                                                    style={{
+                                                                        animation: mounted ? `digitSlideIn 0.5s ${i * 0.08}s cubic-bezier(0.34, 1.56, 0.64, 1) both` : 'none',
+                                                                    }}
+                                                                >
                                                                     <span className="text-xl lg:text-3xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
                                                                 </div>
                                                                 <div className="absolute top-1/2 left-0 right-0 h-[0.5px] lg:h-[1px] bg-black/60 z-10"></div>
@@ -193,7 +213,7 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                             <div className="relative">
                                 <div className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4 md:gap-0">
                                     <div className="flex flex-col md:flex-row items-start md:items-center gap-0 flex-1 relative z-10 w-full">
-                                        <div className="w-full h-28 md:w-[280px] md:h-full shrink-0 md:border-r-2 border-[#FFB800]">
+                                        <div className="w-full h-28 md:w-[280px] md:h-full shrink-0 md:border-r-2 border-[#FFB800] md:min-h-[200px]">
                                             <img
                                                 src={currentEvent.image_url || "/placeholder-tournament.jpg"}
                                                 alt={currentEvent.name}
@@ -238,7 +258,12 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                                         <div className="flex gap-0.5 lg:gap-1">
                                                             {d.split('').map((digit, i) => (
                                                                 <div key={i} className="relative w-[18px] h-[28px] lg:w-[24px] lg:h-[40px] overflow-hidden">
-                                                                    <div className="absolute inset-0 flex items-center justify-center bg-black rounded">
+                                                                    <div
+                                                                        className="absolute inset-0 flex items-center justify-center bg-black rounded"
+                                                                        style={{
+                                                                            animation: mounted ? `digitSlideIn 0.5s ${i * 0.08}s cubic-bezier(0.34, 1.56, 0.64, 1) both` : 'none',
+                                                                        }}
+                                                                    >
                                                                         <span className="text-xl lg:text-3xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
                                                                     </div>
                                                                     <div className="absolute top-1/2 left-0 right-0 h-[0.5px] lg:h-[1px] bg-black/60 z-10"></div>
@@ -255,7 +280,12 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                                         <div className="flex gap-0.5 lg:gap-1">
                                                             {h.split('').map((digit, i) => (
                                                                 <div key={i} className="relative w-[18px] h-[28px] lg:w-[24px] lg:h-[40px] overflow-hidden">
-                                                                    <div className="absolute inset-0 flex items-center justify-center bg-black rounded">
+                                                                    <div
+                                                                        className="absolute inset-0 flex items-center justify-center bg-black rounded"
+                                                                        style={{
+                                                                            animation: mounted ? `digitSlideIn 0.5s ${(2 + i) * 0.08}s cubic-bezier(0.34, 1.56, 0.64, 1) both` : 'none',
+                                                                        }}
+                                                                    >
                                                                         <span className="text-xl lg:text-3xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
                                                                     </div>
                                                                     <div className="absolute top-1/2 left-0 right-0 h-[0.5px] lg:h-[1px] bg-black/60 z-10"></div>
@@ -272,7 +302,12 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                                         <div className="flex gap-0.5 lg:gap-1">
                                                             {m.split('').map((digit, i) => (
                                                                 <div key={i} className="relative w-[18px] h-[28px] lg:w-[24px] lg:h-[40px] overflow-hidden">
-                                                                    <div className="absolute inset-0 flex items-center justify-center bg-black rounded">
+                                                                    <div
+                                                                        className="absolute inset-0 flex items-center justify-center bg-black rounded"
+                                                                        style={{
+                                                                            animation: mounted ? `digitSlideIn 0.5s ${(4 + i) * 0.08}s cubic-bezier(0.34, 1.56, 0.64, 1) both` : 'none',
+                                                                        }}
+                                                                    >
                                                                         <span className="text-xl lg:text-3xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
                                                                     </div>
                                                                     <div className="absolute top-1/2 left-0 right-0 h-[0.5px] lg:h-[1px] bg-black/60 z-10"></div>

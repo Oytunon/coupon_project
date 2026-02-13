@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react"
 import { Trophy, Users, Award, Target } from "lucide-react"
 
 interface TournamentCardProps {
@@ -21,6 +22,7 @@ export function TournamentCard({
     userPoints, userRank, onJoin, onDetails, status, startDate, endDate, isJoined
 }: TournamentCardProps) {
     const baseUrl = import.meta.env.VITE_API_URL || ""
+    const [mounted, setMounted] = useState(false)
 
     const isUpcoming = new Date() < new Date(startDate)
 
@@ -30,26 +32,44 @@ export function TournamentCard({
         const now = new Date().getTime();
         const distance = end - now;
 
-        if (distance < 0) return { days: 0, hours: 0, minutes: 0 };
+        if (distance < 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
 
         return {
             days: Math.floor(distance / (1000 * 60 * 60 * 24)),
             hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-            minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+            minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+            seconds: Math.floor((distance % (1000 * 60)) / 1000)
         };
     };
 
-    const timeRemaining = calculateTimeRemaining();
+    const [timeRemaining, setTimeRemaining] = useState(calculateTimeRemaining());
 
-    const renderDigits = (value: number, isDesktop = false) => {
-        return String(value).padStart(2, '0').split('').map((digit, i) => (
-            <div key={i} className={`relative overflow-hidden ${isDesktop ? 'w-[24px] h-[40px]' : 'w-[18px] h-[28px]'}`}>
-                <div className="absolute inset-0 flex items-center justify-center bg-black rounded transition-transform duration-150 ease-out">
-                    <span className={`font-oswald font-bold text-[#FFB800] tabular-nums ${isDesktop ? 'text-3xl' : 'text-xl'}`}>{digit}</span>
+    // Real-time countdown update
+    useEffect(() => {
+        setMounted(true)
+        const timer = setInterval(() => {
+            setTimeRemaining(calculateTimeRemaining())
+        }, 1000)
+        return () => clearInterval(timer)
+    }, [startDate, endDate])
+
+    const renderDigits = (value: number, isDesktop = false, groupIndex = 0) => {
+        return String(value).padStart(2, '0').split('').map((digit, i) => {
+            const delay = (groupIndex * 2 + i) * 0.08;
+            return (
+                <div key={i} className={`relative overflow-hidden ${isDesktop ? 'w-[24px] h-[40px]' : 'w-[18px] h-[28px]'}`}>
+                    <div
+                        className="absolute inset-0 flex items-center justify-center bg-black rounded"
+                        style={{
+                            animation: mounted ? `digitSlideIn 0.5s ${delay}s cubic-bezier(0.34, 1.56, 0.64, 1) both` : 'none',
+                        }}
+                    >
+                        <span className={`font-oswald font-bold text-[#FFB800] tabular-nums ${isDesktop ? 'text-3xl' : 'text-xl'}`}>{digit}</span>
+                    </div>
+                    <div className={`absolute top-1/2 left-0 right-0 bg-black/60 z-10 ${isDesktop ? 'h-[1px]' : 'h-[0.5px]'}`}></div>
                 </div>
-                <div className={`absolute top-1/2 left-0 right-0 bg-black/60 z-10 ${isDesktop ? 'h-[1px]' : 'h-[0.5px]'}`}></div>
-            </div>
-        ));
+            );
+        });
     };
 
     const handleClick = () => {
@@ -58,6 +78,19 @@ export function TournamentCard({
 
     return (
         <div onClick={handleClick} className="cursor-pointer font-roboto w-full">
+            {/* Slide-in animation keyframes */}
+            <style>{`
+                @keyframes digitSlideIn {
+                    0% {
+                        transform: translateY(-100%);
+                        opacity: 0;
+                    }
+                    100% {
+                        transform: translateY(0);
+                        opacity: 1;
+                    }
+                }
+            `}</style>
 
             {/* MOBILE VIEW (lg:hidden) */}
             <div className="lg:hidden">
@@ -158,7 +191,7 @@ export function TournamentCard({
                                         <div className="text-center">
                                             <div className="bg-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5 shadow-lg shadow-[#FFB800]/20">
                                                 <div className="flex gap-0.5">
-                                                    {renderDigits(timeRemaining.days, false)}
+                                                    {renderDigits(timeRemaining.days, false, 0)}
                                                 </div>
                                             </div>
                                             <div className="text-[9px] text-white mt-1 font-bold uppercase tracking-wide">GÜN</div>
@@ -168,7 +201,7 @@ export function TournamentCard({
                                         <div className="text-center">
                                             <div className="bg-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5 shadow-lg shadow-[#FFB800]/20">
                                                 <div className="flex gap-0.5">
-                                                    {renderDigits(timeRemaining.hours, false)}
+                                                    {renderDigits(timeRemaining.hours, false, 1)}
                                                 </div>
                                             </div>
                                             <div className="text-[9px] text-white mt-1 font-bold uppercase tracking-wide">SAAT</div>
@@ -178,7 +211,7 @@ export function TournamentCard({
                                         <div className="text-center">
                                             <div className="bg-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5 shadow-lg shadow-[#FFB800]/20">
                                                 <div className="flex gap-0.5">
-                                                    {renderDigits(timeRemaining.minutes, false)}
+                                                    {renderDigits(timeRemaining.minutes, false, 2)}
                                                 </div>
                                             </div>
                                             <div className="text-[9px] text-white mt-1 font-bold uppercase tracking-wide">DAK</div>
@@ -221,7 +254,7 @@ export function TournamentCard({
                             {/* Left Section: Image and Basic Info */}
                             <div className="flex flex-row items-center gap-0 flex-1 relative z-10 w-full">
                                 {/* Image */}
-                                <div className="w-[280px] h-full shrink-0 border-r-2 border-[#FFB800] min-h-[16rem]">
+                                <div className="w-[280px] h-full shrink-0 border-r-2 border-[#FFB800] min-h-[200px]">
                                     {image_url ? (
                                         <img src={`${baseUrl}${image_url}`} alt={name} className="w-full h-full object-cover" />
                                     ) : (
@@ -314,7 +347,7 @@ export function TournamentCard({
                                             <div className="text-center">
                                                 <div className="bg-black border-2 border-[#FFB800] rounded-lg px-3 py-2.5 shadow-lg shadow-[#FFB800]/20">
                                                     <div className="flex gap-1">
-                                                        {renderDigits(timeRemaining.days, true)}
+                                                        {renderDigits(timeRemaining.days, true, 0)}
                                                     </div>
                                                 </div>
                                                 <div className="text-xs text-white mt-1.5 font-bold uppercase tracking-wide">GÜN</div>
@@ -324,7 +357,7 @@ export function TournamentCard({
                                             <div className="text-center">
                                                 <div className="bg-black border-2 border-[#FFB800] rounded-lg px-3 py-2.5 shadow-lg shadow-[#FFB800]/20">
                                                     <div className="flex gap-1">
-                                                        {renderDigits(timeRemaining.hours, true)}
+                                                        {renderDigits(timeRemaining.hours, true, 1)}
                                                     </div>
                                                 </div>
                                                 <div className="text-xs text-white mt-1.5 font-bold uppercase tracking-wide">SAAT</div>
@@ -334,7 +367,7 @@ export function TournamentCard({
                                             <div className="text-center">
                                                 <div className="bg-black border-2 border-[#FFB800] rounded-lg px-3 py-2.5 shadow-lg shadow-[#FFB800]/20">
                                                     <div className="flex gap-1">
-                                                        {renderDigits(timeRemaining.minutes, true)}
+                                                        {renderDigits(timeRemaining.minutes, true, 2)}
                                                     </div>
                                                 </div>
                                                 <div className="text-xs text-white mt-1.5 font-bold uppercase tracking-wide">DAK</div>
