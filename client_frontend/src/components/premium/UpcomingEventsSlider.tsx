@@ -116,29 +116,29 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                     />
                                 </div>
                                 <div className="flex-1 flex flex-col gap-1.5 pl-2 pr-1 py-1 min-w-0">
-                                    <h3 className="text-xs font-black text-white tracking-tight leading-tight line-clamp-2">
+                                    <h3 className="font-oswald text-xs font-black text-white tracking-tight leading-tight line-clamp-2 uppercase">
                                         {currentEvent.name}
                                     </h3>
                                     <div className="flex items-center gap-1.5">
-                                        <div className="flex-1 bg-[#1a1a1a] border-2 border-[#FFB800] rounded-lg px-2 py-1.5">
+                                        <div className="flex-1 bg-[#1a1a1a] border-2 border-[#FFB800] rounded-lg px-2 py-1.5 flex flex-col items-center justify-center">
                                             <div className="flex items-center justify-center gap-1 mb-1">
                                                 <svg className="w-3 h-3 text-[#FFB800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                                 </svg>
                                                 <span className="text-[8px] text-[#FFB800] font-bold uppercase tracking-wide">Katılımcı</span>
                                             </div>
-                                            <div className="text-sm font-black text-white text-center leading-none">
+                                            <div className="font-oswald text-sm font-black text-white text-center leading-none">
                                                 {currentEvent.participant_count || 0}
                                             </div>
                                         </div>
-                                        <div className="flex-1 bg-gradient-to-br from-[#FFB800]/20 to-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5">
+                                        <div className="flex-1 bg-gradient-to-br from-[#FFB800]/20 to-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5 flex flex-col items-center justify-center">
                                             <div className="flex items-center justify-center gap-1 mb-1">
                                                 <svg className="w-3 h-3 text-[#FFB800]" fill="currentColor" viewBox="0 0 24 24">
                                                     <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"></path>
                                                 </svg>
                                                 <span className="text-[8px] text-[#FFB800] font-bold uppercase tracking-wide">Ödül</span>
                                             </div>
-                                            <div className="text-[11px] font-black text-[#FFB800] text-center leading-none">
+                                            <div className="font-oswald text-[11px] font-black text-[#FFB800] text-center leading-none whitespace-nowrap">
                                                 20.000.000₺
                                             </div>
                                         </div>
