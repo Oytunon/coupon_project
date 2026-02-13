@@ -70,10 +70,10 @@ export default function UserDashboard() {
                 username ? getMyCoupons(username) : Promise.resolve([]),
                 username ? getMyRewards(username) : Promise.resolve([])
             ])
-            setPublicEvents(events)
-            setMyEnrollments(enrollments || [])
-            setMyCoupons(coupons || [])
-            setMyRewards(rewards || [])
+            setPublicEvents(Array.isArray(events) ? events : [])
+            setMyEnrollments(Array.isArray(enrollments) ? enrollments : [])
+            setMyCoupons(Array.isArray(coupons) ? coupons : [])
+            setMyRewards(Array.isArray(rewards) ? rewards : [])
         } catch (err) {
             console.error(err)
             setFetchError("Veriler yüklenirken bir hata oluştu.")
