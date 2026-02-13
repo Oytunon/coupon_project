@@ -192,7 +192,7 @@ export default function UserDashboard() {
 
     return (
         <ClientLayout username={username} activeCategory={activeCategory} onCategoryChange={(c) => setActiveCategory(c)}>
-            <main className="max-w-[1200px] mx-auto px-6 py-8 space-y-12">
+            <main className="max-w-[1200px] mx-auto px-2 md:px-6 py-8 space-y-12">
 
                 {/* User Info Bar - Responsive */}
                 <div className="space-y-6">
