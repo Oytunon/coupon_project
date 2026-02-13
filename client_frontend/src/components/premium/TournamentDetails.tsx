@@ -18,6 +18,23 @@ interface TournamentDetailsProps {
     onJoin: () => void
 }
 
+// Helper to calculate total prize
+const calculateTotalPrize = (rules: any) => {
+    if (!rules) return 0;
+    let validRules = rules;
+    if (typeof rules === 'string') {
+        try { validRules = JSON.parse(rules); } catch { return 0; }
+    }
+    if (!validRules.rewards || !Array.isArray(validRules.rewards)) return 0;
+    return validRules.rewards.reduce((acc: number, curr: any) => acc + (Number(curr.amount) || 0), 0);
+}
+
+const getRewardLabel = (reward: any) => {
+    if (reward.criteria_type === 'rank_exact') return `${reward.criteria_value}. Sıra`;
+    if (reward.criteria_type === 'rank') return `İlk ${reward.criteria_value} Kişi`;
+    return 'Ödül';
+}
+
 export function TournamentDetails({ event, userPoints, userRank, isJoined, onBack, username, onJoin }: TournamentDetailsProps) {
     const baseUrl = import.meta.env.VITE_API_URL || ""
     const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number }>({ days: 0, hours: 0, minutes: 0 })
@@ -34,6 +51,24 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
     const [searchQuery, setSearchQuery] = useState('')
 
     const isUpcoming = new Date() < new Date(event.start_date)
+
+    // Calculate dynamic values
+    const totalPrize = calculateTotalPrize(event.rules);
+
+    const parsedRewards = (() => {
+        let r = event.rules;
+        if (typeof r === 'string') {
+            try { r = JSON.parse(r); } catch { return []; }
+        }
+        return Array.isArray(r?.rewards) ? r.rewards : [];
+    })();
+
+    // Sort rewards by criteria_value
+    const sortedRewards = [...parsedRewards].sort((a: any, b: any) => (a.criteria_value || 0) - (b.criteria_value || 0));
+
+    // Split top 3 (exact ranks) and others
+    const top3 = sortedRewards.filter(r => r.criteria_type === 'rank_exact' && r.criteria_value <= 3);
+    const otherRewards = sortedRewards.filter(r => !top3.includes(r));
 
     useEffect(() => {
         const calculateTimeRemaining = () => {
@@ -202,7 +237,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                                     <span className="text-[10px] md:text-xs text-[#FFB800] font-bold uppercase tracking-wide md:tracking-widest">Ödül Havuzu</span>
                                                 </div>
                                                 <div className="text-center text-base md:text-lg lg:text-xl font-black text-[#FFB800] font-oswald">
-                                                    10.000.000₺
+                                                    {totalPrize > 0 ? `${totalPrize.toLocaleString('tr-TR')}₺` : 'Belirlenmedi'}
                                                 </div>
                                             </div>
                                         </div>
@@ -636,38 +671,45 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                             </div>
                             <div className="bg-black rounded-2xl p-6 md:p-8 mb-6 md:mb-8 text-center border-2 border-[#FFB800]">
                                 <div className="text-[#FFB800]/80 text-xs md:text-sm mb-2 md:mb-3 uppercase tracking-wide font-semibold">Toplam Ödül Havuzu</div>
-                                <div className="text-3xl md:text-5xl lg:text-6xl font-black text-[#FFB800] drop-shadow-[0_0_12px_rgba(255,184,0,0.4)]">10.000.000₺</div>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
-                                <div className="bg-gradient-to-br from-[#5a4a2a] to-[#3a2a1a] rounded-xl p-4 md:p-6 text-center border border-[#FFB800]/30">
-                                    <div className="text-gray-300 text-xs md:text-sm mb-2 font-semibold">1. Sıra</div>
-                                    <div className="text-3xl md:text-5xl font-black text-[#FFB800]">₺150.000</div>
-                                </div>
-                                <div className="bg-gradient-to-br from-[#3a2a1a] to-[#2a1a0a] rounded-xl p-4 md:p-6 text-center border border-[#FFB800]/30">
-                                    <div className="text-gray-300 text-xs md:text-sm mb-2 font-semibold">2. Sıra</div>
-                                    <div className="text-3xl md:text-5xl font-black text-[#FFB800]">₺100.000</div>
-                                </div>
-                                <div className="bg-gradient-to-br from-[#3a2a1a] to-[#2a1a0a] rounded-xl p-4 md:p-6 text-center border border-[#FFB800]/30">
-                                    <div className="text-gray-300 text-xs md:text-sm mb-2 font-semibold">3. Sıra</div>
-                                    <div className="text-3xl md:text-5xl font-black text-[#FFB800]">₺50.000</div>
+                                <div className="text-3xl md:text-5xl lg:text-6xl font-black text-[#FFB800] drop-shadow-[0_0_12px_rgba(255,184,0,0.4)]">
+                                    {totalPrize.toLocaleString('tr-TR')}₺
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-                                <div className="bg-black rounded-xl p-4 md:p-6 text-center border border-[#FFB800]/50">
-                                    <div className="text-[#FFB800]/70 text-xs md:text-sm mb-2 font-semibold">4-10. Sıra</div>
-                                    <div className="text-2xl md:text-3xl font-bold text-[#FFB800]">₺15.000</div>
+                            {/* Top 3 Rewards */}
+                            {top3.length > 0 && (
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
+                                    {top3.map((reward: any, idx: number) => {
+                                        let bgClass = "from-[#3a2a1a] to-[#2a1a0a]";
+                                        if (reward.criteria_value === 1) bgClass = "from-[#5a4a2a] to-[#3a2a1a]";
+
+                                        return (
+                                            <div key={idx} className={`bg-gradient-to-br ${bgClass} rounded-xl p-4 md:p-6 text-center border border-[#FFB800]/30`}>
+                                                <div className="text-gray-300 text-xs md:text-sm mb-2 font-semibold">{getRewardLabel(reward)}</div>
+                                                <div className="text-3xl md:text-5xl font-black text-[#FFB800]">₺{Number(reward.amount).toLocaleString('tr-TR')}</div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                                <div className="bg-black rounded-xl p-4 md:p-6 text-center border border-[#FFB800]/50">
-                                    <div className="text-[#FFB800]/70 text-xs md:text-sm mb-2 font-semibold">11-25. Sıra</div>
-                                    <div className="text-2xl md:text-3xl font-bold text-[#FFB800]">₺5.000</div>
+                            )}
+
+                            {/* Other Rewards */}
+                            {otherRewards.length > 0 && (
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+                                    {otherRewards.map((reward: any, idx: number) => (
+                                        <div key={idx} className="bg-black rounded-xl p-4 md:p-6 text-center border border-[#FFB800]/50">
+                                            <div className="text-[#FFB800]/70 text-xs md:text-sm mb-2 font-semibold">{getRewardLabel(reward)}</div>
+                                            <div className="text-2xl md:text-3xl font-bold text-[#FFB800]">₺{Number(reward.amount).toLocaleString('tr-TR')}</div>
+                                        </div>
+                                    ))}
                                 </div>
-                                <div className="bg-black rounded-xl p-4 md:p-6 text-center border border-[#FFB800]/50">
-                                    <div className="text-[#FFB800]/70 text-xs md:text-sm mb-2 font-semibold">26-50. Sıra</div>
-                                    <div className="text-2xl md:text-3xl font-bold text-[#FFB800]">₺2.000</div>
+                            )}
+
+                            {top3.length === 0 && otherRewards.length === 0 && (
+                                <div className="text-center p-8 bg-black border border-[#FFB800]/30 rounded-xl">
+                                    <p className="text-gray-400">Henüz ödül bilgisi girilmemiş.</p>
                                 </div>
-                            </div>
+                            )}
 
                             <div className="mt-6 md:mt-8 bg-black border border-[#FFB800]/30 rounded-xl p-4 md:p-6">
                                 <p className="text-gray-400 text-xs md:text-sm leading-relaxed"><strong className="text-[#FFB800]">Not:</strong> Turnuva kurallarında değişiklik hakkı saklıdır. Güncel kurallar için bu sayfayı düzenli olarak kontrol ediniz.</p>
