@@ -208,29 +208,14 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                     </div>
 
                     {/* DESKTOP VIEW */}
-                    <div className="hidden lg:block">
-                        <div className="relative rounded-xl overflow-hidden bg-black border-2 border-[#FFB800] shadow-2xl hover:shadow-[0_0_30px_rgba(255,184,0,0.4)] transition-transform duration-300 hover:scale-[1.01] cursor-pointer h-[280px]">
+                    <div className="hidden lg:block border-2 border-[#FFB800] rounded-xl lg:rounded-2xl overflow-hidden hover:scale-[1.01] transition-transform duration-300">
+                        <div className="relative rounded-xl overflow-hidden cursor-pointer transition-transform duration-300 bg-black border-2 border-[#FFB800] shadow-2xl hover:shadow-[0_0_30px_rgba(255,184,0,0.4)]">
 
-                            {/* Status Badge */}
-                            <div className="absolute top-0 right-0 z-30 overflow-hidden pointer-events-none">
-                                <div className="relative">
-                                    <div className="absolute top-0 right-0 w-32 h-32 overflow-hidden">
-                                        <div className="absolute top-8 -right-8 w-40 transform rotate-45 shadow-lg flex justify-center py-2 bg-gradient-to-r from-gray-600 to-gray-500 border-t border-b border-gray-400/30">
-                                            <div className="flex items-center justify-center gap-1.5">
-                                                <span className="font-oswald text-white text-xs font-bold tracking-wider uppercase">
-                                                    YAKINDA
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="relative h-full">
-                                <div className="flex flex-row items-stretch justify-between h-full">
-                                    <div className="flex flex-row items-stretch gap-0 flex-1 relative z-10 w-full">
+                            <div className="relative">
+                                <div className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4 md:gap-0">
+                                    <div className="flex flex-col md:flex-row items-start md:items-center gap-0 flex-1 relative z-10 w-full">
                                         {/* Image */}
-                                        <div className="w-[280px] shrink-0 border-r-2 border-[#FFB800]">
+                                        <div className="w-full h-28 md:w-[280px] md:h-full shrink-0 md:border-r-2 border-[#FFB800]">
                                             <img
                                                 src={currentEvent.image_url || "/placeholder-tournament.jpg"}
                                                 alt={currentEvent.name}
@@ -239,45 +224,26 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                         </div>
 
                                         {/* Middle: Title and Stats Boxes */}
-                                        <div className="flex flex-col flex-1 px-6 py-6 w-full justify-center">
-                                            <div className="text-center mb-4">
-                                                <h3 className="font-oswald text-3xl font-black text-white tracking-tight leading-tight mb-2 px-2 uppercase">
+                                        <div className="flex flex-col flex-1 px-3 md:px-6 py-3 md:py-6 w-full">
+                                            <div className="text-center mb-2 md:mb-4">
+                                                <h3 className="text-base md:text-2xl lg:text-3xl font-black text-white tracking-tight leading-tight mb-1 md:mb-2 px-2">
                                                     {currentEvent.name}
                                                 </h3>
-                                                <div className="h-0.5 w-16 mx-auto bg-gradient-to-r from-transparent via-[#FFB800] to-transparent rounded-full"></div>
+                                                <div className="h-0.5 w-12 md:w-16 mx-auto bg-gradient-to-r from-transparent via-[#FFB800] to-transparent rounded-full"></div>
                                             </div>
 
-                                            <div className="flex flex-wrap items-center justify-center gap-4">
-                                                {/* Participants Box */}
-                                                <div className="group relative bg-[#1a1a1a] border-2 border-[#FFB800] rounded-2xl p-8 hover:border-[#FFA500] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#1a1a1a]/20 hover:shadow-xl hover:shadow-[#FFB800]/40 flex-1 min-w-[130px] max-w-[180px]">
-                                                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
-                                                    <div className="relative">
-                                                        <div className="flex items-center justify-center gap-2 mb-2">
-                                                            <svg className="w-6 h-6 text-[#FFB800]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                                                                <circle cx="9" cy="7" r="4"></circle>
-                                                                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                                                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                                            </svg>
-                                                            <span className="text-xs text-[#FFB800] font-bold uppercase tracking-widest">Katılımcı</span>
-                                                        </div>
-                                                        <div className="text-center font-oswald text-3xl font-black text-white">
-                                                            {(currentEvent.participant_count || 0).toLocaleString('tr-TR')}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
+                                            <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4">
                                                 {/* Prize Box */}
-                                                <div className="group relative bg-gradient-to-br from-[#FFB800]/20 via-[#FFA500]/10 to-black border-2 border-[#FFB800] rounded-2xl p-8 hover:border-[#FFA500] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#FFB800]/20 hover:shadow-[#FFB800]/40 hover:shadow-xl flex-1 min-w-[130px] max-w-[180px]">
-                                                    <div className="absolute inset-0 bg-gradient-to-br from-[#FFB800]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
+                                                <div className="group relative bg-gradient-to-br from-[#FFB800]/20 via-[#FFA500]/10 to-black border-2 border-[#FFB800] rounded-xl md:rounded-2xl p-3 md:p-8 hover:border-[#FFA500] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#FFB800]/20 hover:shadow-[#FFB800]/40 hover:shadow-xl flex-1 min-w-[110px] md:min-w-[130px] max-w-[150px] md:max-w-[180px]">
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-[#FFB800]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl md:rounded-2xl"></div>
                                                     <div className="relative">
-                                                        <div className="flex items-center justify-center gap-2 mb-2">
-                                                            <svg className="w-6 h-6 text-[#FFB800]" fill="currentColor" viewBox="0 0 24 24">
+                                                        <div className="flex items-center justify-center gap-1 md:gap-2 mb-1 md:mb-2">
+                                                            <svg className="w-3 h-3 md:w-6 md:h-6 text-[#FFB800]" fill="currentColor" viewBox="0 0 24 24">
                                                                 <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"></path>
                                                             </svg>
-                                                            <span className="text-xs text-[#FFB800] font-bold uppercase tracking-widest">Ödül</span>
+                                                            <span className="text-[9px] md:text-xs text-[#FFB800] font-bold uppercase tracking-wide md:tracking-widest">Ödül</span>
                                                         </div>
-                                                        <div className="text-center text-xl font-black text-[#FFB800]">
+                                                        <div className="text-center text-sm md:text-lg lg:text-xl font-black text-[#FFB800]">
                                                             20.000.000₺
                                                         </div>
                                                     </div>
@@ -287,11 +253,8 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                     </div>
 
                                     {/* Countdown and Button */}
-                                    <div className="flex flex-col gap-4 relative z-10 items-end pr-6 py-6 w-auto min-w-[300px] justify-center">
-                                        <div className="text-center mb-4">
-                                            <span className="text-[#FFB800] text-sm font-bold uppercase tracking-widest animate-pulse">BAŞLIYOR</span>
-                                        </div>
-                                        <div className="w-full flex flex-col gap-4">
+                                    <div className="flex flex-col gap-2 md:gap-4 relative z-10 items-stretch md:items-end px-3 md:pr-6 pb-3 md:py-6 w-full md:w-auto">
+                                        <div className="w-full flex flex-col gap-2 md:gap-4">
                                             <div className="flex justify-center gap-3">
                                                 {/* Days */}
                                                 <div className="text-center">
