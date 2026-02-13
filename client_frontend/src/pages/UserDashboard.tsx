@@ -253,6 +253,48 @@ export default function UserDashboard() {
                 {/* Show Main Tournament List only if NOT 'finished' or 'report' */}
                 {!['finished', 'report', 'coupons'].includes(activeCategory) && (
                     <>
+                        {/* Enrolled Tournaments (Only show when activeCategory is 'all' and user has enrollments) */}
+                        {activeCategory === 'all' && myEnrollments.length > 0 && (() => {
+                            const enrolledEvents = publicEvents.filter(e =>
+                                myEnrollments.some(enr => enr.event_id === e.id) && ['active', 'upcoming', 'paused'].includes(e.status)
+                            );
+                            if (enrolledEvents.length === 0) return null;
+                            return (
+                                <div className="space-y-1.5 pb-1 border-b border-white/10 mb-1">
+                                    <div className="flex items-center gap-2 lg:gap-4 justify-center">
+                                        <div className="h-px bg-gradient-to-r from-transparent to-primary/30 flex-1"></div>
+                                        <h3 className="text-sm lg:text-xl font-black text-white uppercase italic tracking-widest px-2 lg:px-8 whitespace-nowrap">
+                                            KAYITLI TURNUVALARIM
+                                        </h3>
+                                        <div className="h-px bg-gradient-to-l from-transparent to-primary/30 flex-1"></div>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        {enrolledEvents.map((event) => {
+                                            const enrollment = myEnrollments.find(e => e.event_id === event.id);
+                                            return (
+                                                <TournamentCard
+                                                    key={event.id}
+                                                    id={event.id}
+                                                    name={event.name}
+                                                    description={event.description || ""}
+                                                    image_url={event.image_url ?? null}
+                                                    status={event.status}
+                                                    startDate={event.start_date}
+                                                    endDate={event.end_date}
+                                                    participantCount={event.participant_count}
+                                                    isJoined={true}
+                                                    userPoints={enrollment?.score || 0}
+                                                    userRank={enrollment?.rank || 0}
+                                                    onJoin={(id) => handleJoin(id)}
+                                                    onDetails={(id) => handleSwitchEvent(id)}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
                         <div className="flex flex-col gap-1 opacity-100 transition-opacity duration-300">
                             <div className="flex items-center gap-2 lg:gap-4 justify-center">
                                 <div className="h-px bg-gradient-to-r from-transparent to-primary/30 flex-1"></div>
@@ -314,47 +356,7 @@ export default function UserDashboard() {
                             </div>
                         )}
 
-                        {/* Enrolled Tournaments (Only show when activeCategory is 'all' and user has enrollments) */}
-                        {activeCategory === 'all' && myEnrollments.length > 0 && (() => {
-                            const enrolledEvents = publicEvents.filter(e =>
-                                myEnrollments.some(enr => enr.event_id === e.id) && ['active', 'upcoming', 'paused'].includes(e.status)
-                            );
-                            if (enrolledEvents.length === 0) return null;
-                            return (
-                                <div className="space-y-1.5 pt-1 border-t border-white/10">
-                                    <div className="flex items-center gap-2 lg:gap-4 justify-center">
-                                        <div className="h-px bg-gradient-to-r from-transparent to-primary/30 flex-1"></div>
-                                        <h3 className="text-sm lg:text-xl font-black text-white uppercase italic tracking-widest px-2 lg:px-8 whitespace-nowrap">
-                                            KAYITLI TURNUVALARIM
-                                        </h3>
-                                        <div className="h-px bg-gradient-to-l from-transparent to-primary/30 flex-1"></div>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        {enrolledEvents.map((event) => {
-                                            const enrollment = myEnrollments.find(e => e.event_id === event.id);
-                                            return (
-                                                <TournamentCard
-                                                    key={event.id}
-                                                    id={event.id}
-                                                    name={event.name}
-                                                    description={event.description || ""}
-                                                    image_url={event.image_url ?? null}
-                                                    status={event.status}
-                                                    startDate={event.start_date}
-                                                    endDate={event.end_date}
-                                                    participantCount={event.participant_count}
-                                                    isJoined={true}
-                                                    userPoints={enrollment?.score || 0}
-                                                    userRank={enrollment?.rank || 0}
-                                                    onJoin={(id) => handleJoin(id)}
-                                                    onDetails={(id) => handleSwitchEvent(id)}
-                                                />
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            );
-                        })()}
+
 
                         {/* Past Tournaments (Only show when activeCategory is 'all' and there are past events) */}
                         {activeCategory === 'all' && pastEvents.length > 0 && (
