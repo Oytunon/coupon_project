@@ -796,36 +796,75 @@ export default function UserDashboard() {
                                                                 </TableCell>
                                                             </TableRow>
                                                             {expandedEventId === enr.event_id && (
-                                                                <TableRow className="bg-black/40 border-none">
-                                                                    <TableCell colSpan={5} className="p-4">
+                                                                <tr className="bg-black/40 border-none">
+                                                                    <td colSpan={5} className="p-4">
                                                                         <div className="rounded-xl border border-white/5 overflow-hidden animate-in fade-in zoom-in-95">
-                                                                            <Table>
-                                                                                <TableHeader className="bg-white/5">
-                                                                                    <TableRow className="border-none">
-                                                                                        <TableHead className="w-[80px] text-[10px] uppercase font-bold">Sıra</TableHead>
-                                                                                        <TableHead className="text-[10px] uppercase font-bold">Kullanıcı</TableHead>
-                                                                                        <TableHead className="text-right text-[10px] uppercase font-bold">Puan</TableHead>
-                                                                                    </TableRow>
-                                                                                </TableHeader>
-                                                                                <TableBody>
-                                                                                    {loadingLeaderboard ? (
-                                                                                        <TableRow><TableCell colSpan={3} className="text-center py-4"><Loader2 className="animate-spin h-5 w-5 mx-auto text-amber-500" /></TableCell></TableRow>
-                                                                                    ) : (
-                                                                                        expandedLeaderboard.map((user, idx) => (
-                                                                                            <TableRow key={idx} className={user.username === username ? "bg-amber-500/10 border-amber-500/20" : "border-white/5"}>
-                                                                                                <TableCell className="font-mono font-bold text-white">#{idx + 1}</TableCell>
-                                                                                                <TableCell className={user.username === username ? "text-amber-500 font-bold" : "text-neutral-300"}>
-                                                                                                    {user.username === username ? `${user.username} (SEN)` : user.username}
-                                                                                                </TableCell>
-                                                                                                <TableCell className="text-right font-mono text-white">{(user.score || 0).toLocaleString()}</TableCell>
-                                                                                            </TableRow>
-                                                                                        ))
-                                                                                    )}
-                                                                                </TableBody>
-                                                                            </Table>
+                                                                            {loadingLeaderboard ? (
+                                                                                <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber-500" /></div>
+                                                                            ) : (
+                                                                                <div className="bg-black rounded-xl border border-[#FFB800]/30 overflow-hidden">
+                                                                                    {/* Top 10 List */}
+                                                                                    {expandedLeaderboard.slice(0, 10).map((user, idx) => {
+                                                                                        const rank = idx + 1;
+                                                                                        // Mask username logic
+                                                                                        const parts = user.username.split(' ');
+                                                                                        const maskedName = parts.map((p: string) => p.length > 1 ? p[0] + '*'.repeat(p.length - 2) + p[p.length - 1] : p).join(' ');
+
+                                                                                        // Initials
+                                                                                        const initial = user.username.substring(0, 2).toUpperCase();
+
+                                                                                        // Rank Colors
+                                                                                        const rankColor = rank === 1 ? 'from-[#FFB800] to-[#FFA500] text-black' :
+                                                                                            rank === 2 ? 'from-[#E0E0E0] to-[#BDBDBD] text-black' :
+                                                                                                rank === 3 ? 'from-[#CD7F32] to-[#8B4513] text-white' :
+                                                                                                    'from-[#5a4a2a] to-[#3a2a1a] text-white';
+
+                                                                                        return (
+                                                                                            <div key={idx} className="flex items-center justify-between px-3 md:px-6 py-3 md:py-4 hover:bg-black/50 transition-all border-b border-[#FFB800]/30 last:border-none">
+                                                                                                <div className="flex items-center gap-2 md:gap-4">
+                                                                                                    <div className="w-8 h-8 md:w-12 md:h-12 bg-black border border-[#FFB800]/30 rounded-full flex items-center justify-center text-gray-300 font-bold text-xs md:text-base">
+                                                                                                        {rank}
+                                                                                                    </div>
+                                                                                                    <div className={`w-8 h-8 md:w-12 md:h-12 rounded-full bg-gradient-to-br ${rankColor} flex items-center justify-center font-bold text-sm md:text-lg`}>
+                                                                                                        {initial}
+                                                                                                    </div>
+                                                                                                    <div className="font-medium text-gray-200 text-sm md:text-base">
+                                                                                                        {maskedName}
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                                <div className="text-base md:text-xl font-bold text-white">
+                                                                                                    {(user.score || 0).toLocaleString()}
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        );
+                                                                                    })}
+
+                                                                                    {/* Current User Rank Fixed Footer */}
+                                                                                    <div className="mt-6 bg-black rounded-xl border-2 border-[#FFB800] overflow-hidden">
+                                                                                        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 md:px-6 py-4 md:py-5">
+                                                                                            <div className="flex items-center gap-3 md:gap-4">
+                                                                                                <div className="w-10 h-10 md:w-12 md:h-12 bg-black border-2 border-[#FFB800] rounded-full flex items-center justify-center text-[#FFB800] font-bold text-sm md:text-base">
+                                                                                                    {enr.rank || '-'}
+                                                                                                </div>
+                                                                                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-[#FFB800] to-[#FFA500] flex items-center justify-center font-bold text-base md:text-lg text-black">
+                                                                                                    {username ? username.substring(0, 2).toUpperCase() : 'ME'}
+                                                                                                </div>
+                                                                                                <div>
+                                                                                                    <div className="text-gray-400 text-xs font-semibold uppercase tracking-wide">Senin Sıran</div>
+                                                                                                    <div className="text-[#FFB800] font-bold text-sm md:text-base">#{enr.rank || '-'}</div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                            <div className="text-center sm:text-right">
+                                                                                                <div className="text-gray-400 text-xs font-semibold uppercase tracking-wide">Puanın</div>
+                                                                                                <div className="text-lg md:text-xl font-bold text-white">{enr.score.toLocaleString()}</div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
                                                                         </div>
-                                                                    </TableCell>
-                                                                </TableRow>
+                                                                    </td>
+                                                                </tr>
                                                             )}
                                                         </Fragment>
                                                     ))}
