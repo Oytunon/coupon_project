@@ -212,10 +212,10 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                         <div className="relative rounded-xl overflow-hidden cursor-pointer transition-transform duration-300 bg-black border-2 border-[#FFB800] shadow-2xl hover:shadow-[0_0_30px_rgba(255,184,0,0.4)]">
 
                             <div className="relative">
-                                <div className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4 md:gap-0">
-                                    <div className="flex flex-col md:flex-row items-start md:items-center gap-0 flex-1 relative z-10 w-full">
+                                <div className="flex flex-row items-stretch justify-between">
+                                    <div className="flex flex-row items-stretch gap-0 flex-1 relative z-10 w-full">
                                         {/* Image */}
-                                        <div className="w-full h-28 md:w-[280px] md:h-full shrink-0 md:border-r-2 border-[#FFB800]">
+                                        <div className="w-[240px] shrink-0 border-r-2 border-[#FFB800]">
                                             <img
                                                 src={currentEvent.image_url || "/placeholder-tournament.jpg"}
                                                 alt={currentEvent.name}
@@ -224,26 +224,26 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                         </div>
 
                                         {/* Middle: Title and Stats Boxes */}
-                                        <div className="flex flex-col flex-1 px-3 md:px-6 py-3 md:py-6 w-full">
-                                            <div className="text-center mb-2 md:mb-4">
-                                                <h3 className="text-base md:text-2xl lg:text-3xl font-black text-white tracking-tight leading-tight mb-1 md:mb-2 px-2">
+                                        <div className="flex flex-col flex-1 px-4 py-3 w-full justify-center">
+                                            <div className="text-center mb-2">
+                                                <h3 className="font-oswald text-xl font-black text-white tracking-tight leading-tight mb-1 px-2 uppercase">
                                                     {currentEvent.name}
                                                 </h3>
-                                                <div className="h-0.5 w-12 md:w-16 mx-auto bg-gradient-to-r from-transparent via-[#FFB800] to-transparent rounded-full"></div>
+                                                <div className="h-0.5 w-12 mx-auto bg-gradient-to-r from-transparent via-[#FFB800] to-transparent rounded-full"></div>
                                             </div>
 
-                                            <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4">
+                                            <div className="flex flex-wrap items-center justify-center gap-3">
                                                 {/* Prize Box */}
-                                                <div className="group relative bg-gradient-to-br from-[#FFB800]/20 via-[#FFA500]/10 to-black border-2 border-[#FFB800] rounded-xl md:rounded-2xl p-3 md:p-8 hover:border-[#FFA500] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#FFB800]/20 hover:shadow-[#FFB800]/40 hover:shadow-xl flex-1 min-w-[110px] md:min-w-[130px] max-w-[150px] md:max-w-[180px]">
-                                                    <div className="absolute inset-0 bg-gradient-to-br from-[#FFB800]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl md:rounded-2xl"></div>
+                                                <div className="group relative bg-gradient-to-br from-[#FFB800]/20 via-[#FFA500]/10 to-black border-2 border-[#FFB800] rounded-xl p-3 hover:border-[#FFA500] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#FFB800]/20 hover:shadow-[#FFB800]/40 hover:shadow-xl flex-1 min-w-[100px] max-w-[140px]">
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-[#FFB800]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
                                                     <div className="relative">
-                                                        <div className="flex items-center justify-center gap-1 md:gap-2 mb-1 md:mb-2">
-                                                            <svg className="w-3 h-3 md:w-6 md:h-6 text-[#FFB800]" fill="currentColor" viewBox="0 0 24 24">
+                                                        <div className="flex items-center justify-center gap-1.5 mb-1">
+                                                            <svg className="w-4 h-4 text-[#FFB800]" fill="currentColor" viewBox="0 0 24 24">
                                                                 <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"></path>
                                                             </svg>
-                                                            <span className="text-[9px] md:text-xs text-[#FFB800] font-bold uppercase tracking-wide md:tracking-widest">Ödül</span>
+                                                            <span className="text-[10px] text-[#FFB800] font-bold uppercase tracking-wide">Ödül</span>
                                                         </div>
-                                                        <div className="text-center text-sm md:text-lg lg:text-xl font-black text-[#FFB800]">
+                                                        <div className="text-center font-oswald text-base font-black text-[#FFB800]">
                                                             20.000.000₺
                                                         </div>
                                                     </div>
@@ -253,73 +253,73 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                     </div>
 
                                     {/* Countdown and Button */}
-                                    <div className="flex flex-col gap-2 md:gap-4 relative z-10 items-stretch md:items-end px-3 md:pr-6 pb-3 md:py-6 w-full md:w-auto">
-                                        <div className="w-full flex flex-col gap-2 md:gap-4">
-                                            <div className="flex justify-center gap-3">
+                                    <div className="flex flex-col gap-2 relative z-10 items-end pr-4 py-3 w-auto justify-center">
+                                        <div className="w-full flex flex-col gap-2">
+                                            <div className="flex justify-center gap-2">
                                                 {/* Days */}
                                                 <div className="text-center">
-                                                    <div className="bg-black border-2 border-[#FFB800] rounded-lg px-3 py-2.5 shadow-lg shadow-[#FFB800]/20">
-                                                        <div className="flex gap-1">
+                                                    <div className="bg-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5 shadow-lg shadow-[#FFB800]/20">
+                                                        <div className="flex gap-0.5">
                                                             {d.split('').map((digit, i) => (
-                                                                <div key={i} className="relative w-[24px] h-[40px] overflow-hidden">
+                                                                <div key={i} className="relative w-[20px] h-[32px] overflow-hidden">
                                                                     <div
                                                                         className="absolute inset-0 flex items-center justify-center bg-black rounded"
                                                                         style={{
                                                                             animation: mounted ? `digitSlideIn 0.5s ${i * 0.08}s cubic-bezier(0.34, 1.56, 0.64, 1) both` : 'none',
                                                                         }}
                                                                     >
-                                                                        <span className="text-3xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
+                                                                        <span className="text-2xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
                                                                     </div>
                                                                     <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-black/60 z-10"></div>
                                                                 </div>
                                                             ))}
                                                         </div>
                                                     </div>
-                                                    <div className="text-xs text-white mt-1.5 font-bold uppercase tracking-wide">GÜN</div>
+                                                    <div className="text-[10px] text-white mt-1 font-bold uppercase tracking-wide">GÜN</div>
                                                 </div>
-                                                <div className="text-2xl font-bold text-[#FFB800]/70 self-center pb-5 animate-pulse">:</div>
+                                                <div className="font-oswald text-xl font-bold text-[#FFB800]/70 self-center pb-4 animate-pulse">:</div>
                                                 {/* Hours */}
                                                 <div className="text-center">
-                                                    <div className="bg-black border-2 border-[#FFB800] rounded-lg px-3 py-2.5 shadow-lg shadow-[#FFB800]/20">
-                                                        <div className="flex gap-1">
+                                                    <div className="bg-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5 shadow-lg shadow-[#FFB800]/20">
+                                                        <div className="flex gap-0.5">
                                                             {h.split('').map((digit, i) => (
-                                                                <div key={i} className="relative w-[24px] h-[40px] overflow-hidden">
+                                                                <div key={i} className="relative w-[20px] h-[32px] overflow-hidden">
                                                                     <div
                                                                         className="absolute inset-0 flex items-center justify-center bg-black rounded"
                                                                         style={{
                                                                             animation: mounted ? `digitSlideIn 0.5s ${(2 + i) * 0.08}s cubic-bezier(0.34, 1.56, 0.64, 1) both` : 'none',
                                                                         }}
                                                                     >
-                                                                        <span className="text-3xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
+                                                                        <span className="text-2xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
                                                                     </div>
                                                                     <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-black/60 z-10"></div>
                                                                 </div>
                                                             ))}
                                                         </div>
                                                     </div>
-                                                    <div className="text-xs text-white mt-1.5 font-bold uppercase tracking-wide">SAAT</div>
+                                                    <div className="text-[10px] text-white mt-1 font-bold uppercase tracking-wide">SAAT</div>
                                                 </div>
-                                                <div className="text-2xl font-bold text-[#FFB800]/70 self-center pb-5 animate-pulse">:</div>
+                                                <div className="font-oswald text-xl font-bold text-[#FFB800]/70 self-center pb-4 animate-pulse">:</div>
                                                 {/* Minutes */}
                                                 <div className="text-center">
-                                                    <div className="bg-black border-2 border-[#FFB800] rounded-lg px-3 py-2.5 shadow-lg shadow-[#FFB800]/20">
-                                                        <div className="flex gap-1">
+                                                    <div className="bg-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5 shadow-lg shadow-[#FFB800]/20">
+                                                        <div className="flex gap-0.5">
                                                             {m.split('').map((digit, i) => (
-                                                                <div key={i} className="relative w-[24px] h-[40px] overflow-hidden">
+                                                                <div key={i} className="relative w-[20px] h-[32px] overflow-hidden">
                                                                     <div
                                                                         className="absolute inset-0 flex items-center justify-center bg-black rounded"
                                                                         style={{
                                                                             animation: mounted ? `digitSlideIn 0.5s ${(4 + i) * 0.08}s cubic-bezier(0.34, 1.56, 0.64, 1) both` : 'none',
                                                                         }}
                                                                     >
-                                                                        <span className="text-3xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
+                                                                        <span className="text-2xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
                                                                     </div>
                                                                     <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-black/60 z-10"></div>
                                                                 </div>
                                                             ))}
                                                         </div>
                                                     </div>
-                                                    <div className="text-xs text-white mt-1.5 font-bold uppercase tracking-wide">DAK</div>
+                                                    <div className="text-[10px] text-white mt-1 font-bold uppercase tracking-wide">DAK</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -329,7 +329,7 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                                 e.stopPropagation();
                                                 onDetails(currentEvent.id);
                                             }}
-                                            className="px-8 py-3 bg-[#FFB800] hover:bg-[#FFA500] text-black rounded-xl font-bold text-base shadow-lg hover:shadow-xl transition-all w-auto"
+                                            className="px-6 py-2 bg-[#FFB800] hover:bg-[#FFA500] text-black rounded-lg font-bold text-sm shadow-lg hover:shadow-xl transition-all w-auto"
                                         >
                                             Detayları Gör
                                         </button>
