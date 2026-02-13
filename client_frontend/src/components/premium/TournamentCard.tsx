@@ -51,15 +51,7 @@ export function TournamentCard({
     };
 
     const handleClick = () => {
-        if (status === 'active') {
-            if (!isJoined) {
-                onJoin?.(id);
-            } else {
-                onDetails?.(id);
-            }
-        } else {
-            onDetails?.(id);
-        }
+        onDetails?.(id);
     };
 
     return (
@@ -340,14 +332,7 @@ export function TournamentCard({
                                         </div>
                                     )}
 
-                                    <button
-                                        className="px-8 py-3 bg-[#FFB800] hover:bg-[#FFA500] text-black rounded-xl font-bold text-base shadow-lg hover:shadow-xl transition-all uppercase w-full"
-                                    >
-                                        {status === 'active'
-                                            ? (isJoined ? 'Detayları Gör' : 'Hemen Katıl')
-                                            : 'Sonuçları Gör'
-                                        }
-                                    </button>
+
                                 </div>
                             </div>
                         </div>

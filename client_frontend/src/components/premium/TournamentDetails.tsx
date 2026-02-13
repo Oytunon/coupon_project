@@ -15,9 +15,10 @@ interface TournamentDetailsProps {
     isJoined: boolean
     onBack: () => void
     username: string
+    onJoin: () => void
 }
 
-export function TournamentDetails({ event, userPoints, userRank, isJoined, onBack, username }: TournamentDetailsProps) {
+export function TournamentDetails({ event, userPoints, userRank, isJoined, onBack, username, onJoin }: TournamentDetailsProps) {
     const baseUrl = import.meta.env.VITE_API_URL || ""
     const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number }>({ days: 0, hours: 0, minutes: 0 })
     const [activeTab, setActiveTab] = useState<'info' | 'leaderboard' | 'coupons' | 'rewards' | 'rules'>('info')
@@ -230,6 +231,16 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                                 </div>
                                             </div>
                                         </div>
+                                    )}
+
+                                    {!isJoined && event.status === 'active' && (
+                                        <button
+                                            onClick={onJoin}
+                                            className="px-8 py-4 bg-[#FFB800] hover:bg-[#FFA500] text-black font-black text-xl rounded-xl shadow-[0_0_20px_rgba(255,184,0,0.3)] hover:shadow-[0_0_30px_rgba(255,184,0,0.5)] transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2 w-full md:w-auto"
+                                        >
+                                            <UserPlus className="w-6 h-6" />
+                                            HEMEN KATIL
+                                        </button>
                                     )}
 
                                     {/* Countdown */}

@@ -16,11 +16,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ClientLayout } from "@/components/layout/ClientLayout"
 
-import { useNavigate, useParams } from "react-router-dom"
+import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { TournamentDetails } from "@/components/premium/TournamentDetails"
 
 export default function UserDashboard() {
-    const { eventId: paramEventId, username: paramUsername } = useParams()
+    const [searchParams, setSearchParams] = useSearchParams()
+    const paramEventId = searchParams.get('eventId') || useParams().eventId
+    const paramUsername = searchParams.get('username') || useParams().username
     const navigate = useNavigate()
     const { toast } = useToast()
 
@@ -100,9 +102,12 @@ export default function UserDashboard() {
     }
 
     const handleSwitchEvent = (id: number) => {
-        let url = `/event/${id}`
-        if (username) url += `?username=${username}`
-        window.location.href = url
+        setSearchParams(prev => {
+            const newParams = new URLSearchParams(prev)
+            newParams.set('eventId', id.toString())
+            if (username) newParams.set('username', username)
+            return newParams
+        })
     }
 
     const toggleLeaderboard = async (id: number) => {
@@ -139,8 +144,15 @@ export default function UserDashboard() {
                     userPoints={enrollment?.score || 0}
                     userRank={enrollment?.rank || 0}
                     isJoined={!!enrollment}
-                    onBack={() => navigate('/')}
+                    onBack={() => {
+                        setSearchParams(prev => {
+                            const newParams = new URLSearchParams(prev)
+                            newParams.delete('eventId')
+                            return newParams
+                        })
+                    }}
                     username={username || ''}
+                    onJoin={() => handleJoin(selectedEvent.id)}
                 />
             )
         }
