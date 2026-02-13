@@ -162,27 +162,51 @@ export default function UserDashboard() {
         <ClientLayout username={username}>
             <main className="max-w-[1200px] mx-auto px-6 py-8 space-y-12">
 
-                {/* User Info Bar - Refined (Badges Removed) */}
-                <div className="flex flex-col md:flex-row items-center justify-between gap-12 bg-black/20 rounded-3xl p-8 border border-white/5 shadow-2xl backdrop-blur-sm">
-                    <div className="flex items-center gap-10">
-                        {/* User Profile */}
-                        <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center text-black font-black text-lg shadow-lg">
-                                <Users className="h-6 w-6" />
+                {/* User Info Bar - Responsive */}
+                <div className="space-y-6">
+                    {/* Mobile Compact User Stats */}
+                    <div className="flex md:hidden items-center justify-between gap-2 bg-black/40 p-4 rounded-xl border border-white/10 backdrop-blur-md shadow-lg">
+                        <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 bg-gradient-to-br from-[#FFB800] to-[#FFA500] rounded-full flex items-center justify-center border border-black shadow-[0_0_10px_rgba(255,184,0,0.3)]">
+                                <Users className="w-3.5 h-3.5 text-black" />
                             </div>
-                            <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">{username || "Misafir"}</h2>
+                            <span className="text-xs font-bold text-white">{username || "Misafir"}</span>
                         </div>
-
-                        {/* Simplified Stats */}
-                        <div className="flex items-center gap-10">
-                            <div className="flex items-center gap-4">
-                                <span className="text-primary font-black text-4xl italic tracking-tighter leading-none">{myEnrollments.length}</span>
-                                <span className="text-[10px] text-white font-black uppercase tracking-widest leading-tight">KAYITLI<br />TURNUVA</span>
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-lg font-black bg-gradient-to-r from-[#FFB800] to-[#FFA500] bg-clip-text text-transparent tabular-nums">{myEnrollments.length}</span>
+                                <span className="text-[8px] text-white font-medium uppercase">kayıtlı</span>
                             </div>
-                            <div className="w-px h-10 bg-white/10"></div>
+                            <div className="h-4 w-px bg-gradient-to-b from-transparent via-gray-700 to-transparent"></div>
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-lg font-black bg-gradient-to-r from-[#FFA500] to-[#FF8C00] bg-clip-text text-transparent tabular-nums">{publicEvents.filter(e => e.status === 'active').length}</span>
+                                <span className="text-[8px] text-white font-medium uppercase">aktif</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Desktop Big User Stats */}
+                    <div className="hidden md:flex flex-col md:flex-row items-center justify-between gap-12 bg-black/20 rounded-3xl p-8 border border-white/5 shadow-2xl backdrop-blur-sm">
+                        <div className="flex items-center gap-10">
+                            {/* User Profile */}
                             <div className="flex items-center gap-4">
-                                <span className="text-primary font-black text-4xl italic tracking-tighter leading-none">{publicEvents.filter(e => e.status === 'active').length}</span>
-                                <span className="text-[10px] text-white font-black uppercase tracking-widest leading-tight">AKTİF<br />TURNUVA</span>
+                                <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center text-black font-black text-lg shadow-lg">
+                                    <Users className="h-6 w-6" />
+                                </div>
+                                <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">{username || "Misafir"}</h2>
+                            </div>
+
+                            {/* Simplified Stats */}
+                            <div className="flex items-center gap-10">
+                                <div className="flex items-center gap-4">
+                                    <span className="text-primary font-black text-4xl italic tracking-tighter leading-none">{myEnrollments.length}</span>
+                                    <span className="text-[10px] text-white font-black uppercase tracking-widest leading-tight">KAYITLI<br />TURNUVA</span>
+                                </div>
+                                <div className="w-px h-10 bg-white/10"></div>
+                                <div className="flex items-center gap-4">
+                                    <span className="text-primary font-black text-4xl italic tracking-tighter leading-none">{publicEvents.filter(e => e.status === 'active').length}</span>
+                                    <span className="text-[10px] text-white font-black uppercase tracking-widest leading-tight">AKTİF<br />TURNUVA</span>
+                                </div>
                             </div>
                         </div>
                     </div>
