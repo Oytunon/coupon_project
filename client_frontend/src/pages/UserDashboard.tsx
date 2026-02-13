@@ -317,7 +317,7 @@ export default function UserDashboard() {
                         {/* Enrolled Tournaments (Only show when activeCategory is 'all' and user has enrollments) */}
                         {activeCategory === 'all' && username && myEnrollments.length > 0 && (() => {
                             const enrolledEvents = publicEvents.filter(e =>
-                                myEnrollments.some(enr => enr.event_id === e.id) && e.status === 'active'
+                                myEnrollments.some(enr => enr.event_id === e.id) && ['active', 'upcoming', 'paused'].includes(e.status)
                             );
                             if (enrolledEvents.length === 0) return null;
                             return (
