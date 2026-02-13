@@ -13,13 +13,14 @@ interface TournamentCardProps {
     isJoined: boolean
     userPoints: number
     userRank: number
+    totalPrize?: number
     onJoin?: (id: number) => void
     onDetails?: (id: number) => void
 }
 
 export function TournamentCard({
     id, name, image_url, participantCount,
-    userPoints, userRank, onJoin, onDetails, status, startDate, endDate, isJoined
+    userPoints, userRank, onJoin, onDetails, status, startDate, endDate, isJoined, totalPrize
 }: TournamentCardProps) {
     const baseUrl = import.meta.env.VITE_API_URL || ""
     const [mounted, setMounted] = useState(false)
@@ -131,7 +132,7 @@ export function TournamentCard({
                                         <span className="text-[9px] text-[#FFB800] font-bold uppercase tracking-wide">Ödül</span>
                                     </div>
                                     <div className="font-oswald text-base font-black text-[#FFB800] text-center leading-none whitespace-nowrap">
-                                        10.000.000₺
+                                        {totalPrize ? totalPrize.toLocaleString('tr-TR') : '0'}₺
                                     </div>
                                 </div>
                             </div>
@@ -285,7 +286,7 @@ export function TournamentCard({
                                                     <span className="text-sm text-[#FFB800] font-bold uppercase tracking-widest">Ödül</span>
                                                 </div>
                                                 <div className="text-center font-oswald text-3xl font-black text-[#FFB800] tracking-tight">
-                                                    10.000.000₺
+                                                    {totalPrize ? totalPrize.toLocaleString('tr-TR') : '0'}₺
                                                 </div>
                                             </div>
                                         </div>
@@ -319,7 +320,19 @@ export function TournamentCard({
                                     </div>
                                 ) : null}
 
-                                <div className="w-full flex flex-col gap-2">
+                                <div className="w-full flex flex-col gap-2 items-center">
+                                    {status === 'active' && !isJoined && !isUpcoming && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onJoin?.(id);
+                                            }}
+                                            className="mb-2 px-6 py-2 bg-[#FFB800] hover:bg-[#FFA500] text-black font-black font-oswald text-xl rounded-lg shadow-[0_0_15px_rgba(255,184,0,0.5)] hover:shadow-[0_0_25px_rgba(255,184,0,0.7)] transition-all transform hover:scale-105 active:scale-95 animate-pulse"
+                                        >
+                                            HEMEN KATIL
+                                        </button>
+                                    )}
+
                                     {status === 'active' && isUpcoming && (
                                         <div className="text-center">
                                             <span className="text-[#FFB800] text-xs font-bold uppercase tracking-widest animate-pulse">BAŞLIYOR</span>
