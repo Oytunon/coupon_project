@@ -252,7 +252,7 @@ export function TournamentCard({
                                 {/* Middle: Title and Stats Boxes */}
                                 <div className="flex flex-col flex-1 px-4 py-3 w-full justify-center">
                                     <div className="text-center mb-2">
-                                        <h3 className="font-oswald text-xl font-black text-white tracking-tight leading-tight mb-1 px-2 uppercase">
+                                        <h3 className="font-oswald text-4xl font-black text-white tracking-tight leading-tight mb-2 px-2 uppercase">
                                             {name}
                                         </h3>
                                         <div className="h-0.5 w-12 mx-auto bg-gradient-to-r from-transparent via-[#FFB800] to-transparent rounded-full"></div>
