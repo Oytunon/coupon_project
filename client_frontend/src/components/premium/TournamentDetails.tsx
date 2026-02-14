@@ -465,6 +465,11 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                     </p>
                                 </div>
                             </div>
+                            {/* DEBUG VISIBILITY CHECK */}
+                            <div className="text-red-500 text-xs p-2 font-bold mb-2 border border-red-500 rounded">
+                                SYSTEM CHECK: Vercel Update Active (v2)
+                            </div>
+
                             <div className="bg-black/50 border border-[#FFB800]/30 rounded-lg p-3 md:p-4">
                                 <div className="flex items-center gap-2 mb-3">
                                     <Shield className="w-4 h-4 text-[#FFB800]" />
@@ -472,7 +477,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
                                     {(() => {
-                                        const allowedIds = event.rules?.allowed_league_ids || [];
+                                        const allowedIds = event.rules?.allowed_league_ids ?? [];
                                         // If empty/null, it means ALL leagues are allowed (usually not the case for tournaments, checks might be needed)
                                         // Assuming if empty => "Tüm Ligler" or specific logic. 
                                         // But usually explicit list. If empty allowed list means "All", we should show "Tüm Ligler".
