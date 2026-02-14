@@ -196,8 +196,6 @@ export default function UserDashboard() {
 
     // Helper to calculate total prize
     const calculateTotalPrize = (rules: any) => {
-        // Stringify for easier console reading
-        console.warn(">>> PRIZE DEBUG:", JSON.stringify(rules, null, 2));
 
         if (!rules) return 0;
 

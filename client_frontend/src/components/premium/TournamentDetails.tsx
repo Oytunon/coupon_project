@@ -465,10 +465,6 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                     </p>
                                 </div>
                             </div>
-                            {/* DEBUG VISIBILITY CHECK */}
-                            <div className="text-red-500 text-xs p-2 font-bold mb-2 border border-red-500 rounded">
-                                SYSTEM CHECK: Vercel Update Active (v2)
-                            </div>
 
                             <div className="bg-black/50 border border-[#FFB800]/30 rounded-lg p-3 md:p-4">
                                 <div className="flex items-center gap-2 mb-3">
