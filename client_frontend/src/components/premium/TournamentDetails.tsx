@@ -449,6 +449,22 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                     </p>
                                 </div>
                             </div>
+                            <div className="bg-black/50 border border-[#FFB800]/30 rounded-lg p-3 md:p-4">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Shield className="w-4 h-4 text-[#FFB800]" />
+                                    <span className="text-[#FFB800] text-xs md:text-sm font-semibold">Geçerli Ligler & Karşılaşmalar</span>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
+                                    <div className="bg-black/30 border border-[#FFB800]/20 rounded-lg p-2 md:p-3">
+                                        <div className="text-[#FFB800] text-xs font-bold mb-1">⚽ FUTBOL</div>
+                                        <div className="text-white text-[10px] md:text-xs leading-relaxed">Türkiye Süper Lig, İngiltere Premier Lig, İspanya La Liga, İtalya Serie A, Almanya Bundesliga, Fransa Ligue 1, UEFA Şampiyonlar Ligi, UEFA Avrupa Ligi</div>
+                                    </div>
+                                    <div className="bg-black/30 border border-[#FFB800]/20 rounded-lg p-2 md:p-3">
+                                        <div className="text-[#FFB800] text-xs font-bold mb-1">🏀 BASKETBOL</div>
+                                        <div className="text-white text-[10px] md:text-xs leading-relaxed">Türkiye BSL, NBA, Euroleague, Eurocup</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
 
