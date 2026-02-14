@@ -861,8 +861,9 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                                         <h4 className="text-base md:text-lg font-bold mb-3 text-[#FFB800]">Maçlar ({cSelections.length})</h4>
                                                         <div className="space-y-3">
                                                             {cSelections.map((sel: any, i: number) => {
-                                                                const selWon = sel.State === 1 || sel.State === 'Won';
-                                                                const selLost = sel.State === 2 || sel.State === 'Lost';
+                                                                const selStateName = (sel.StateName || '').toLowerCase();
+                                                                const selWon = sel.State === 4 || selStateName === 'won';
+                                                                const selLost = sel.State === 3 || selStateName === 'lost';
                                                                 const selLabel = selWon ? 'KAZANDI' : selLost ? 'KAYBETTİ' : '-';
                                                                 const selCls = selWon ? 'bg-[#FFB800] text-black' : selLost ? 'bg-red-600 text-white' : 'bg-gray-700 text-gray-300';
                                                                 const selBorder = selWon ? 'rgb(255, 184, 0)' : selLost ? 'rgb(220, 38, 38)' : 'rgb(100, 100, 100)';
