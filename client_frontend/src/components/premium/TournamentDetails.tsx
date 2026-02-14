@@ -748,8 +748,8 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                                 </tr>
                                             ) : (
                                                 filteredCoupons.map((coupon, idx) => {
-                                                    const isWon = coupon.state === 'Won';
-                                                    const isLost = coupon.state === 'Lost';
+                                                    const isWon = coupon.state?.toLowerCase() === 'won';
+                                                    const isLost = coupon.state?.toLowerCase() === 'lost';
 
                                                     let dotClass = "bg-gray-600";
                                                     if (isWon) dotClass = "bg-[#FFB800] shadow-lg shadow-[#FFB800]/50";
@@ -797,8 +797,8 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                             {/* Coupon Detail Modal */}
                             {selectedCoupon && (() => {
                                 const c = selectedCoupon;
-                                const cIsWon = c.state === 'Won';
-                                const cIsLost = c.state === 'Lost';
+                                const cIsWon = c.state?.toLowerCase() === 'won';
+                                const cIsLost = c.state?.toLowerCase() === 'lost';
                                 const cStatusLabel = cIsWon ? 'KAZANDI' : 'KAYBETTİ';
                                 const cStatusClass = cIsWon ? 'bg-[#FFB800] text-black' : 'bg-red-600 text-white';
                                 const cSelections = c.bet_data?.Selections || [];
