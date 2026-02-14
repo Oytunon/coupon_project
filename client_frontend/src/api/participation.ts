@@ -74,3 +74,8 @@ export async function getMyRewards(username: string) {
   })
   return res.data
 }
+
+export async function getRewardWinners(eventId: number) {
+  const res = await apiClient.get<any[]>(`/api/client/events/${eventId}/reward-winners`)
+  return res.data
+}

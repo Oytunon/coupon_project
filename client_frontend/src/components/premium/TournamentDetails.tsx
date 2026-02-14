@@ -4,7 +4,7 @@ import {
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { PublicEvent } from "@/api/client"
-import { getLeaderboard, getMyCoupons } from "@/api/participation"
+import { getLeaderboard, getMyCoupons, getRewardWinners } from "@/api/participation"
 import { useState, useEffect } from "react"
 import { Loader2 } from "lucide-react"
 
@@ -49,6 +49,10 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
     const [activeRule, setActiveRule] = useState<number | null>(1)
     const [loadingCoupons, setLoadingCoupons] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
+
+    // Reward Winners State
+    const [rewardWinners, setRewardWinners] = useState<any[]>([])
+    const [loadingRewardWinners, setLoadingRewardWinners] = useState(false)
 
     const isUpcoming = new Date() < new Date(event.start_date)
 
@@ -109,7 +113,23 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
             }
             fetchLb()
         }
-    }, [activeTab, event.id])
+
+        // Fetch reward winners for ended tournaments
+        if (activeTab === 'leaderboard' && event.status === 'ended') {
+            const fetchRewardWinners = async () => {
+                setLoadingRewardWinners(true)
+                try {
+                    const data = await getRewardWinners(event.id)
+                    setRewardWinners(data)
+                } catch (error) {
+                    console.error("Reward winners fetch error", error)
+                } finally {
+                    setLoadingRewardWinners(false)
+                }
+            }
+            fetchRewardWinners()
+        }
+    }, [activeTab, event.id, event.status])
 
     // Fetch Coupons when tab changes
     useEffect(() => {
@@ -605,6 +625,74 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                                     <div className="text-lg md:text-xl font-bold text-white">{userPoints.toLocaleString('tr-TR')}</div>
                                                 </div>
                                             </div>
+                                        </div>
+                                    )}
+
+                                    {/* Reward Winners Section - Only for ended tournaments */}
+                                    {event.status === 'ended' && (
+                                        <div className="mt-8">
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <Gift className="w-5 h-5 md:w-6 md:h-6 text-[#FFB800]" />
+                                                <div>
+                                                    <h3 className="text-lg md:text-xl font-bold text-white">Ödül Kazananlar</h3>
+                                                    <p className="text-gray-400 text-xs md:text-sm">Bu turnuvada ödül alan kullanıcılar</p>
+                                                </div>
+                                            </div>
+
+                                            {loadingRewardWinners ? (
+                                                <div className="flex justify-center p-8">
+                                                    <Loader2 className="w-8 h-8 text-[#FFB800] animate-spin" />
+                                                </div>
+                                            ) : rewardWinners.length === 0 ? (
+                                                <div className="bg-black rounded-xl border border-[#FFB800]/30 p-6 text-center">
+                                                    <div className="text-gray-500 text-sm italic">Henüz ödül dağıtımı yapılmamış.</div>
+                                                </div>
+                                            ) : (
+                                                <div className="bg-black rounded-xl border border-[#FFB800]/30 overflow-hidden">
+                                                    {rewardWinners.map((winner, idx) => {
+                                                        const rewardTypeLabel = winner.reward_type === 'cash' ? '💰 Nakit' :
+                                                            winner.reward_type === 'freebet' ? '🎟️ Freebet' :
+                                                                winner.reward_type === 'spin' ? '🎰 Spin' :
+                                                                    winner.reward_type === 'bonus' ? '🎁 Bonus' : '🏆 Ödül';
+
+                                                        const criteriaLabel = winner.criteria_type === 'rank_exact' ? `${winner.criteria_value}. Sıra` :
+                                                            winner.criteria_type === 'rank' ? `İlk ${winner.criteria_value}` :
+                                                                winner.criteria_type === 'min_points' ? `${winner.criteria_value}+ Puan` : '';
+
+                                                        return (
+                                                            <div key={idx} className="flex items-center justify-between px-3 md:px-6 py-3 md:py-4 border-b border-[#FFB800]/20 last:border-none hover:bg-[#FFB800]/5 transition-all">
+                                                                <div className="flex items-center gap-2 md:gap-4">
+                                                                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-[#FFB800]/30 to-[#FFA500]/10 border border-[#FFB800]/40 flex items-center justify-center text-[#FFB800] font-bold text-xs md:text-sm">
+                                                                        {winner.username ? winner.username.substring(0, 2).toUpperCase() : '??'}
+                                                                    </div>
+                                                                    <div>
+                                                                        <div className="font-medium text-gray-200 text-sm md:text-base">
+                                                                            {maskUsername(winner.username)}
+                                                                        </div>
+                                                                        <div className="text-gray-500 text-[10px] md:text-xs">{criteriaLabel}</div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <div className="text-sm md:text-base font-bold text-[#FFB800]">
+                                                                        {Number(winner.amount).toLocaleString('tr-TR')}₺
+                                                                    </div>
+                                                                    <div className="text-gray-500 text-[10px] md:text-xs">{rewardTypeLabel}</div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+
+                                                    {/* Total Summary */}
+                                                    <div className="flex items-center justify-between px-3 md:px-6 py-3 md:py-4 bg-[#FFB800]/10 border-t border-[#FFB800]/30">
+                                                        <div className="text-gray-300 text-xs md:text-sm font-semibold uppercase tracking-wide">
+                                                            Toplam {rewardWinners.length} kişi ödül aldı
+                                                        </div>
+                                                        <div className="text-[#FFB800] font-bold text-sm md:text-base">
+                                                            {rewardWinners.reduce((sum, w) => sum + Number(w.amount || 0), 0).toLocaleString('tr-TR')}₺
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </>

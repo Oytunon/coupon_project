@@ -94,3 +94,77 @@ async def get_my_rewards(
                     })
     
     return my_rewards
+
+
+@router.get("/events/{event_id}/reward-winners")
+async def get_event_reward_winners(
+    event_id: int,
+    db: Session = Depends(get_db_session)
+):
+    """
+    Belirli bir turnuvada ödül kazanan kullanıcıları döndürür.
+    Sadece completed RewardJob'lardan başarılı ödülleri listeler.
+    """
+    from shared.models.reward_job import RewardJob
+    from shared.models.participant import Participant
+
+    jobs = db.query(RewardJob).filter(
+        RewardJob.event_id == event_id,
+        RewardJob.status == "completed"
+    ).order_by(RewardJob.completed_at.desc()).all()
+
+    if not jobs:
+        return []
+
+    winners = []
+    seen_client_ids = set()
+
+    for job in jobs:
+        results = job.results or {}
+        if not isinstance(results, dict):
+            continue
+
+        for client_id_str, rewards_list in results.items():
+            if not isinstance(rewards_list, list):
+                continue
+
+            # Skip duplicates across jobs
+            if client_id_str in seen_client_ids:
+                continue
+            seen_client_ids.add(client_id_str)
+
+            # Resolve username
+            try:
+                c_id = int(client_id_str)
+                username = db.query(Participant.username).filter(
+                    Participant.client_id == c_id
+                ).scalar() or f"User-{client_id_str}"
+            except (ValueError, TypeError):
+                username = f"User-{client_id_str}"
+
+            for r in rewards_list:
+                if not isinstance(r, dict):
+                    continue
+                if r.get("status") != "success":
+                    continue
+
+                rule = r.get("rule", {})
+                if not isinstance(rule, dict):
+                    continue
+
+                winners.append({
+                    "username": username,
+                    "client_id": client_id_str,
+                    "reward_type": rule.get("reward_type", ""),
+                    "amount": rule.get("amount", 0),
+                    "criteria_type": rule.get("criteria_type", ""),
+                    "criteria_value": rule.get("criteria_value", 0),
+                })
+
+    # Sort by criteria_value (rank first, then min_points)
+    winners.sort(key=lambda w: (
+        0 if w["criteria_type"] in ("rank", "rank_exact") else 1,
+        w["criteria_value"]
+    ))
+
+    return winners
