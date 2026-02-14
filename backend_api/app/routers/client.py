@@ -169,3 +169,26 @@ async def get_event_reward_winners(
     ))
 
     return winners
+
+
+@router.get("/leagues")
+async def get_leagues(
+    db: Session = Depends(get_db_session)
+):
+    """
+    Public endpoint to list leagues for mapping in frontend.
+    Returns ID, Name, SportID, Region.
+    """
+    from shared.models.league import League
+    
+    leagues = db.query(League).order_by(League.name).all()
+    
+    return [
+        {
+            "id": l.id,
+            "name": l.name,
+            "sport_id": l.sport_id,
+            "region": l.region
+        }
+        for l in leagues
+    ]

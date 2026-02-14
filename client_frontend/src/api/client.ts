@@ -33,6 +33,18 @@ export async function getPublicEvents() {
     return res.data
 }
 
+export type League = {
+    id: number
+    name: string
+    sport_id?: number
+    region?: string
+}
+
+export async function getLeagues() {
+    const res = await apiClient.get<League[]>('/api/client/leagues')
+    return res.data
+}
+
 // Request interceptor: Attach Token
 apiClient.interceptors.request.use(
     (config) => {

@@ -3,7 +3,7 @@ import {
     CheckCircle2, TrendingUp, Shield, Gift, Ticket, ScrollText, Info, Crown, Search, UserPlus, FileText, AlertCircle, X, ChevronDown
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { PublicEvent } from "@/api/client"
+import { PublicEvent, getLeagues } from "@/api/client"
 import { getLeaderboard, getMyCoupons, getRewardWinners } from "@/api/participation"
 import React, { useState, useEffect } from "react"
 import { Loader2 } from "lucide-react"
@@ -54,6 +54,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
     // Reward Winners State
     const [rewardWinners, setRewardWinners] = useState<any[]>([])
     const [loadingRewardWinners, setLoadingRewardWinners] = useState(false)
+    const [leagues, setLeagues] = useState<any[]>([])
 
     const isUpcoming = new Date() < new Date(event.start_date)
 
@@ -97,6 +98,21 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
 
         return () => clearInterval(timer)
     }, [event.end_date, event.start_date, isUpcoming])
+
+    // Fetch Leagues
+    useEffect(() => {
+        const fetchLeagues = async () => {
+            try {
+                const data = await getLeagues()
+                setLeagues(data)
+            } catch (e) {
+                console.error("Failed to fetch leagues", e)
+            }
+        }
+        if (activeTab === 'info') {
+            fetchLeagues()
+        }
+    }, [activeTab])
 
     // Fetch Leaderboard when tab changes
     useEffect(() => {
@@ -455,14 +471,45 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                     <span className="text-[#FFB800] text-xs md:text-sm font-semibold">Geçerli Ligler & Karşılaşmalar</span>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
-                                    <div className="bg-black/30 border border-[#FFB800]/20 rounded-lg p-2 md:p-3">
-                                        <div className="text-[#FFB800] text-xs font-bold mb-1">⚽ FUTBOL</div>
-                                        <div className="text-white text-[10px] md:text-xs leading-relaxed">Türkiye Süper Lig, İngiltere Premier Lig, İspanya La Liga, İtalya Serie A, Almanya Bundesliga, Fransa Ligue 1, UEFA Şampiyonlar Ligi, UEFA Avrupa Ligi</div>
-                                    </div>
-                                    <div className="bg-black/30 border border-[#FFB800]/20 rounded-lg p-2 md:p-3">
-                                        <div className="text-[#FFB800] text-xs font-bold mb-1">🏀 BASKETBOL</div>
-                                        <div className="text-white text-[10px] md:text-xs leading-relaxed">Türkiye BSL, NBA, Euroleague, Eurocup</div>
-                                    </div>
+                                    {(() => {
+                                        const allowedIds = event.rules?.allowed_league_ids || [];
+                                        // If empty/null, it means ALL leagues are allowed (usually not the case for tournaments, checks might be needed)
+                                        // Assuming if empty => "Tüm Ligler" or specific logic. 
+                                        // But usually explicit list. If empty allowed list means "All", we should show "Tüm Ligler".
+                                        // Let's assume explicit list for now as per previous static list.
+
+                                        const filteredLeagues = allowedIds.length > 0
+                                            ? leagues.filter(l => allowedIds.includes(l.id))
+                                            : leagues; // If empty, maybe show all? Or "Tüm Ligler" text?
+
+                                        // Specific Sport IDs: 1=Football, 2=Basketball
+                                        const footballLeagues = filteredLeagues.filter(l => l.sport_id === 1 || !l.sport_id); // Default to football if null
+                                        const basketballLeagues = filteredLeagues.filter(l => l.sport_id === 2);
+
+                                        if (filteredLeagues.length === 0 && allowedIds.length > 0) return <div className="text-gray-500 text-xs p-2">Yükleniyor...</div>;
+                                        if (filteredLeagues.length === 0 && allowedIds.length === 0) return <div className="text-gray-500 text-xs p-2">Tüm Ligler Geçerlidir</div>;
+
+                                        return (
+                                            <>
+                                                {footballLeagues.length > 0 && (
+                                                    <div className="bg-black/30 border border-[#FFB800]/20 rounded-lg p-2 md:p-3">
+                                                        <div className="text-[#FFB800] text-xs font-bold mb-1">⚽ FUTBOL</div>
+                                                        <div className="text-white text-[10px] md:text-xs leading-relaxed">
+                                                            {footballLeagues.map(l => l.name).join(', ')}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {basketballLeagues.length > 0 && (
+                                                    <div className="bg-black/30 border border-[#FFB800]/20 rounded-lg p-2 md:p-3">
+                                                        <div className="text-[#FFB800] text-xs font-bold mb-1">🏀 BASKETBOL</div>
+                                                        <div className="text-white text-[10px] md:text-xs leading-relaxed">
+                                                            {basketballLeagues.map(l => l.name).join(', ')}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )
+                                    })()}
                                 </div>
                             </div>
                         </div>
