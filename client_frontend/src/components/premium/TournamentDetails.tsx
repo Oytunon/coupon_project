@@ -1,6 +1,6 @@
 import {
     ArrowLeft, Trophy, Users, Award, Target, Calendar, Clock,
-    CheckCircle2, TrendingUp, Shield, Gift, Ticket, ScrollText, Info, Crown, Search, UserPlus, FileText, AlertCircle, ChevronDown
+    CheckCircle2, TrendingUp, Shield, Gift, Ticket, ScrollText, Info, Crown, Search, UserPlus, FileText, AlertCircle, X, ChevronDown
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { PublicEvent } from "@/api/client"
@@ -49,7 +49,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
     const [activeRule, setActiveRule] = useState<number | null>(1)
     const [loadingCoupons, setLoadingCoupons] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
-    const [expandedCouponId, setExpandedCouponId] = useState<number | null>(null)
+    const [selectedCoupon, setSelectedCoupon] = useState<any | null>(null)
 
     // Reward Winners State
     const [rewardWinners, setRewardWinners] = useState<any[]>([])
@@ -748,134 +748,44 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                                 </tr>
                                             ) : (
                                                 filteredCoupons.map((coupon, idx) => {
-                                                    const isPending = coupon.state === 'Pending';
                                                     const isWon = coupon.state === 'Won';
                                                     const isLost = coupon.state === 'Lost';
 
-                                                    // Fallback logic for point color/status if state is vague
-                                                    // Using the logic: Pending -> Pulsing Yellow, Won -> Yellow, Lost/Other -> Gray
                                                     let dotClass = "bg-gray-600";
                                                     if (isWon) dotClass = "bg-[#FFB800] shadow-lg shadow-[#FFB800]/50";
-                                                    if (isPending) dotClass = "bg-[#FFB800] animate-pulse shadow-lg shadow-[#FFB800]/50";
 
-                                                    const isExpanded = expandedCouponId === coupon.id;
                                                     const selections = coupon.bet_data?.Selections || [];
-                                                    const estimatedWinning = (Number(coupon.stake) * Number(coupon.odds)).toFixed(2);
-
-                                                    const statusLabel = isWon ? 'KAZANDI' : isLost ? 'KAYBETTİ' : 'BEKLİYOR';
-                                                    const statusClass = isWon ? 'bg-[#FFB800] text-black' : isLost ? 'bg-red-600 text-white' : 'bg-yellow-500/30 text-yellow-400';
-                                                    const borderColor = isWon ? 'rgb(255, 184, 0)' : isLost ? 'rgb(220, 38, 38)' : 'rgb(161, 136, 50)';
 
                                                     return (
-                                                        <React.Fragment key={idx}>
-                                                            <tr
-                                                                className="border-b border-[#FFB800]/10 hover:bg-[#FFB800]/5 transition-colors cursor-pointer group"
-                                                                onClick={() => setExpandedCouponId(isExpanded ? null : coupon.id)}
-                                                            >
-                                                                <td className="py-4 px-4">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${dotClass}`}></div>
-                                                                        <span className="text-white font-bold text-sm md:text-base">{filteredCoupons.length - idx}</span>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="py-4 px-4"><span className="text-gray-300 font-mono text-xs md:text-sm">{coupon.bet_id}</span></td>
-                                                                <td className="py-4 px-4 text-center text-xs text-gray-400 hidden md:table-cell">
-                                                                    <div className="flex flex-col items-center">
-                                                                        <span>{new Date(coupon.inserted_at).toLocaleDateString('tr-TR')}</span>
-                                                                        <span className="text-[10px]">{new Date(coupon.inserted_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="py-4 px-4 text-center"><span className="text-white font-semibold text-sm md:text-base">{coupon.stake}₺</span></td>
-                                                                <td className="py-4 px-4 text-center"><span className="px-2 md:px-3 py-1 bg-[#FFB800]/20 text-[#FFB800] rounded-full text-xs md:text-sm font-bold">{coupon.odds}</span></td>
-                                                                <td className="py-4 px-4 text-center hidden lg:table-cell">
-                                                                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                                                                        {selections.length > 1 ? 'Kombine' : 'Tekli'}
-                                                                    </span>
-                                                                </td>
-                                                                <td className="py-4 px-4 text-right">
-                                                                    <div className="flex items-center justify-end gap-2">
-                                                                        <span className="text-lg md:text-xl font-black text-[#FFB800]">{coupon.calculation || 0}</span>
-                                                                        <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                            {isExpanded && (
-                                                                <tr>
-                                                                    <td colSpan={7} className="p-0">
-                                                                        <div className="p-4 md:p-6 bg-[#0a0a0a] border-b-2 border-[#FFB800]/20 animate-in fade-in slide-in-from-top-2">
-                                                                            {/* Stats Grid */}
-                                                                            <div className="grid grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
-                                                                                <div className="bg-black/70 border-2 border-[#FFB800]/30 rounded-lg p-3 md:p-4 shadow-lg hover:border-[#FFB800]/50 transition-colors">
-                                                                                    <div className="text-xs md:text-sm text-gray-400 mb-1">Bahis Miktarı</div>
-                                                                                    <div className="text-lg md:text-2xl font-bold text-white">{Number(coupon.stake).toLocaleString('tr-TR')}₺</div>
-                                                                                </div>
-                                                                                <div className="bg-black/70 border-2 border-[#FFB800]/30 rounded-lg p-3 md:p-4 shadow-lg hover:border-[#FFB800]/50 transition-colors">
-                                                                                    <div className="text-xs md:text-sm text-gray-400 mb-1">Toplam Oran</div>
-                                                                                    <div className="text-lg md:text-2xl font-bold text-[#FFB800]">{coupon.odds}</div>
-                                                                                </div>
-                                                                                <div className="bg-black/70 border-2 border-[#FFB800]/30 rounded-lg p-3 md:p-4 shadow-lg hover:border-[#FFB800]/50 transition-colors">
-                                                                                    <div className="text-xs md:text-sm text-gray-400 mb-1">Tahmini Kazanç</div>
-                                                                                    <div className="text-lg md:text-2xl font-bold text-[#FFB800]">{Number(estimatedWinning).toLocaleString('tr-TR')}₺</div>
-                                                                                </div>
-                                                                                <div className="bg-black/70 border-2 border-[#FFB800]/30 rounded-lg p-3 md:p-4 shadow-lg hover:border-[#FFB800]/50 transition-colors">
-                                                                                    <div className="text-xs md:text-sm text-gray-400 mb-1">Turnuva Puanı</div>
-                                                                                    <div className="text-lg md:text-2xl font-bold text-[#FFB800]">+{coupon.calculation || 0}</div>
-                                                                                </div>
-                                                                            </div>
-
-                                                                            {/* Status */}
-                                                                            <div className="mb-4 bg-black/70 border-2 border-[#FFB800]/30 rounded-lg p-4">
-                                                                                <div className="text-xs text-gray-400 mb-1">Durum</div>
-                                                                                <div className={`inline-block px-4 py-2 rounded-lg font-bold text-sm ${statusClass}`}>{statusLabel}</div>
-                                                                            </div>
-
-                                                                            {/* Matches */}
-                                                                            {selections.length > 0 ? (
-                                                                                <div className="mb-4">
-                                                                                    <h4 className="text-base md:text-lg font-bold mb-3 text-[#FFB800]">Maçlar ({selections.length})</h4>
-                                                                                    <div className="space-y-3">
-                                                                                        {selections.map((sel: any, i: number) => {
-                                                                                            const selState = sel.State;
-                                                                                            const selWon = selState === 1 || selState === 'Won';
-                                                                                            const selLost = selState === 2 || selState === 'Lost';
-                                                                                            const selStatusLabel = selWon ? 'KAZANDI' : selLost ? 'KAYBETTİ' : 'BEKLİYOR';
-                                                                                            const selStatusClass = selWon ? 'bg-[#FFB800] text-black' : selLost ? 'bg-red-600 text-white' : 'bg-yellow-500/30 text-yellow-400';
-                                                                                            const selBorderColor = selWon ? 'rgb(255, 184, 0)' : selLost ? 'rgb(220, 38, 38)' : 'rgb(161, 136, 50)';
-
-                                                                                            return (
-                                                                                                <div key={i} className="bg-black/70 rounded-lg p-3 md:p-4 border-l-4 hover:bg-black/50 transition-colors" style={{ borderLeftColor: selBorderColor }}>
-                                                                                                    <div className="flex justify-between items-start mb-2">
-                                                                                                        <div>
-                                                                                                            <div className="font-bold text-sm md:text-base text-white">{sel.MatchName || 'Bilinmiyor'}</div>
-                                                                                                            <div className="text-xs md:text-sm text-gray-400">{sel.CompetitionName || sel.SportName || ''}</div>
-                                                                                                        </div>
-                                                                                                        <div className="text-right">
-                                                                                                            <div className="font-bold text-sm md:text-base text-[#FFB800]">@{sel.Price || '-'}</div>
-                                                                                                        </div>
-                                                                                                    </div>
-                                                                                                    <div className="flex items-center justify-between">
-                                                                                                        <div className="text-xs md:text-sm">
-                                                                                                            <span className="text-gray-400">Bahis: </span>
-                                                                                                            <span className="font-semibold text-white">{sel.DisplaySelectionName || sel.SelectionName || '-'}</span>
-                                                                                                            {(sel.DisplayMarketName || sel.MarketName) && (
-                                                                                                                <span className="text-gray-500 ml-2">({sel.DisplayMarketName || sel.MarketName})</span>
-                                                                                                            )}
-                                                                                                        </div>
-                                                                                                        <div className={`text-[10px] md:text-xs px-2 py-1 rounded font-bold ${selStatusClass}`}>{selStatusLabel}</div>
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            );
-                                                                                        })}
-                                                                                    </div>
-                                                                                </div>
-                                                                            ) : (
-                                                                                <div className="mb-4 text-center text-gray-500 italic text-sm">Maç detayı bulunamadı.</div>
-                                                                            )}
-                                                                        </div>
-                                                                    </td>
-                                                                </tr>
-                                                            )}
-                                                        </React.Fragment>
+                                                        <tr
+                                                            key={idx}
+                                                            className="border-b border-[#FFB800]/10 hover:bg-[#FFB800]/5 transition-colors cursor-pointer group"
+                                                            onClick={() => setSelectedCoupon(coupon)}
+                                                        >
+                                                            <td className="py-4 px-4">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${dotClass}`}></div>
+                                                                    <span className="text-white font-bold text-sm md:text-base">{filteredCoupons.length - idx}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="py-4 px-4"><span className="text-gray-300 font-mono text-xs md:text-sm">{coupon.bet_id}</span></td>
+                                                            <td className="py-4 px-4 text-center text-xs text-gray-400 hidden md:table-cell">
+                                                                <div className="flex flex-col items-center">
+                                                                    <span>{new Date(coupon.inserted_at).toLocaleDateString('tr-TR')}</span>
+                                                                    <span className="text-[10px]">{new Date(coupon.inserted_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="py-4 px-4 text-center"><span className="text-white font-semibold text-sm md:text-base">{coupon.stake}₺</span></td>
+                                                            <td className="py-4 px-4 text-center"><span className="px-2 md:px-3 py-1 bg-[#FFB800]/20 text-[#FFB800] rounded-full text-xs md:text-sm font-bold">{coupon.odds}</span></td>
+                                                            <td className="py-4 px-4 text-center hidden lg:table-cell">
+                                                                <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                                                    {selections.length > 1 ? 'Kombine' : 'Tekli'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-4 px-4 text-right">
+                                                                <span className="text-lg md:text-xl font-black text-[#FFB800]">{coupon.calculation || 0}</span>
+                                                            </td>
+                                                        </tr>
                                                     )
                                                 })
                                             )}
@@ -883,6 +793,112 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                     </table>
                                 </div>
                             </div>
+
+                            {/* Coupon Detail Modal */}
+                            {selectedCoupon && (() => {
+                                const c = selectedCoupon;
+                                const cIsWon = c.state === 'Won';
+                                const cIsLost = c.state === 'Lost';
+                                const cStatusLabel = cIsWon ? 'KAZANDI' : 'KAYBETTİ';
+                                const cStatusClass = cIsWon ? 'bg-[#FFB800] text-black' : 'bg-red-600 text-white';
+                                const cSelections = c.bet_data?.Selections || [];
+                                const cEstimatedWinning = (Number(c.stake) * Number(c.odds)).toFixed(2);
+
+                                return (
+                                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setSelectedCoupon(null)}>
+                                        {/* Backdrop */}
+                                        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+
+                                        {/* Modal */}
+                                        <div
+                                            className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto bg-[#0a0a0a] border-2 border-[#FFB800]/40 rounded-2xl shadow-2xl shadow-[#FFB800]/10"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            {/* Header */}
+                                            <div className="sticky top-0 z-10 flex items-center justify-between p-4 md:p-5 bg-[#0a0a0a] border-b border-[#FFB800]/30">
+                                                <div>
+                                                    <h3 className="text-lg md:text-xl font-bold text-white">Kupon Detayı</h3>
+                                                    <p className="text-gray-500 text-xs font-mono">#{c.bet_id}</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => setSelectedCoupon(null)}
+                                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                                                >
+                                                    <X className="w-4 h-4 text-white" />
+                                                </button>
+                                            </div>
+
+                                            <div className="p-4 md:p-6">
+                                                {/* Stats Grid */}
+                                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                                    <div className="bg-black/70 border-2 border-[#FFB800]/30 rounded-lg p-3 md:p-4">
+                                                        <div className="text-xs text-gray-400 mb-1">Bahis Miktarı</div>
+                                                        <div className="text-lg md:text-2xl font-bold text-white">{Number(c.stake).toLocaleString('tr-TR')}₺</div>
+                                                    </div>
+                                                    <div className="bg-black/70 border-2 border-[#FFB800]/30 rounded-lg p-3 md:p-4">
+                                                        <div className="text-xs text-gray-400 mb-1">Toplam Oran</div>
+                                                        <div className="text-lg md:text-2xl font-bold text-[#FFB800]">{c.odds}</div>
+                                                    </div>
+                                                    <div className="bg-black/70 border-2 border-[#FFB800]/30 rounded-lg p-3 md:p-4">
+                                                        <div className="text-xs text-gray-400 mb-1">Tahmini Kazanç</div>
+                                                        <div className="text-lg md:text-2xl font-bold text-[#FFB800]">{Number(cEstimatedWinning).toLocaleString('tr-TR')}₺</div>
+                                                    </div>
+                                                    <div className="bg-black/70 border-2 border-[#FFB800]/30 rounded-lg p-3 md:p-4">
+                                                        <div className="text-xs text-gray-400 mb-1">Turnuva Puanı</div>
+                                                        <div className="text-lg md:text-2xl font-bold text-[#FFB800]">+{c.calculation || 0}</div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Status */}
+                                                <div className="mb-4 bg-black/70 border-2 border-[#FFB800]/30 rounded-lg p-4">
+                                                    <div className="text-xs text-gray-400 mb-1">Durum</div>
+                                                    <div className={`inline-block px-4 py-2 rounded-lg font-bold text-sm ${cStatusClass}`}>{cStatusLabel}</div>
+                                                </div>
+
+                                                {/* Matches */}
+                                                {cSelections.length > 0 ? (
+                                                    <div>
+                                                        <h4 className="text-base md:text-lg font-bold mb-3 text-[#FFB800]">Maçlar ({cSelections.length})</h4>
+                                                        <div className="space-y-3">
+                                                            {cSelections.map((sel: any, i: number) => {
+                                                                const selWon = sel.State === 1 || sel.State === 'Won';
+                                                                const selLost = sel.State === 2 || sel.State === 'Lost';
+                                                                const selLabel = selWon ? 'KAZANDI' : selLost ? 'KAYBETTİ' : '-';
+                                                                const selCls = selWon ? 'bg-[#FFB800] text-black' : selLost ? 'bg-red-600 text-white' : 'bg-gray-700 text-gray-300';
+                                                                const selBorder = selWon ? 'rgb(255, 184, 0)' : selLost ? 'rgb(220, 38, 38)' : 'rgb(100, 100, 100)';
+
+                                                                return (
+                                                                    <div key={i} className="bg-black/70 rounded-lg p-3 md:p-4 border-l-4 hover:bg-black/50 transition-colors" style={{ borderLeftColor: selBorder }}>
+                                                                        <div className="flex justify-between items-start mb-2">
+                                                                            <div>
+                                                                                <div className="font-bold text-sm md:text-base text-white">{sel.MatchName || 'Bilinmiyor'}</div>
+                                                                                <div className="text-xs text-gray-400">{sel.CompetitionName || sel.SportName || ''}</div>
+                                                                            </div>
+                                                                            <div className="font-bold text-sm md:text-base text-[#FFB800]">@{sel.Price || '-'}</div>
+                                                                        </div>
+                                                                        <div className="flex items-center justify-between">
+                                                                            <div className="text-xs md:text-sm">
+                                                                                <span className="text-gray-400">Bahis: </span>
+                                                                                <span className="font-semibold text-white">{sel.DisplaySelectionName || sel.SelectionName || '-'}</span>
+                                                                                {(sel.DisplayMarketName || sel.MarketName) && (
+                                                                                    <span className="text-gray-500 ml-2">({sel.DisplayMarketName || sel.MarketName})</span>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className={`text-[10px] md:text-xs px-2 py-1 rounded font-bold ${selCls}`}>{selLabel}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-center text-gray-500 italic text-sm">Maç detayı bulunamadı.</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     )}
 
