@@ -72,7 +72,6 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
 
     // Helper to calculate total prize
     const calculateTotalPrize = (rules: any) => {
-        console.warn(">>> SLIDER DEBUG:", JSON.stringify(rules, null, 2));
         if (!rules) return 0;
 
         let validRules = rules;

@@ -218,7 +218,6 @@ export default function UserDashboard() {
             return total + (Number(reward.amount) || 0);
         }, 0);
 
-        console.log("Total prize:", total);
         return total;
     }
 
