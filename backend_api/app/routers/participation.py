@@ -44,16 +44,11 @@ async def get_leaderboard(
 
     results = get_event_leaderboard(db, target_event.id)
     
-    def mask_username(u: str, viewer: Optional[str]) -> str:
-        if viewer and u == viewer:
-            return u
-        if len(u) <= 2:
-            return u[0] + "***"
-        return u[:2] + "***"
+    from shared.utils.masking import mask_username
 
     return [{
         "rank": i + 1,
-        "username": mask_username(r["username"], viewer_username),
+        "username": r["username"] if (viewer_username and r["username"] == viewer_username) else mask_username(r["username"]),
         "score": r["points"]
     } for i, r in enumerate(results[:limit])]
 

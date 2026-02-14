@@ -156,23 +156,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
     // Rules from event or defaults
     const rules = event.rules || {}
 
-    // Helpers
-    const maskUsername = (u: string) => {
-        if (!u || u.length < 2) return u;
-        // Split by space to handle names like "Vahit Ar"
-        const parts = u.split(' ');
-        if (parts.length > 1) {
-            return parts.map(p => {
-                if (p.length < 2) return p;
-                return p[0] + '*'.repeat(Math.min(p.length - 2, 5)) + p[p.length - 1];
-            }).join(' ');
-        }
-        // Fallback for single names
-        const first = u[0]
-        const last = u[u.length - 1]
-        const stars = "*".repeat(Math.min(u.length - 2, 5))
-        return `${first}${stars}${last}`
-    }
+
 
     const getInitials = (u: string) => {
         if (!u) return "??"
@@ -528,7 +512,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                                                     </div>
                                                                 </div>
                                                                 <div className="text-center mb-2">
-                                                                    <div className="font-bold text-xs md:text-base text-gray-300">{maskUsername(leaderboard[1].username)}</div>
+                                                                    <div className="font-bold text-xs md:text-base text-gray-300">{leaderboard[1].username}</div>
                                                                     <div className="text-[#E0E0E0] font-bold text-xs md:text-base">{leaderboard[1].score.toLocaleString('tr-TR')}</div>
                                                                 </div>
                                                                 <div className="rounded-t-xl flex items-center justify-center text-2xl md:text-5xl font-bold bg-gradient-to-b from-gray-700 to-gray-800 w-20 h-16 md:w-32 md:h-28 text-[#E0E0E0] border-t border-x border-[#E0E0E0]/30 shadow-[0_-5px_20px_rgba(224,224,224,0.1)]">2</div>
@@ -545,7 +529,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                                                     </div>
                                                                 </div>
                                                                 <div className="text-center mb-2">
-                                                                    <div className="font-bold text-xs md:text-base text-gray-200">{maskUsername(leaderboard[0].username)}</div>
+                                                                    <div className="font-bold text-xs md:text-base text-gray-200">{leaderboard[0].username}</div>
                                                                     <div className="text-[#FFB800] font-bold text-xs md:text-base">{leaderboard[0].score.toLocaleString('tr-TR')}</div>
                                                                 </div>
                                                                 <div className="rounded-t-xl flex items-center justify-center text-3xl md:text-6xl font-bold bg-gradient-to-b from-yellow-600 to-yellow-800 w-24 h-24 md:w-36 md:h-40 text-[#FFB800] border-t border-x border-[#FFB800]/30 shadow-[0_-10px_30px_rgba(255,184,0,0.2)]">1</div>
@@ -561,7 +545,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                                                     </div>
                                                                 </div>
                                                                 <div className="text-center mb-2">
-                                                                    <div className="font-bold text-xs md:text-base text-gray-300">{maskUsername(leaderboard[2].username)}</div>
+                                                                    <div className="font-bold text-xs md:text-base text-gray-300">{leaderboard[2].username}</div>
                                                                     <div className="text-[#CD7F32] font-bold text-xs md:text-base">{leaderboard[2].score.toLocaleString('tr-TR')}</div>
                                                                 </div>
                                                                 <div className="rounded-t-xl flex items-center justify-center text-2xl md:text-5xl font-bold bg-gradient-to-b from-amber-800 to-amber-900 w-20 h-12 md:w-32 md:h-20 text-[#CD7F32] border-t border-x border-[#CD7F32]/30 shadow-[0_-5px_20px_rgba(205,127,50,0.1)]">3</div>
@@ -589,7 +573,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                                                             {initial}
                                                                         </div>
                                                                         <div className="font-medium text-gray-200 text-sm md:text-base">
-                                                                            {maskUsername(user.username)}
+                                                                            {user.username}
                                                                         </div>
                                                                     </div>
                                                                     <div className="text-base md:text-xl font-bold text-white">
@@ -667,7 +651,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                                                     </div>
                                                                     <div>
                                                                         <div className="font-medium text-gray-200 text-sm md:text-base">
-                                                                            {maskUsername(winner.username)}
+                                                                            {winner.username}
                                                                         </div>
                                                                         <div className="text-gray-500 text-[10px] md:text-xs">{criteriaLabel}</div>
                                                                     </div>

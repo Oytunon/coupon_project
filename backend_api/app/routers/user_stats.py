@@ -130,10 +130,12 @@ async def get_event_leaderboard_paginated(
         EventParticipant.total_points.desc()
     ).offset(offset).limit(limit).all()
 
+    from shared.utils.masking import mask_username
+
     formatted_results = [
         {
             "rank": offset + i + 1,
-            "username": row.username, 
+            "username": mask_username(row.username), 
             "points": row.total_points
         }
         for i, row in enumerate(results)

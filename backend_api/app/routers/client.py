@@ -107,6 +107,7 @@ async def get_event_reward_winners(
     """
     from shared.models.reward_job import RewardJob
     from shared.models.participant import Participant
+    from shared.utils.masking import mask_username
 
     jobs = db.query(RewardJob).filter(
         RewardJob.event_id == event_id,
@@ -153,7 +154,7 @@ async def get_event_reward_winners(
                     continue
 
                 winners.append({
-                    "username": username,
+                    "username": mask_username(username),
                     "client_id": client_id_str,
                     "reward_type": rule.get("reward_type", ""),
                     "amount": rule.get("amount", 0),
