@@ -393,9 +393,9 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                 <div className="bg-black/50 border border-[#FFB800]/30 rounded-lg p-3 md:p-4">
                                     <div className="flex items-center gap-2 mb-2">
                                         <Calendar className="w-4 h-4 text-[#FFB800]" />
-                                        <span className="text-[#FFB800] text-xs md:text-sm font-semibold">Turnuva Tarihi</span>
+                                        <span className="text-[#FFB800] text-xs md:text-sm font-semibold">Başlangıç Tarihi</span>
                                     </div>
-                                    <p className="text-white text-sm md:text-base font-medium">{endDate}</p>
+                                    <p className="text-white text-sm md:text-base font-medium">{startDate}</p>
                                 </div>
                                 <div className="bg-black/50 border border-[#FFB800]/30 rounded-lg p-3 md:p-4">
                                     <div className="flex items-center gap-2 mb-2">
