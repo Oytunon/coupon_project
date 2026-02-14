@@ -417,7 +417,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                         <span className="text-[#FFB800] text-xs md:text-sm font-semibold">Geçerli Bahis Miktarları</span>
                                     </div>
                                     <p className="text-white text-xs md:text-sm">
-                                        <span className="font-medium">Minimum:</span> <span className="font-bold text-[#FFB800]">{rules.min_stake || 100} TL</span>
+                                        <span className="font-medium">Minimum:</span> <span className="font-bold text-[#FFB800]">{event.rules?.min_stake || 100} TL</span>
                                         <span className="mx-2 text-gray-500">|</span>
                                         <span className="font-medium">Maksimum:</span> <span className="font-bold text-[#FFB800]">∞</span>
                                     </p>
@@ -427,23 +427,26 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                         <Trophy className="w-4 h-4 text-[#FFB800]" />
                                         <span className="text-[#FFB800] text-xs md:text-sm font-semibold">Geçerli Bahis Türleri</span>
                                     </div>
-                                    <p className="text-white text-xs md:text-sm font-medium">{(rules.min_odd || 1.5).toFixed(2)} oran veya üzerinde tekli ya da kombine bahisler</p>
+                                    <p className="text-white text-xs md:text-sm font-medium">
+                                        {(event.rules?.min_odd || 1.5).toFixed(2)} oran veya üzerinde{' '}
+                                        {(() => {
+                                            const minC = event.rules?.min_combination || 1;
+                                            const maxC = event.rules?.max_combination;
+                                            if (minC <= 1 && !maxC) return 'tekli ya da kombine bahisler';
+                                            if (minC <= 1 && maxC) return `en fazla ${maxC} kombine bahisler`;
+                                            if (minC > 1 && !maxC) return `en az ${minC} kombine bahisler`;
+                                            return `${minC} - ${maxC} kombine bahisler`;
+                                        })()}
+                                    </p>
                                 </div>
-                            </div>
-                            <div className="bg-black/50 border border-[#FFB800]/30 rounded-lg p-3 md:p-4">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <Shield className="w-4 h-4 text-[#FFB800]" />
-                                    <span className="text-[#FFB800] text-xs md:text-sm font-semibold">Geçerli Ligler & Karşılaşmalar</span>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
-                                    <div className="bg-black/30 border border-[#FFB800]/20 rounded-lg p-2 md:p-3">
-                                        <div className="text-[#FFB800] text-xs font-bold mb-1">⚽ FUTBOL</div>
-                                        <div className="text-white text-[10px] md:text-xs leading-relaxed">Türkiye Süper Lig, İngiltere Premier Lig, İspanya La Liga, İtalya Serie A, Almanya Bundesliga, Fransa Ligue 1, UEFA Şampiyonlar Ligi, UEFA Avrupa Ligi</div>
+                                <div className="bg-black/50 border border-[#FFB800]/30 rounded-lg p-3 md:p-4">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Shield className="w-4 h-4 text-[#FFB800]" />
+                                        <span className="text-[#FFB800] text-xs md:text-sm font-semibold">Minimum Yatırım</span>
                                     </div>
-                                    <div className="bg-black/30 border border-[#FFB800]/20 rounded-lg p-2 md:p-3">
-                                        <div className="text-[#FFB800] text-xs font-bold mb-1">🏀 BASKETBOL</div>
-                                        <div className="text-white text-[10px] md:text-xs leading-relaxed">Türkiye BSL, NBA, Euroleague, Eurocup</div>
-                                    </div>
+                                    <p className="text-white text-sm md:text-base font-bold">
+                                        {event.rules?.min_deposit != null ? `${Number(event.rules.min_deposit).toLocaleString('tr-TR')} TL` : 'Yok'}
+                                    </p>
                                 </div>
                             </div>
                         </div>
