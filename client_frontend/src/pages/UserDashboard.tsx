@@ -700,9 +700,21 @@ export default function UserDashboard() {
                                                 </thead>
                                                 <tbody>
                                                     {myEnrollments.map((enr, idx) => {
-                                                        const userWinnings = myRewards
-                                                            .filter(r => Number(r.event_id) === Number(enr.event_id))
-                                                            .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+                                                        const eventRewards = myRewards.filter(r => Number(r.event_id) === Number(enr.event_id));
+                                                        const userWinnings = eventRewards.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+
+                                                        let rewardDisplay = '-';
+                                                        if (userWinnings > 0) {
+                                                            const type = eventRewards[0]?.reward_type?.toLowerCase() || 'cash';
+                                                            if (type.includes('spin')) {
+                                                                rewardDisplay = `${userWinnings} Spin`;
+                                                            } else if (type.includes('bet')) {
+                                                                rewardDisplay = `${userWinnings.toLocaleString('tr-TR')}₺ Freebet`;
+                                                            } else {
+                                                                // Default to cash
+                                                                rewardDisplay = `${userWinnings.toLocaleString('tr-TR')}₺ Nakit`;
+                                                            }
+                                                        }
 
                                                         return (
                                                             <tr key={enr.event_id} className="border-b border-[#FFB800]/10 hover:bg-[#FFB800]/5 transition-colors cursor-pointer" onClick={() => toggleLeaderboard(enr.event_id)}>
@@ -734,7 +746,7 @@ export default function UserDashboard() {
                                                                 </td>
                                                                 <td className="py-3 md:py-4 px-1 md:px-4 text-center text-xs font-semibold table-cell text-gray-300">{enr.score.toLocaleString()}</td>
                                                                 <td className="text-right py-3 md:py-4 px-2 md:px-4 font-bold text-[#FFB800] text-xs md:text-sm">
-                                                                    {userWinnings > 0 ? `${userWinnings.toLocaleString('tr-TR')}₺` : '-'}
+                                                                    {rewardDisplay}
                                                                 </td>
                                                             </tr>
                                                         );
