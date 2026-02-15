@@ -185,7 +185,9 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                 scan_start = seven_days_ago
                 
                 start_str = scan_start.strftime("%Y-%m-%dT%H:%M:%SZ")
-                end_str = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+                # Add 1 hour buffer to end_date in case server clock is BEHIND the API clock
+                end_date_with_buffer = datetime.utcnow() + timedelta(hours=1)
+                end_str = end_date_with_buffer.strftime("%Y-%m-%dT%H:%M:%SZ")
 
                 logger.info(f"   [WORKER_DIAGNOSTIC] User {user.username}: Scanning bets from {start_str} to {end_str}")
                 bet_history_data = await fetch_bet_history(user.client_id, start_str, end_str)
