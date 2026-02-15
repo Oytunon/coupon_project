@@ -53,12 +53,13 @@ export function LeagueSelector({
             const params: any = { limit: 50 }
             if (searchTerm) params.search = searchTerm
 
-            const res = await apiClient.get('/api/leagues/', { params })
-            setLeagues(res.data)
+            const res = await apiClient.get('/api/leagues', { params })
+            const data = Array.isArray(res.data) ? res.data : []
+            setLeagues(data)
 
             // Update cache
             const newCache = { ...leagueNameCache }
-            res.data.forEach((l: League) => {
+            data.forEach((l: League) => {
                 newCache[l.id] = l.name
             })
             setLeagueNameCache(newCache)

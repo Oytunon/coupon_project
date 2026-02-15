@@ -45,7 +45,7 @@ import { LeagueSelector } from "@/components/LeagueSelector"
 import { EventRewardSettings } from "@/components/EventRewardSettings"
 
 const fetchAdminStats = async () => {
-    const res = await apiClient.get('/api/admin/stats/')
+    const res = await apiClient.get('/api/admin/stats')
     return res.data
 }
 
@@ -53,7 +53,7 @@ const fetchParticipants = async (eventId?: number, skip = 0, limit = 20, search 
     const params: any = { skip, limit }
     if (eventId) params.event_id = eventId
     if (search) params.search = search
-    const res = await apiClient.get('/api/admin/participants/', { params })
+    const res = await apiClient.get('/api/admin/participants', { params })
     return res.data
 }
 
@@ -65,12 +65,12 @@ const fetchUserCoupons = async (clientId: number, eventId?: number, skip = 0, li
 }
 
 const fetchAdminUsers = async () => {
-    const res = await apiClient.get('/api/admin/users/')
+    const res = await apiClient.get('/api/admin/users')
     return res.data
 }
 
 const createAdminUser = async (userData: any) => {
-    const res = await apiClient.post('/api/admin/users/', userData)
+    const res = await apiClient.post('/api/admin/users', userData)
     return res.data
 }
 
@@ -80,12 +80,12 @@ const deleteAdminUser = async (userId: number) => {
 }
 
 const fetchEvents = async () => {
-    const res = await apiClient.get('/api/admin/events/')
+    const res = await apiClient.get('/api/admin/events')
     return res.data
 }
 
 const createEvent = async (eventData: any) => {
-    const res = await apiClient.post('/api/admin/events/', eventData)
+    const res = await apiClient.post('/api/admin/events', eventData)
     return res.data
 }
 
@@ -244,17 +244,15 @@ export default function AdminPage() {
                 fetchEvents()
             ])
             setStats(s)
-
-            if (p.items) {
-                setParticipants(p.items)
-                setTotalParticipants(p.total)
+            if (p && p.items) {
+                setParticipants(Array.isArray(p.items) ? p.items : [])
+                setTotalParticipants(p.total || 0)
             } else {
-                setParticipants(p)
-                setTotalParticipants(p.length)
+                setParticipants(Array.isArray(p) ? p : [])
+                setTotalParticipants(Array.isArray(p) ? p.length : 0)
             }
-
-            setAdminUsers(u)
-            setEvents(e)
+            setAdminUsers(Array.isArray(u) ? u : [])
+            setEvents(Array.isArray(e) ? e : [])
         } catch (err) {
             console.error("Data load failed", err)
             setMessage({ type: "error", text: "Veriler yüklenirken bir hata oluştu." })
