@@ -64,10 +64,18 @@ def process_job(job_id: int):
         rewards = event.rules.get('rewards', [])
         job_results = job.results or {}
         
+        if not rewards:
+            logger.info(f"   [REWARD_DIAGNOSTIC] No rewards defined for event {event.id}. Completing job.")
+            job.status = "completed"
+            job.completed_at = datetime.utcnow()
+            db.commit()
+            return
+
         bapi = BapiClient()
         success_count = 0
         fail_count = 0
         rewarded_clients = set()
+        logger.info(f"   [REWARD_DIAGNOSTIC] Found {len(participants)} participants and {len(rewards)} reward rules.")
 
         # Update initial count expectation
         worker_log.processed_count = 0
@@ -140,8 +148,9 @@ def process_job(job_id: int):
                         "rule": rule,
                         "status": "success",
                         "response": resp,
-                        "timestamp": datetime.now().isoformat()
+                        "timestamp": datetime.utcnow().isoformat()
                     })
+                    logger.info(f"   [REWARD_DIAGNOSTIC] Client {client_id} rewarded SUCCESS.")
                     success_count += 1
                     worker_log.saved_count = success_count
                     db.commit()
@@ -163,10 +172,10 @@ def process_job(job_id: int):
         # İş durumu güncelle (Tamamlandı)
         job.results = job_results
         job.status = "completed"
-        job.completed_at = datetime.now()
+        job.completed_at = datetime.utcnow()
         
         worker_log.status = "completed"
-        worker_log.completed_at = datetime.now()
+        worker_log.completed_at = datetime.utcnow()
         db.commit()
         logger.info(f"Job {job_id} completed. Success: {success_count}, Failed: {fail_count}")
 
