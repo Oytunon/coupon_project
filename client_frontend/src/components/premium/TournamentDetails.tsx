@@ -483,9 +483,11 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                             ? leagues.filter(l => allowedIds.includes(l.id))
                                             : leagues; // If empty, maybe show all? Or "Tüm Ligler" text?
 
-                                        // Specific Sport IDs: 1=Football, 2=Basketball
-                                        const footballLeagues = filteredLeagues.filter(l => l.sport_id === 1 || !l.sport_id); // Default to football if null
+                                        // Specific Sport IDs: 1=Football, 2=Basketball, 3=Volleyball, 4=Tennis
+                                        const footballLeagues = filteredLeagues.filter(l => l.sport_id === 1 || !l.sport_id);
                                         const basketballLeagues = filteredLeagues.filter(l => l.sport_id === 2);
+                                        const volleyballLeagues = filteredLeagues.filter(l => l.sport_id === 3);
+                                        const tennisLeagues = filteredLeagues.filter(l => l.sport_id === 4);
 
                                         if (filteredLeagues.length === 0 && allowedIds.length > 0) return <div className="text-gray-500 text-xs p-2">Yükleniyor...</div>;
                                         if (filteredLeagues.length === 0 && allowedIds.length === 0) return <div className="text-gray-500 text-xs p-2">Tüm Ligler Geçerlidir</div>;
@@ -505,6 +507,22 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                                         <div className="text-[#FFB800] text-xs font-bold mb-1">🏀 BASKETBOL</div>
                                                         <div className="text-white text-[10px] md:text-xs leading-relaxed">
                                                             {basketballLeagues.map(l => l.name).join(', ')}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {volleyballLeagues.length > 0 && (
+                                                    <div className="bg-black/30 border border-[#FFB800]/20 rounded-lg p-2 md:p-3">
+                                                        <div className="text-[#FFB800] text-xs font-bold mb-1">🏐 VOLEYBOL</div>
+                                                        <div className="text-white text-[10px] md:text-xs leading-relaxed">
+                                                            {volleyballLeagues.map(l => l.name).join(', ')}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {tennisLeagues.length > 0 && (
+                                                    <div className="bg-black/30 border border-[#FFB800]/20 rounded-lg p-2 md:p-3">
+                                                        <div className="text-[#FFB800] text-xs font-bold mb-1">🎾 TENİS</div>
+                                                        <div className="text-white text-[10px] md:text-xs leading-relaxed">
+                                                            {tennisLeagues.map(l => l.name).join(', ')}
                                                         </div>
                                                     </div>
                                                 )}
