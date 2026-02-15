@@ -693,7 +693,7 @@ export default function UserDashboard() {
                                                 <thead>
                                                     <tr className="border-b-2 border-[#FFB800]/30">
                                                         <th className="text-left py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold">Turnuva</th>
-                                                        <th className="text-center py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold hidden sm:table-cell">Tarih</th>
+                                                        <th className="text-center py-3 px-1 md:px-4 text-gray-400 text-xs md:text-sm font-bold table-cell">Tarih</th>
                                                         <th className="text-center py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold hidden md:table-cell">Durum</th>
                                                         <th className="text-center py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold">Sıra</th>
                                                         <th className="text-center py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold hidden lg:table-cell">Puan</th>
@@ -721,8 +721,8 @@ export default function UserDashboard() {
                                                                         </div>
                                                                     </div>
                                                                 </td>
-                                                                <td className="py-3 md:py-4 px-2 md:px-4 text-center text-xs text-gray-300 hidden sm:table-cell">
-                                                                    {new Date(enr.joined_at || Date.now()).toLocaleDateString('tr-TR')}
+                                                                <td className="py-3 md:py-4 px-1 md:px-4 text-center text-xs text-gray-300 table-cell whitespace-nowrap">
+                                                                    {new Date(enr.joined_at || Date.now()).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
                                                                 </td>
                                                                 <td className="py-3 md:py-4 px-2 md:px-4 text-center text-xs text-gray-300 hidden md:table-cell">
                                                                     <Badge variant={enr.status === 'active' ? 'default' : 'secondary'} className={enr.status === 'active' ? 'bg-emerald-500/20 text-emerald-500 border-none' : 'bg-white/5 text-neutral-500 border-none'}>
