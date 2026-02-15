@@ -38,11 +38,15 @@ def calculate_points_for_event(
     
     # Base points calculation
     # Formula: Odds based or Stake * Odds
-    base_points = coupon.odds
+    # NEW RULE: Truncate odds to 2 decimal places before calculation
+    import math
+    truncated_odds = math.floor(coupon.odds * 100) / 100.0
+    
+    base_points = truncated_odds
     formula_str = "odds"
 
     if formula == "stake_times_odds":
-        base_points = (coupon.stake * coupon.odds) / 10
+        base_points = (coupon.stake * truncated_odds) / 10
         formula_str = "(stake * odds) / 10"
     
     # Combo Bonus Logic
@@ -54,15 +58,17 @@ def calculate_points_for_event(
             base_points *= combo_bonus # Effect: Odds * ComboBonus
             formula_str = f"odds * combo_bonus"
     
-    final_points = int(base_points * multiplier)
+    # NEW RULE: Truncate final points to 2 decimal places
+    final_points = math.floor(base_points * multiplier * 100) / 100.0
     
     return final_points, {
         "formula": formula,
         "formula_str": formula_str,
-        "base_points": round(base_points, 2),
+        "base_points": round(base_points, 4),
         "multiplier": multiplier,
         "state": state,
-        "final_points": final_points
+        "final_points": final_points,
+        "truncated_odds": truncated_odds
     }
 async def process_coupons(target_event_id: Optional[int] = None, job_id: Optional[int] = None):
     """

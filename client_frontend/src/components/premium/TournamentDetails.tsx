@@ -597,7 +597,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                                 <Trophy className="w-5 h-5 md:w-6 md:h-6 text-[#FFB800]" />
                                                 <span className="text-gray-400 text-xs md:text-sm font-semibold uppercase tracking-wide">Toplam Puanın</span>
                                             </div>
-                                            <div className="text-3xl md:text-5xl font-black text-white">{Math.floor(userPoints).toLocaleString('tr-TR')}</div>
+                                            <div className="text-3xl md:text-5xl font-black text-white">{(Math.floor(userPoints * 100) / 100).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
                                             <div className="mt-2 text-gray-500 text-xs md:text-sm">Devam ediyor</div>
                                         </div>
                                     </div>
@@ -636,7 +636,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                                                 </div>
                                                                 <div className="text-center mb-2">
                                                                     <div className="font-bold text-xs md:text-base text-gray-300">{leaderboard[1].username}</div>
-                                                                    <div className="text-[#E0E0E0] font-bold text-xs md:text-base">{Math.floor(leaderboard[1].score).toLocaleString('tr-TR')}</div>
+                                                                    <div className="text-[#E0E0E0] font-bold text-xs md:text-base">{(Math.floor(leaderboard[1].score * 100) / 100).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
                                                                 </div>
                                                                 <div className="rounded-t-xl flex items-center justify-center text-2xl md:text-5xl font-bold bg-gradient-to-b from-gray-700 to-gray-800 w-20 h-16 md:w-32 md:h-28 text-[#E0E0E0] border-t border-x border-[#E0E0E0]/30 shadow-[0_-5px_20px_rgba(224,224,224,0.1)]">2</div>
                                                             </div>
@@ -653,7 +653,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                                                 </div>
                                                                 <div className="text-center mb-2">
                                                                     <div className="font-bold text-xs md:text-base text-gray-200">{leaderboard[0].username}</div>
-                                                                    <div className="text-[#FFB800] font-bold text-xs md:text-base">{Math.floor(leaderboard[0].score).toLocaleString('tr-TR')}</div>
+                                                                    <div className="text-[#FFB800] font-bold text-xs md:text-base">{(Math.floor(leaderboard[0].score * 100) / 100).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
                                                                 </div>
                                                                 <div className="rounded-t-xl flex items-center justify-center text-3xl md:text-6xl font-bold bg-gradient-to-b from-yellow-600 to-yellow-800 w-24 h-24 md:w-36 md:h-40 text-[#FFB800] border-t border-x border-[#FFB800]/30 shadow-[0_-10px_30px_rgba(255,184,0,0.2)]">1</div>
                                                             </div>
@@ -669,7 +669,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                                                 </div>
                                                                 <div className="text-center mb-2">
                                                                     <div className="font-bold text-xs md:text-base text-gray-300">{leaderboard[2].username}</div>
-                                                                    <div className="text-[#CD7F32] font-bold text-xs md:text-base">{Math.floor(leaderboard[2].score).toLocaleString('tr-TR')}</div>
+                                                                    <div className="text-[#CD7F32] font-bold text-xs md:text-base">{(Math.floor(leaderboard[2].score * 100) / 100).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
                                                                 </div>
                                                                 <div className="rounded-t-xl flex items-center justify-center text-2xl md:text-5xl font-bold bg-gradient-to-b from-amber-800 to-amber-900 w-20 h-12 md:w-32 md:h-20 text-[#CD7F32] border-t border-x border-[#CD7F32]/30 shadow-[0_-5px_20px_rgba(205,127,50,0.1)]">3</div>
                                                             </div>
@@ -700,7 +700,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                                                         </div>
                                                                     </div>
                                                                     <div className="text-base md:text-xl font-bold text-white">
-                                                                        {Math.floor(user.score || 0).toLocaleString('tr-TR')}
+                                                                        {(Math.floor((user.score || 0) * 100) / 100).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                                                                     </div>
                                                                 </div>
                                                             );
@@ -826,7 +826,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                             </div>
                             <div className="mb-6 bg-gradient-to-br from-[#FFB800]/20 via-[#FFB800]/10 to-black border-2 border-[#FFB800] rounded-xl p-6 text-center">
                                 <div className="text-gray-400 text-sm mb-2">Toplam Puan:</div>
-                                <div className="text-5xl md:text-6xl font-black text-[#FFB800]">{Math.floor(userPoints).toLocaleString('tr-TR')}</div>
+                                <div className="text-5xl md:text-6xl font-black text-[#FFB800]">{(Math.floor(userPoints * 100) / 100).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
                             </div>
 
                             {/* Search */}
@@ -907,7 +907,9 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                                                 </span>
                                                             </td>
                                                             <td className="py-4 px-4 text-right">
-                                                                <span className="text-lg md:text-xl font-black text-[#FFB800]">{Math.floor(coupon.calculation || 0)}</span>
+                                                                <span className="text-lg md:text-xl font-black text-[#FFB800]">
+                                                                    {(Math.floor((coupon.calculation || 0) * 100) / 100).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                                                                </span>
                                                             </td>
                                                         </tr>
                                                     )
