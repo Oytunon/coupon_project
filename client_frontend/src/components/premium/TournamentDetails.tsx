@@ -907,7 +907,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                                                 </span>
                                                             </td>
                                                             <td className="py-4 px-4 text-right">
-                                                                <span className="text-lg md:text-xl font-black text-[#FFB800]">{Math.floor(coupon.calculation || 0).toLocaleString('tr-TR')}</span>
+                                                                <span className="text-lg md:text-xl font-black text-[#FFB800]">{Math.floor(coupon.calculation || 0)}</span>
                                                             </td>
                                                         </tr>
                                                     )

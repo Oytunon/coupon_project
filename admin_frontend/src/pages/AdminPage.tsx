@@ -766,7 +766,7 @@ export default function AdminPage() {
                                                     <td className="px-4 py-4 font-mono text-muted-foreground">#{index + 1}</td>
                                                     <td className="px-4 py-4 font-bold">{p.username}</td>
                                                     <td className="px-4 py-4"><Badge variant="secondary">{p.coupon_count}</Badge></td>
-                                                    <td className="px-4 py-4 font-black italic text-right text-primary text-lg">{Math.floor(p.points).toLocaleString('tr-TR')}</td>
+                                                    <td className="px-4 py-4 font-black italic text-right text-primary text-lg">{Math.floor(p.points)}</td>
                                                 </tr>
                                             ))}
                                             {participants.length === 0 && (
