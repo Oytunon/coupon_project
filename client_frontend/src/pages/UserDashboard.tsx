@@ -552,7 +552,7 @@ export default function UserDashboard() {
                                                                                     <Zap className="w-3 h-3 md:w-4 md:h-4" />
                                                                                     <span className="text-[9px] md:text-xs uppercase tracking-wide">Puanım</span>
                                                                                 </div>
-                                                                                <div className="text-lg md:text-3xl lg:text-4xl font-bold text-white">{enrollment.score.toLocaleString()}</div>
+                                                                                <div className="text-lg md:text-3xl lg:text-4xl font-bold text-white">{(Math.floor((enrollment.score || 0) * 100) / 100).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
                                                                             </div>
                                                                             <div className="w-px h-10 md:h-16 bg-[#FFB800]/30"></div>
                                                                             <div className="text-center">
@@ -747,7 +747,7 @@ export default function UserDashboard() {
                                                                         #{enr.rank || '-'}
                                                                     </span>
                                                                 </td>
-                                                                <td className="py-3 md:py-4 px-1 md:px-4 text-center text-xs font-semibold table-cell text-gray-300">{enr.score.toLocaleString()}</td>
+                                                                <td className="py-3 md:py-4 px-1 md:px-4 text-center text-xs font-semibold table-cell text-gray-300">{(Math.floor((enr.score || 0) * 100) / 100).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
                                                                 <td className="text-right py-3 md:py-4 px-2 md:px-4 font-bold text-[#FFB800] text-xs md:text-sm">
                                                                     {rewardDisplay}
                                                                 </td>
@@ -907,7 +907,7 @@ export default function UserDashboard() {
                                                                 </Badge>
                                                             </div>
                                                             <div className="text-[10px] text-neutral-500 font-medium">
-                                                                {new Date(coupon.inserted_at).toLocaleString('tr-TR')}
+                                                                {new Date(coupon.created_at || coupon.inserted_at).toLocaleString('tr-TR')}
                                                             </div>
                                                             {coupon.is_live && <Badge className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0 h-4 border-none">CANLI</Badge>}
                                                         </div>
