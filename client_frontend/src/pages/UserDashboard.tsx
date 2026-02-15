@@ -338,7 +338,11 @@ export default function UserDashboard() {
                             <div className="space-y-1.5">
                                 {filteredEvents.length === 0 ? (
                                     <div className="text-center p-4 text-neutral-500 italic bg-white/5 rounded-xl border border-dashed border-white/10">
-                                        Bu kategoride turnuva bulunamadı.
+                                        {activeCategory === 'all' && publicEvents.some(e => e.status === 'active') && !myEnrollments.some(enr => enr.event_id === publicEvents.find(e => e.status === 'active')?.id)
+                                            ? "Bu kategoride turnuva bulunamadı."
+                                            : activeCategory === 'all' && publicEvents.filter(e => e.status === 'active').every(e => myEnrollments.some(enr => enr.event_id === e.id))
+                                                ? "Tüm aktif turnuvalara katıldınız, başarılar!"
+                                                : "Bu kategoride turnuva bulunamadı."}
                                     </div>
                                 ) : (
                                     filteredEvents.map((event) => (
