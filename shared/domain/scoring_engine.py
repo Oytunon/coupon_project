@@ -173,18 +173,20 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                 # 2. We scan from the MIN of those personal starts
                 # 3. BUT never further back than 7 days (as requested)
                 
-                scan_points = []
+                # Calculate EARLIEST possible scan point for THIS user among all targeted events
                 seven_days_ago = datetime.utcnow() - timedelta(days=7)
                 
+                user_p_starts = []
                 for event in user_target_events:
                     joined_at = user_enrollments.get(event.id)
-                    # p_start = when the user officially started participating in THIS event
                     p_start = max(event.start_date, joined_at or event.start_date)
-                    scan_points.append(p_start)
+                    user_p_starts.append(p_start)
                 
-                # TEST MODE: Ignore join time, just scan back 7 days
-                # earliest_limit = min(scan_points)
-                scan_start = seven_days_ago
+                # Scan from the earliest start among events, but cap at 7 days
+                if user_p_starts:
+                    scan_start = max(min(user_p_starts), seven_days_ago)
+                else:
+                    scan_start = seven_days_ago
                 
                 start_str = scan_start.strftime("%Y-%m-%dT%H:%M:%SZ")
                 # Add 1 hour buffer to end_date in case server clock is BEHIND the API clock
@@ -266,12 +268,17 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     sel_count = int(bet_history.get("SelectionCount", 1) or bet_history.get("Type", 1)) # Type often means 1/2 (single/multi)
 
                     for target_event in user_target_events:
-                        # 0. Participation Time Check (NEW)
+                        # 0. Participation Time Check
                         # Ensure bet was placed AFTER user joined AND AFTER event started
-                        # TEST MODE: Ignore participation start check
-                        # participation_start = max(target_event.start_date, user_enrollments.get(target_event.id) or target_event.start_date)
-                        # if bet_created_dt < participation_start:
-                        #      continue
+                        joined_at = user_enrollments.get(target_event.id)
+                        participation_start = max(target_event.start_date, joined_at or target_event.start_date)
+                        
+                        is_timing_valid = bet_created_dt >= participation_start
+                        
+                        logger.info(f"   [WORKER_DIAGNOSTIC] Bet {bet_id} Timing: Bet({bet_created_dt}) vs Start({participation_start}). Valid: {is_timing_valid}")
+                        
+                        if not is_timing_valid:
+                             continue
 
                         rules = target_event.rules or {}
                         
