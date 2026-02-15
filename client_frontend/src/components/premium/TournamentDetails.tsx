@@ -1106,7 +1106,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                 {[
                                     { id: 1, title: 'Nasıl Katılırım?', icon: UserPlus, content: 'Turnuvaya katılmak için "HEMEN KATIL" butonuna tıklamanız yeterlidir. Katılım ücretsizdir ve anında başlayabilirsiniz. Turnuva süresince oynadığınız tüm kuponlar otomatik olarak puan kazandırır.' },
                                     { id: 2, title: 'Puan Nasıl Kazanılır?', icon: TrendingUp, content: 'Puanlarınız kuponlarınızın oranına ve tutarına göre hesaplanır. Yüksek oranlı ve tutarlı kuponlar daha fazla puan kazandırır.' },
-                                    { id: 3, title: 'Kupon Kuralları', icon: Ticket, content: 'Sadece futbol ve basketbol maçları geçerlidir. Minimum oran 1.50 olmalıdır. Canlı bahisler dahildir.' },
+                                    { id: 3, title: 'Kupon Kuralları', icon: Ticket, content: 'Sadece futbol ve basketbol maçları geçerlidir. Minimum oran 1.50 olmalıdır.' },
                                     { id: 4, title: 'Ödül Dağıtımı', icon: Award, content: 'Ödüller turnuva bitiminden 24 saat sonra hesabınıza otomatik olarak yatırılır. Şartları sağlayan kullanıcılar ödül havuzundan pay alır.' },
                                     { id: 5, title: 'Genel Şartlar', icon: FileText, content: 'Turnuvaya katılan herkes genel kuralları kabul etmiş sayılır. Hile girişimi tespit edilen kullanıcılar diskalifiye edilir.' }
                                 ].map((rule) => (

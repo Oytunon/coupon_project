@@ -484,7 +484,7 @@ export default function UserDashboard() {
                                                                         <Trophy className="w-3 h-3 text-[#FFB800]" />
                                                                         <span className="text-[8px] text-[#FFB800] font-bold uppercase tracking-wide">Ödül</span>
                                                                     </div>
-                                                                    <div className="text-[11px] font-black text-[#FFB800] text-center leading-none">1.500.000₺</div>
+                                                                    <div className="text-[11px] font-black text-[#FFB800] text-center leading-none">{calculateTotalPrize(event.rules).toLocaleString('tr-TR')}₺</div>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -535,7 +535,7 @@ export default function UserDashboard() {
                                                                                     <Trophy className="w-3 h-3 md:w-6 md:h-6 text-[#FFB800]" />
                                                                                     <span className="text-[9px] md:text-xs text-[#FFB800] font-bold uppercase tracking-wide md:tracking-widest">Ödül</span>
                                                                                 </div>
-                                                                                <div className="text-center text-sm md:text-lg lg:text-xl font-black text-[#FFB800]">1.500.000₺</div>
+                                                                                <div className="text-center text-sm md:text-lg lg:text-xl font-black text-[#FFB800]">{calculateTotalPrize(event.rules).toLocaleString('tr-TR')}₺</div>
                                                                             </div>
                                                                         </div>
                                                                     </div>
