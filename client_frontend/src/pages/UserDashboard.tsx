@@ -187,6 +187,7 @@ export default function UserDashboard() {
                     }}
                     username={username || ''}
                     onJoin={() => handleJoin(selectedEvent.id)}
+                    joinedAt={enrollment?.joined_at}
                 />
             )
         }

@@ -13,6 +13,7 @@ interface TournamentDetailsProps {
     userPoints: number
     userRank: number
     isJoined: boolean
+    joinedAt?: string
     onBack: () => void
     username: string
     onJoin: () => void
@@ -69,8 +70,11 @@ const CountUpAnimation = ({ target, duration = 2000 }: { target: number, duratio
     return <>{count.toLocaleString('tr-TR')}</>;
 };
 
-export function TournamentDetails({ event, userPoints, userRank, isJoined, onBack, username, onJoin }: TournamentDetailsProps) {
+export function TournamentDetails({ event, userPoints, userRank, isJoined, joinedAt, onBack, username, onJoin }: TournamentDetailsProps) {
     const baseUrl = import.meta.env.VITE_API_URL || ""
+    const startDate = new Date(event.start_date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    const endDate = new Date(event.end_date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    const joinDateDisplay = isJoined && joinedAt ? new Date(joinedAt).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
     const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number }>({ days: 0, hours: 0, minutes: 0 })
     const [activeTab, setActiveTab] = useState<'info' | 'leaderboard' | 'coupons' | 'rewards' | 'rules'>('info')
 
@@ -201,8 +205,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
     }, [activeTab, event.id, username])
 
     // Format dates
-    const startDate = new Date(event.start_date).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    const endDate = new Date(event.end_date).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+
 
     // Rules from event or defaults
     const rules = event.rules || {}
@@ -445,14 +448,14 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                         <Calendar className="w-4 h-4 text-[#FFB800]" />
                                         <span className="text-[#FFB800] text-xs md:text-sm font-semibold">Başlangıç Tarihi</span>
                                     </div>
-                                    <p className="text-white text-sm md:text-base font-medium">{startDate}</p>
+                                    <p className="text-white text-sm md:text-base font-medium">{joinDateDisplay}</p>
                                 </div>
                                 <div className="bg-black/50 border border-[#FFB800]/30 rounded-lg p-3 md:p-4">
                                     <div className="flex items-center gap-2 mb-2">
                                         <Clock className="w-4 h-4 text-[#FFB800]" />
                                         <span className="text-[#FFB800] text-xs md:text-sm font-semibold">Katılım Tarihi</span>
                                     </div>
-                                    <p className="text-white text-sm md:text-base font-medium">{startDate}</p>
+                                    <p className="text-white text-sm md:text-base font-medium">{joinDateDisplay}</p>
                                 </div>
                                 <div className="bg-black/50 border border-[#FFB800]/30 rounded-lg p-3 md:p-4">
                                     <div className="flex items-center gap-2 mb-2">
