@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, List
 
 from sqlalchemy import func
@@ -138,11 +138,11 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
 
         participants = db.query(Participant).filter(Participant.id.in_(participant_ids)).all()
         
-        user_event_map = {}
+        user_enrollment_map = {} # Mapping participant_id -> {event_id: joined_at}
         for enr in enrollments:
-            if enr.participant_id not in user_event_map:
-                user_event_map[enr.participant_id] = []
-            user_event_map[enr.participant_id].append(enr.event_id)
+            if enr.participant_id not in user_enrollment_map:
+                user_enrollment_map[enr.participant_id] = {}
+            user_enrollment_map[enr.participant_id][enr.event_id] = enr.joined_at
 
         # Cache event data to prevent DetachedInstanceError after commits
         event_info_map = {}
@@ -161,8 +161,8 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
             user_processed_count = 0
             user_saved_count = 0
             try:
-                user_enrolled_event_ids = user_event_map.get(user.id, [])
-                user_target_events = [event_info_map[eid]["object"] for eid in user_enrolled_event_ids if eid in event_info_map]
+                user_enrollments = user_enrollment_map.get(user.id, {})
+                user_target_events = [event_info_map[eid]["object"] for eid in user_enrollments if eid in event_info_map]
                 
                 if not user_target_events:
                     logger.info(f"User {user.username}: No active enrollments.")
@@ -172,10 +172,29 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
 
                 # logger.info(f"Kullanıcı taranıyor: {user.username} (Client ID: {user.client_id})")
                 
-                # ... fetch history ...
+                # Calculate EARLIEST possible scan point for THIS user
+                # Rules:
+                # 1. max(EventStart, JoinedAt) -> Personal start for EACH event
+                # 2. We scan from the MIN of those personal starts
+                # 3. BUT never further back than 7 days (as requested)
+                
+                scan_points = []
+                seven_days_ago = datetime.utcnow() - timedelta(days=7)
+                
+                for event in user_target_events:
+                    joined_at = user_enrollments.get(event.id)
+                    # p_start = when the user officially started participating in THIS event
+                    p_start = max(event.start_date, joined_at or event.start_date)
+                    scan_points.append(p_start)
+                
+                earliest_limit = min(scan_points)
+                scan_start = max(earliest_limit, seven_days_ago)
+                
+                start_str = scan_start.strftime("%Y-%m-%dT%H:%M:%SZ")
+                end_str = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
-                start_date, end_date = get_date_range()
-                bet_history_data = await fetch_bet_history(user.client_id, start_date, end_date)
+                logger.info(f"User {user.username}: Scanning bets from {start_str}")
+                bet_history_data = await fetch_bet_history(user.client_id, start_str, end_str)
                 
                 # Robust parsing
                 bets = []
@@ -194,8 +213,25 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                 for bet_history in bets:
                     user_processed_count += 1
                     bet_id = str(bet_history.get("BetId") or bet_history.get("Id"))
-                    if str(bet_id) == "6004498485":
-                        logger.info(f"🔍 SERVER DEBUG - RAW BET DATA: {bet_history}")
+                    
+                    # Parse Bet Creation Date (Unified)
+                    raw_created = bet_history.get("CreatedAt") or bet_history.get("Created") or bet_history.get("CreatedLocal")
+                    bet_created_dt = datetime.utcnow()
+                    if raw_created:
+                         try:
+                             # Clean up common ISO variations
+                             clean_created = str(raw_created).split('.')[0].replace("Z", "")
+                             if "+" in clean_created: clean_created = clean_created.split("+")[0]
+                             
+                             if "T" in clean_created:
+                                 bet_created_dt = datetime.strptime(clean_created, "%Y-%m-%dT%H:%M:%S")
+                             else:
+                                 bet_created_dt = datetime.strptime(clean_created, "%Y-%m-%d %H:%M:%S")
+                         except Exception as e:
+                             logger.error(f"Date parse error for bet {bet_id}: {raw_created} -> {e}")
+
+                    created_dt = bet_created_dt # Master date variable for lower blocks
+
                     if not bet_id: 
                         logger.debug(f"Skipping bet with no ID")
                         continue
@@ -232,6 +268,14 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     sel_count = int(bet_history.get("SelectionCount", 1) or bet_history.get("Type", 1)) # Type often means 1/2 (single/multi)
 
                     for target_event in user_target_events:
+                        # 0. Participation Time Check (NEW)
+                        # Ensure bet was placed AFTER user joined AND AFTER event started
+                        participation_start = max(target_event.start_date, user_enrollments.get(target_event.id) or target_event.start_date)
+                        
+                        if bet_created_dt < participation_start:
+                             # logger.info(f"   [DEBUG_RULE] Bet {bet_id} SKIPPED Event {target_event.id}: Too early {bet_created_dt} < Join/Start {participation_start}")
+                             continue
+
                         rules = target_event.rules or {}
                         
                         min_stake = rules.get("min_stake", 0)
@@ -337,18 +381,8 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         price = float(bet_history.get("Price", 1.0) or 1.0)
                         winning_amount = float(bet_history.get("WinAmount") or bet_history.get("Payout") or 0.0)
                         
-                        # Parse Date
-                        created_str = bet_history.get("Created") or bet_history.get("CreatedLocal")
-                        created_dt = datetime.utcnow()
-                        if created_str:
-                            try:
-                                if "+" in created_str: created_str = created_str.split("+")[0]
-                                elif "Z" in created_str: created_str = created_str.replace("Z", "")
-                                try:
-                                    created_dt = datetime.strptime(created_str, "%Y-%m-%dT%H:%M:%S.%f")
-                                except ValueError:
-                                    created_dt = datetime.strptime(created_str, "%Y-%m-%dT%H:%M:%S")
-                            except Exception: pass
+                        # Use unified date from top of loop
+                        created_dt = bet_created_dt
 
                         if not existing_coupon:
                             # Create Master Coupon
