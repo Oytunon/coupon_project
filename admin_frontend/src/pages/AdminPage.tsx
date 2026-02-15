@@ -90,12 +90,12 @@ const createEvent = async (eventData: any) => {
 }
 
 const updateEvent = async (eventId: number, eventData: any) => {
-    const res = await apiClient.put(`/api/admin/events/${eventId}`, eventData)
+    const res = await apiClient.put(`/admin/events/${eventId}`, eventData)
     return res.data
 }
 
 const updateEventStatus = async (eventId: number, status: string) => {
-    const res = await apiClient.patch(`/api/admin/events/${eventId}/status`, { status })
+    const res = await apiClient.patch(`/admin/events/${eventId}/status`, { status })
     return res.data
 }
 

@@ -7,7 +7,7 @@ type ParticipationResponse = {
 }
 
 export async function getParticipationStatus(username: string, eventId?: number, slug?: string): Promise<ParticipationResponse> {
-  let url = `/api/has-joined?username=${encodeURIComponent(username)}`
+  let url = `/has-joined?username=${encodeURIComponent(username)}`
   if (slug) {
     url += `&slug=${encodeURIComponent(slug)}`
   } else if (eventId) {
@@ -19,7 +19,7 @@ export async function getParticipationStatus(username: string, eventId?: number,
 }
 
 export async function joinCampaign(username: string, eventId?: number, slug?: string) {
-  let url = `/api/join?username=${encodeURIComponent(username)}`
+  let url = `/join?username=${encodeURIComponent(username)}`
   if (slug) {
     url += `&slug=${encodeURIComponent(slug)}`
   } else if (eventId) {
@@ -31,7 +31,7 @@ export async function joinCampaign(username: string, eventId?: number, slug?: st
 }
 
 export async function getLeaderboard(slug?: string, eventId?: number, limit: number = 50) {
-  let url = `/api/leaderboard?limit=${limit}`
+  let url = `/leaderboard?limit=${limit}`
   if (slug) {
     url += `&slug=${encodeURIComponent(slug)}`
   } else if (eventId) {
@@ -43,7 +43,7 @@ export async function getLeaderboard(slug?: string, eventId?: number, limit: num
 }
 
 export async function getMyCoupons(username: string, slug?: string, eventId?: number) {
-  let url = `/api/my-coupons?username=${encodeURIComponent(username)}`
+  let url = `/my-coupons?username=${encodeURIComponent(username)}`
   if (slug) {
     url += `&slug=${encodeURIComponent(slug)}`
   } else if (eventId) {
