@@ -45,7 +45,7 @@ import { LeagueSelector } from "@/components/LeagueSelector"
 import { EventRewardSettings } from "@/components/EventRewardSettings"
 
 const fetchAdminStats = async () => {
-    const res = await apiClient.get('/admin/stats')
+    const res = await apiClient.get('/api/admin/stats/')
     return res.data
 }
 
@@ -53,56 +53,56 @@ const fetchParticipants = async (eventId?: number, skip = 0, limit = 20, search 
     const params: any = { skip, limit }
     if (eventId) params.event_id = eventId
     if (search) params.search = search
-    const res = await apiClient.get('/admin/participants', { params })
+    const res = await apiClient.get('/api/admin/participants/', { params })
     return res.data
 }
 
 const fetchUserCoupons = async (clientId: number, eventId?: number, skip = 0, limit = 20) => {
     const params: any = { skip, limit }
     if (eventId) params.event_id = eventId
-    const res = await apiClient.get(`/admin/participants/${clientId}/coupons`, { params })
+    const res = await apiClient.get(`/api/admin/participants/${clientId}/coupons`, { params })
     return res.data
 }
 
 const fetchAdminUsers = async () => {
-    const res = await apiClient.get('/admin/users')
+    const res = await apiClient.get('/api/admin/users/')
     return res.data
 }
 
 const createAdminUser = async (userData: any) => {
-    const res = await apiClient.post('/admin/users', userData)
+    const res = await apiClient.post('/api/admin/users/', userData)
     return res.data
 }
 
 const deleteAdminUser = async (userId: number) => {
-    const res = await apiClient.delete(`/admin/users/${userId}`)
+    const res = await apiClient.delete(`/api/admin/users/${userId}`)
     return res.data
 }
 
 const fetchEvents = async () => {
-    const res = await apiClient.get('/admin/events')
+    const res = await apiClient.get('/api/admin/events/')
     return res.data
 }
 
 const createEvent = async (eventData: any) => {
-    const res = await apiClient.post('/admin/events', eventData)
+    const res = await apiClient.post('/api/admin/events/', eventData)
     return res.data
 }
 
 const updateEvent = async (eventId: number, eventData: any) => {
-    const res = await apiClient.put(`/admin/events/${eventId}`, eventData)
+    const res = await apiClient.put(`/api/admin/events/${eventId}`, eventData)
     return res.data
 }
 
 const updateEventStatus = async (eventId: number, status: string) => {
-    const res = await apiClient.patch(`/admin/events/${eventId}/status`, { status })
+    const res = await apiClient.patch(`/api/admin/events/${eventId}/status`, { status })
     return res.data
 }
 
 const uploadEventImage = async (eventId: number, file: File) => {
     const formData = new FormData()
     formData.append('file', file)
-    const res = await apiClient.post(`/admin/events/${eventId}/upload-image`, formData, {
+    const res = await apiClient.post(`/api/admin/events/${eventId}/upload-image`, formData, {
         headers: {
             'Content-Type': 'multipart/form-data'
         }
@@ -111,32 +111,32 @@ const uploadEventImage = async (eventId: number, file: File) => {
 }
 
 const recalculateEventPoints = async (eventId: number) => {
-    const res = await apiClient.post(`/admin/events/${eventId}/recalculate`)
+    const res = await apiClient.post(`/api/admin/events/${eventId}/recalculate`)
     return res.data
 }
 
 const runEventWorker = async (eventId: number) => {
-    const res = await apiClient.post(`/admin/events/${eventId}/worker`)
+    const res = await apiClient.post(`/api/admin/events/${eventId}/worker`)
     return res.data
 }
 
 const getEventStats = async (eventId: number) => {
-    const res = await apiClient.get(`/admin/events/${eventId}/stats`)
+    const res = await apiClient.get(`/api/admin/events/${eventId}/stats`)
     return res.data
 }
 
 const deleteEvent = async (eventId: number) => {
-    const res = await apiClient.delete(`/admin/events/${eventId}`)
+    const res = await apiClient.delete(`/api/admin/events/${eventId}`)
     return res.data
 }
 
 const distributeRewards = async (eventId: number) => {
-    const res = await apiClient.post(`/admin/events/${eventId}/distribute-rewards`)
+    const res = await apiClient.post(`/api/admin/events/${eventId}/distribute-rewards`)
     return res.data
 }
 
 const fetchRewardHistory = async (eventId: number) => {
-    const res = await apiClient.get(`/admin/events/${eventId}/reward-history`)
+    const res = await apiClient.get(`/api/admin/events/${eventId}/reward-history`)
     return res.data
 }
 
@@ -172,7 +172,7 @@ export default function AdminPage() {
     const [newUser, setNewUser] = useState({ username: "", password: "", email: "", role: "admin" })
 
     const fetchLeagues = async (search = "") => {
-        const res = await apiClient.get('/leagues', { params: { search, limit: 100 } })
+        const res = await apiClient.get('/api/leagues', { params: { search, limit: 100 } })
         return res.data
     }
 
@@ -265,7 +265,7 @@ export default function AdminPage() {
 
     const handleExportExcel = async (eventId: number) => {
         try {
-            const response = await apiClient.get(`/admin/events/${eventId}/participants/export`, {
+            const response = await apiClient.get(`/api/admin/events/${eventId}/participants/export`, {
                 responseType: 'blob'
             });
             const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -408,7 +408,7 @@ export default function AdminPage() {
 
             const checkStatus = setInterval(async () => {
                 try {
-                    const statusRes = await apiClient.get(`/admin/worker-jobs/${jobId}`)
+                    const statusRes = await apiClient.get(`/api/admin/worker-jobs/${jobId}`)
                     const job = statusRes.data
 
                     if (job.status === 'completed' || job.status === 'failed') {
@@ -503,7 +503,7 @@ export default function AdminPage() {
 
     const handleExportParticipants = async (eventId: number, eventName: string) => {
         try {
-            const response = await apiClient.get(`/admin/events/${eventId}/participants/export`, {
+            const response = await apiClient.get(`/api/admin/events/${eventId}/participants/export`, {
                 responseType: 'blob'
             });
             const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -521,7 +521,7 @@ export default function AdminPage() {
 
     const handleExportCoupons = async (eventId: number, eventName: string) => {
         try {
-            const response = await apiClient.get(`/admin/events/${eventId}/coupons/export`, {
+            const response = await apiClient.get(`/api/admin/events/${eventId}/coupons/export`, {
                 responseType: 'blob'
             });
             const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -539,7 +539,7 @@ export default function AdminPage() {
 
     const handleExportRewardHistory = async (eventId: number, eventName: string) => {
         try {
-            const response = await apiClient.get(`/admin/events/${eventId}/reward-history/export`, {
+            const response = await apiClient.get(`/api/admin/events/${eventId}/reward-history/export`, {
                 responseType: 'blob'
             });
             const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -623,7 +623,7 @@ export default function AdminPage() {
 
 
     const fetchEventParticipants = async (eventId: number) => {
-        const res = await apiClient.get(`/admin/events/${eventId}/participants`)
+        const res = await apiClient.get(`/api/admin/events/${eventId}/participants`)
         return res.data
     }
 
