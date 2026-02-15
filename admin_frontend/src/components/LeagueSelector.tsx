@@ -54,7 +54,12 @@ export function LeagueSelector({
             if (searchTerm) params.search = searchTerm
 
             const res = await apiClient.get('/leagues', { params })
-            const data = Array.isArray(res.data) ? res.data : []
+            let data = []
+            if (Array.isArray(res.data)) {
+                data = res.data
+            } else if (res.data && Array.isArray(res.data.items)) {
+                data = res.data.items
+            }
             setLeagues(data)
 
             // Update cache
