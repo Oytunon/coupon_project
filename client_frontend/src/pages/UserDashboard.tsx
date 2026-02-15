@@ -196,7 +196,6 @@ export default function UserDashboard() {
 
     // Helper to calculate total prize
     const calculateTotalPrize = (rules: any) => {
-
         if (!rules) return 0;
 
         let validRules = rules;
@@ -204,18 +203,16 @@ export default function UserDashboard() {
             try {
                 validRules = JSON.parse(rules);
             } catch (e) {
-                console.error("Failed to parse rules:", e);
                 return 0;
             }
         }
 
         if (!validRules.rewards || !Array.isArray(validRules.rewards)) {
-            console.log("No rewards array found");
             return 0;
         }
 
-        const total = validRules.rewards.reduce((total: number, reward: any) => {
-            return total + (Number(reward.amount) || 0);
+        const total = validRules.rewards.reduce((acc: number, reward: any) => {
+            return acc + (Number(reward.amount) || 0);
         }, 0);
 
         return total;
@@ -1231,6 +1228,6 @@ export default function UserDashboard() {
                     </Tabs>
                 </div>
             </main>
-        </ClientLayout >
+        </ClientLayout>
     )
 }
