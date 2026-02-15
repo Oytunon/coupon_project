@@ -178,8 +178,9 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     p_start = max(event.start_date, joined_at or event.start_date)
                     scan_points.append(p_start)
                 
-                earliest_limit = min(scan_points)
-                scan_start = max(earliest_limit, seven_days_ago)
+                # TEST MODE: Ignore join time, just scan back 7 days
+                # earliest_limit = min(scan_points)
+                scan_start = seven_days_ago
                 
                 start_str = scan_start.strftime("%Y-%m-%dT%H:%M:%SZ")
                 end_str = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -261,11 +262,10 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     for target_event in user_target_events:
                         # 0. Participation Time Check (NEW)
                         # Ensure bet was placed AFTER user joined AND AFTER event started
-                        participation_start = max(target_event.start_date, user_enrollments.get(target_event.id) or target_event.start_date)
-                        
-                        if bet_created_dt < participation_start:
-                             # logger.info(f"   [DEBUG_RULE] Bet {bet_id} SKIPPED Event {target_event.id}: Too early {bet_created_dt} < Join/Start {participation_start}")
-                             continue
+                        # TEST MODE: Ignore participation start check
+                        # participation_start = max(target_event.start_date, user_enrollments.get(target_event.id) or target_event.start_date)
+                        # if bet_created_dt < participation_start:
+                        #      continue
 
                         rules = target_event.rules or {}
                         
