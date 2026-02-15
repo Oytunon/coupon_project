@@ -142,8 +142,10 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                 "object": e,
                 "name": e.name,
                 "won_multiplier": e.won_point_multiplier,
-                "loss_multiplier": e.loss_point_multiplier
+                "loss_multiplier": e.loss_point_multiplier,
+                "rules_raw": e.rules
             }
+            logger.info(f"   [WORKER_DIAGNOSTIC] Event {e.id} Rules: {e.rules}")
 
         event_names = [info["name"] for info in event_info_map.values()]
         logger.info(f"   [WORKER_DIAGNOSTIC] Targeting Events: {event_names}")
