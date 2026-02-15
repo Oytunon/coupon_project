@@ -198,13 +198,20 @@ async def get_my_enrollments(
 
         rank = (higher_rank_count or 0) + 1
         
+        # Get joined_at from EventParticipant
+        enrollment = db.query(EventParticipant).filter(
+            EventParticipant.event_id == eid,
+            EventParticipant.participant_id == participant.id
+        ).first()
+
         results.append({
             "event_id": event.id,
             "event_name": event.name,
             "status": event.status,
             "score": live_score, # my_stats.total_points yerine live_score
             "rank": rank,
-            "slug": event.slug
+            "slug": event.slug,
+            "joined_at": enrollment.joined_at.isoformat() if enrollment and enrollment.joined_at else None
         })
         
     return results

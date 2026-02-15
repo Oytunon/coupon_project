@@ -693,7 +693,7 @@ export default function UserDashboard() {
                                                 <thead>
                                                     <tr className="border-b-2 border-[#FFB800]/30">
                                                         <th className="text-left py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold">Turnuva</th>
-                                                        {/* Adding Date if available in data, otherwise hidden or static placeholder for layout fidelity */}
+                                                        <th className="text-center py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold hidden sm:table-cell">Tarih</th>
                                                         <th className="text-center py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold hidden md:table-cell">Durum</th>
                                                         <th className="text-center py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold">Sıra</th>
                                                         <th className="text-center py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold hidden lg:table-cell">Puan</th>
@@ -703,7 +703,7 @@ export default function UserDashboard() {
                                                 <tbody>
                                                     {myEnrollments.map((enr, idx) => {
                                                         const userWinnings = myRewards
-                                                            .filter(r => r.event_id === enr.event_id)
+                                                            .filter(r => Number(r.event_id) === Number(enr.event_id))
                                                             .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
 
                                                         return (
@@ -720,6 +720,9 @@ export default function UserDashboard() {
                                                                             </div>
                                                                         </div>
                                                                     </div>
+                                                                </td>
+                                                                <td className="py-3 md:py-4 px-2 md:px-4 text-center text-xs text-gray-300 hidden sm:table-cell">
+                                                                    {new Date(enr.joined_at || Date.now()).toLocaleDateString('tr-TR')}
                                                                 </td>
                                                                 <td className="py-3 md:py-4 px-2 md:px-4 text-center text-xs text-gray-300 hidden md:table-cell">
                                                                     <Badge variant={enr.status === 'active' ? 'default' : 'secondary'} className={enr.status === 'active' ? 'bg-emerald-500/20 text-emerald-500 border-none' : 'bg-white/5 text-neutral-500 border-none'}>

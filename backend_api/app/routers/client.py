@@ -87,6 +87,7 @@ async def get_my_rewards(
                 if r.get("status") == "success":
                     my_rewards.append({
                         "id": f"{job.id}_{r.get('timestamp')}",
+                        "event_id": job.event_id,
                         "event_name": job.event_name_snapshot or "Etkinlik",
                         "reward_type": r.get("rule", {}).get("reward_type"),
                         "amount": r.get("rule", {}).get("amount"),

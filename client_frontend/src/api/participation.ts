@@ -7,6 +7,7 @@ type ParticipationResponse = {
   joined: boolean
   score?: number
   rank?: number
+  joined_at?: string
 }
 
 export async function getParticipationStatus(username: string, eventId?: number, slug?: string): Promise<ParticipationResponse> {
