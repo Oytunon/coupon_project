@@ -145,7 +145,9 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                 "loss_multiplier": e.loss_point_multiplier
             }
 
-        logger.info(f"Toplam {len(participants)} katılımcı taranacak.")
+        event_names = [info["name"] for info in event_info_map.values()]
+        logger.info(f"   [WORKER_DIAGNOSTIC] Targeting Events: {event_names}")
+        logger.info(f"   [WORKER_DIAGNOSTIC] Total {len(participants)} participants to scan.")
 
         # Rate limit için listeyi sıralı gidelim
         for i, user in enumerate(participants):
@@ -185,7 +187,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                 start_str = scan_start.strftime("%Y-%m-%dT%H:%M:%SZ")
                 end_str = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
-                logger.info(f"User {user.username}: Scanning bets from {start_str}")
+                logger.info(f"   [WORKER_DIAGNOSTIC] User {user.username}: Scanning bets from {start_str} to {end_str}")
                 bet_history_data = await fetch_bet_history(user.client_id, start_str, end_str)
                 
                 # Robust parsing
@@ -196,10 +198,10 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     bets = bet_history_data
                 
                 if not bets:
-                    logger.info(f"User {user.username}: No bets found in history.")
+                    logger.info(f"   [WORKER_DIAGNOSTIC] User {user.username}: No bets found at all in BetConstruct.")
                     continue
                 
-                logger.info(f"User {user.username}: Found {len(bets)} bets raw.")
+                logger.info(f"   [WORKER_DIAGNOSTIC] User {user.username}: Found {len(bets)} total bets to evaluate.")
 
                     
                 for bet_history in bets:
@@ -285,7 +287,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             continue
                             
                         eligible_for_events.append(target_event)
-                        logger.info(f"   [DEBUG_RULE] Bet {bet_id} ELIGIBLE for Event {target_event.id} (Basic Checks Passed)")
+                        logger.info(f"   [WORKER_DIAGNOSTIC] Bet {bet_id} PASSED Basic Rules (Stake/Odds/Combo) for Event {target_event.id}")
 
                     if not eligible_for_events: 
                          logger.info(f"Bet {bet_id} not eligible for any active events (Stake/SelectCount)")
