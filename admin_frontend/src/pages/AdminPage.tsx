@@ -795,7 +795,7 @@ export default function AdminPage() {
                                     <CardHeader className="flex flex-row items-center gap-4 space-y-0">
                                         <div className="h-16 w-24 bg-black/40 rounded flex items-center justify-center overflow-hidden border border-white/5 shrink-0 shadow-inner">
                                             {event.image_url ? (
-                                                <img src={`${apiClient.defaults.baseURL}${event.image_url}`} alt={event.name} className="h-full w-full object-cover" />
+                                                <img src={`${event.image_url}`} alt={event.name} className="h-full w-full object-cover" />
                                             ) : (
                                                 <Trophy className="h-6 w-6 text-white/10" />
                                             )}
@@ -1164,7 +1164,7 @@ export default function AdminPage() {
                                                         <div className="flex items-center gap-4 p-3 bg-white/5 rounded-lg border border-white/10">
                                                             <div className="h-16 w-16 bg-black/40 rounded flex items-center justify-center overflow-hidden border border-white/5">
                                                                 {editingEvent.image_url ? (
-                                                                    <img src={`${apiClient.defaults.baseURL}${editingEvent.image_url}`} alt="Event" className="h-full w-full object-cover" />
+                                                                    <img src={`${editingEvent.image_url}`} alt="Event" className="h-full w-full object-cover" />
                                                                 ) : (
                                                                     <ImagePlus className="h-6 w-6 text-muted-foreground/30" />
                                                                 )}
