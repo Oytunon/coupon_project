@@ -1032,7 +1032,7 @@ export default function AdminPage() {
                                                                 </SelectTrigger>
                                                                 <SelectContent>
                                                                     <SelectItem value="simple">Sadece Oran (Klasik)</SelectItem>
-                                                                    <SelectItem value="stake_times_odds">Yatırım x Oran</SelectItem>
+                                                                    <SelectItem value="stake_times_odds">Yatırım x Oran / 10</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
                                                         </div>
@@ -1238,7 +1238,7 @@ export default function AdminPage() {
                                                                 </SelectTrigger>
                                                                 <SelectContent>
                                                                     <SelectItem value="simple">Sadece Oran (Klasik)</SelectItem>
-                                                                    <SelectItem value="stake_times_odds">Yatırım x Oran</SelectItem>
+                                                                    <SelectItem value="stake_times_odds">Yatırım x Oran / 10</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
                                                         </div>
