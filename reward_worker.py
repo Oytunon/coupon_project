@@ -79,7 +79,7 @@ def process_job(job_id: int):
             criteria_type = rule.get('criteria_type')
             criteria_value = rule.get('criteria_value')
             
-            if rule_type not in ['cash', 'spin', 'freebet']:
+            if rule_type not in ['cash', 'spin', 'freebet', 'bonus']:
                 logger.warning(f"Skipping unsupported reward type: {rule_type}")
                 continue
 
@@ -89,7 +89,7 @@ def process_job(job_id: int):
             elif criteria_type == 'rank_exact':
                 eligible_users = [p for p in participants if p['rank'] == int(criteria_value)]
             elif criteria_type == 'min_points':
-                eligible_users = [p for p in participants if p['points'] >= int(criteria_value)]
+                eligible_users = [p for p in participants if p['points'] >= float(criteria_value)]
             
             logger.info(f"Rule {rule_type} {criteria_type}={criteria_value} matched {len(eligible_users)} users")
 
@@ -119,13 +119,15 @@ def process_job(job_id: int):
                             amount=amount, 
                             info=info_msg
                         )
-                    elif rule_type in ['spin', 'freebet']:
+                    elif rule_type in ['spin', 'freebet', 'bonus']:
                         bonus_id = rule.get('partner_bonus_id')
                         if not bonus_id:
                             logger.error(f"Missing partner_bonus_id for {rule_type} rule!")
                             raise ValueError(f"Missing partner_bonus_id for {rule_type}")
                         
-                        bonus_type = 5 if rule_type == 'spin' else 6
+                        # Mapping: spin=5, freebet=6, bonus=defaulted to 1 or whatever BAPI expects
+                        # For 'bonus' type, we'll try to use a generic type or provided partner_bonus_id logic
+                        bonus_type = 5 if rule_type == 'spin' else (6 if rule_type == 'freebet' else 1)
                         resp = bapi.add_client_to_bonus(
                             client_id=client_id,
                             amount=amount,

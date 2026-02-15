@@ -338,12 +338,13 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             all_valid = False # Detay boşsa geçersiz
                         else:
                             for sel in selections:
-                                # API: 'CompetitionId' (18291932)
-                                comp_id = sel.get("CompetitionId")
-                                if comp_id not in allowed_leagues:
-                                    logger.info(f"   [DEBUG_LEAGUE] Bet {bet_id} REJECTED by Event {event.id}: League {comp_id} not in allowed list")
-                                    all_valid = False
-                                    break
+                                 # API: 'CompetitionId' (18291932)
+                                 comp_id = sel.get("CompetitionId")
+                                 # Ensure both are compared as strings for robustness
+                                 if str(comp_id) not in [str(lid) for lid in allowed_leagues]:
+                                     logger.info(f"   [DEBUG_LEAGUE] Bet {bet_id} REJECTED by Event {event.id}: League {comp_id} not in allowed list")
+                                     all_valid = False
+                                     break
                         
                         if all_valid:
                             final_events.append(event)
