@@ -35,6 +35,40 @@ const getRewardLabel = (reward: any) => {
     return 'Ödül';
 }
 
+const CountUpAnimation = ({ target, duration = 2000 }: { target: number, duration?: number }) => {
+    const [count, setCount] = useState(0);
+
+    useEffect(() => {
+        let startTime: number | null = null;
+        let animationFrameId: number;
+
+        const animate = (currentTime: number) => {
+            if (!startTime) startTime = currentTime;
+            const progress = currentTime - startTime;
+            const percentage = Math.min(progress / duration, 1);
+
+            // Ease out cubic function: 1 - (1 - t)^3
+            const easeOut = 1 - Math.pow(1 - percentage, 3);
+
+            setCount(Math.floor(easeOut * target));
+
+            if (progress < duration) {
+                animationFrameId = requestAnimationFrame(animate);
+            } else {
+                setCount(target);
+            }
+        };
+
+        animationFrameId = requestAnimationFrame(animate);
+
+        return () => {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        };
+    }, [target, duration]);
+
+    return <>{count.toLocaleString('tr-TR')}</>;
+};
+
 export function TournamentDetails({ event, userPoints, userRank, isJoined, onBack, username, onJoin }: TournamentDetailsProps) {
     const baseUrl = import.meta.env.VITE_API_URL || ""
     const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number }>({ days: 0, hours: 0, minutes: 0 })
@@ -1001,7 +1035,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                             <div className="bg-black rounded-2xl p-6 md:p-8 mb-6 md:mb-8 text-center border-2 border-[#FFB800]">
                                 <div className="text-[#FFB800]/80 text-xs md:text-sm mb-2 md:mb-3 uppercase tracking-wide font-semibold">Toplam Ödül Havuzu</div>
                                 <div className="text-3xl md:text-5xl lg:text-6xl font-black text-[#FFB800] drop-shadow-[0_0_12px_rgba(255,184,0,0.4)]">
-                                    {totalPrize.toLocaleString('tr-TR')}₺
+                                    <CountUpAnimation target={totalPrize} />₺
                                 </div>
                             </div>
 
@@ -1015,7 +1049,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                         return (
                                             <div key={idx} className={`bg-gradient-to-br ${bgClass} rounded-xl p-4 md:p-6 text-center border border-[#FFB800]/30`}>
                                                 <div className="text-gray-300 text-xs md:text-sm mb-2 font-semibold">{getRewardLabel(reward)}</div>
-                                                <div className="text-3xl md:text-5xl font-black text-[#FFB800]">₺{Number(reward.amount).toLocaleString('tr-TR')}</div>
+                                                <div className="text-3xl md:text-5xl font-black text-[#FFB800]">₺<CountUpAnimation target={Number(reward.amount)} /></div>
                                             </div>
                                         );
                                     })}
@@ -1028,7 +1062,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, onBac
                                     {otherRewards.map((reward: any, idx: number) => (
                                         <div key={idx} className="bg-black rounded-xl p-4 md:p-6 text-center border border-[#FFB800]/50">
                                             <div className="text-[#FFB800]/70 text-xs md:text-sm mb-2 font-semibold">{getRewardLabel(reward)}</div>
-                                            <div className="text-2xl md:text-3xl font-bold text-[#FFB800]">₺{Number(reward.amount).toLocaleString('tr-TR')}</div>
+                                            <div className="text-2xl md:text-3xl font-bold text-[#FFB800]">₺<CountUpAnimation target={Number(reward.amount)} /></div>
                                         </div>
                                     ))}
                                 </div>
