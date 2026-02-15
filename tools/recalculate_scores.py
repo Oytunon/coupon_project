@@ -36,16 +36,19 @@ def recalculate_all_scores():
         # Update EventParticipant totals
         participants = db.query(EventParticipant).all()
         for ep in participants:
-            total = sum(
-                r.points_earned for r in db.query(CouponEventResult).filter(
-                    CouponEventResult.event_id == ep.event_id,
-                    CouponEventResult.coupon_id.in_(
-                        db.query(Coupon.id).filter(Coupon.client_id == ep.participant.client_id)
-                    )
-                ).all()
-            )
+            p = db.query(Participant).filter(Participant.id == ep.participant_id).first()
+            if not p:
+                continue
+                
+            total = db.query(func.sum(CouponEventResult.points_earned)).filter(
+                CouponEventResult.event_id == ep.event_id,
+                CouponEventResult.coupon_id.in_(
+                    db.query(Coupon.id).filter(Coupon.client_id == p.client_id)
+                )
+            ).scalar() or 0.0
+            
             if ep.total_points != total:
-                logger.info(f"Updating User {ep.participant.username} total: {ep.total_points} -> {total}")
+                logger.info(f"Updating User {p.username} total: {ep.total_points} -> {total}")
                 ep.total_points = total
         
         db.commit()
