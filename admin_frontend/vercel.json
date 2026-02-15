@@ -1,6 +1,14 @@
 {
     "rewrites": [
         {
+            "source": "/api/leagues",
+            "destination": "http://46.101.96.41:8000/api/leagues/"
+        },
+        {
+            "source": "/api/leagues/",
+            "destination": "http://46.101.96.41:8000/api/leagues/"
+        },
+        {
             "source": "/api/:path*",
             "destination": "http://46.101.96.41:8000/api/:path*"
         },
