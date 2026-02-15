@@ -696,7 +696,7 @@ export default function UserDashboard() {
                                                         <th className="text-center py-3 px-1 md:px-4 text-gray-400 text-xs md:text-sm font-bold table-cell">Tarih</th>
                                                         <th className="text-center py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold hidden md:table-cell">Durum</th>
                                                         <th className="text-center py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold">Sıra</th>
-                                                        <th className="text-center py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold hidden lg:table-cell">Puan</th>
+                                                        <th className="text-center py-3 px-1 md:px-4 text-gray-400 text-xs md:text-sm font-bold table-cell">Puan</th>
                                                         <th className="text-right py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold">Kazanç</th>
                                                     </tr>
                                                 </thead>
@@ -734,7 +734,7 @@ export default function UserDashboard() {
                                                                         #{enr.rank || '-'}
                                                                     </span>
                                                                 </td>
-                                                                <td className="py-3 md:py-4 px-2 md:px-4 text-center text-xs font-semibold hidden lg:table-cell text-gray-300">{enr.score.toLocaleString()}</td>
+                                                                <td className="py-3 md:py-4 px-1 md:px-4 text-center text-xs font-semibold table-cell text-gray-300">{enr.score.toLocaleString()}</td>
                                                                 <td className="text-right py-3 md:py-4 px-2 md:px-4 font-bold text-[#FFB800] text-xs md:text-sm">
                                                                     {userWinnings > 0 ? `${userWinnings.toLocaleString('tr-TR')}₺` : '-'}
                                                                 </td>
