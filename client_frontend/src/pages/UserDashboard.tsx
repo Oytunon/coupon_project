@@ -138,7 +138,9 @@ export default function UserDashboard() {
     const targetEventId = paramEventId ? Number(paramEventId) : null
 
     // Filter Logic
-    const parseDate = (d: string) => new Date(d.endsWith('Z') ? d : d + 'Z')
+    // Use direct Date parsing to match properties used in UpcomingEventsSlider (which interprets as local/browser dependent if Z is missing)
+    // This resolves the discrepancy where Slider shows 00:00 (Local) but Filter thinks it's Future (UTC)
+    const parseDate = (d: string) => new Date(d)
 
     const upcomingEventsList = publicEvents.filter(e => {
         const now = new Date()

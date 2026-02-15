@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), '')
 
     // Fallback to localhost if not set
-    const target = env.VITE_API_URL || 'http://localhost:8000'
+    const target = env.VITE_API_URL || 'http://46.101.96.41:8000'
 
     console.log(`🚀 Proxy target set to: ${target}`)
 
