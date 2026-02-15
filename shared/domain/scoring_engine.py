@@ -322,11 +322,12 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                                 # If rules require allowed_leagues, verify later.
 
                         rules = event.rules or {}
-                        allowed_leagues = rules.get("allowed_league_ids", [])
+                        allowed_leagues = rules.get("allowed_league_ids") or []
                         # allowed_sports eklenebilir: rules.get("allowed_sport_ids", [])
                         
                         # Eğer kural yoksa direkt geçir (But we fetched details above!)
                         if not allowed_leagues:
+                            logger.info(f"   [DEBUG_LEAGUE] No allowed leagues defined for Event {event.id}. Passing.")
                             final_events.append(event)
                             continue
 
