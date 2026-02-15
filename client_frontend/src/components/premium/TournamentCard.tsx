@@ -22,7 +22,7 @@ export function TournamentCard({
     id, name, image_url, participantCount,
     userPoints, userRank, onJoin, onDetails, status, startDate, endDate, isJoined, totalPrize
 }: TournamentCardProps) {
-    const baseUrl = import.meta.env.VITE_API_URL || ""
+    const baseUrl = ""
     const [mounted, setMounted] = useState(false)
 
     const isUpcoming = new Date() < new Date(startDate)

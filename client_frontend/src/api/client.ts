@@ -1,9 +1,9 @@
 import axios from 'axios'
-import { API_URL } from '../config/api'
 
 // Create axios instance
+// Force relative path for Vercel proxy to avoid Mixed Content (HTTPS -> HTTP) errors
 export const apiClient = axios.create({
-    baseURL: API_URL,
+    baseURL: '',
     headers: {
         "Content-Type": "application/json",
     },

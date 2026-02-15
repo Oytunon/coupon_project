@@ -12,7 +12,7 @@ interface UpcomingTournamentCardProps {
 export function UpcomingTournamentCard({
     id, name, image_url, participantCount, startDate, onDetails
 }: UpcomingTournamentCardProps) {
-    const baseUrl = import.meta.env.VITE_API_URL || ""
+    const baseUrl = ""
     const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number }>({ days: 0, hours: 0, minutes: 0 })
 
     useEffect(() => {

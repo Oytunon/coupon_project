@@ -71,7 +71,7 @@ const CountUpAnimation = ({ target, duration = 2000 }: { target: number, duratio
 };
 
 export function TournamentDetails({ event, userPoints, userRank, isJoined, joinedAt, onBack, username, onJoin }: TournamentDetailsProps) {
-    const baseUrl = import.meta.env.VITE_API_URL || ""
+    const baseUrl = ""
     const startDate = new Date(event.start_date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     const endDate = new Date(event.end_date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     const joinDateDisplay = isJoined && joinedAt ? new Date(joinedAt.endsWith('Z') ? joinedAt : joinedAt + 'Z').toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
