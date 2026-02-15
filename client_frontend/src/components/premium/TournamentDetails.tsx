@@ -74,7 +74,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
     const baseUrl = import.meta.env.VITE_API_URL || ""
     const startDate = new Date(event.start_date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     const endDate = new Date(event.end_date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    const joinDateDisplay = isJoined && joinedAt ? new Date(joinedAt).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
+    const joinDateDisplay = isJoined && joinedAt ? new Date(joinedAt.endsWith('Z') ? joinedAt : joinedAt + 'Z').toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
     const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number }>({ days: 0, hours: 0, minutes: 0 })
     const [activeTab, setActiveTab] = useState<'info' | 'leaderboard' | 'coupons' | 'rewards' | 'rules'>('info')
 
