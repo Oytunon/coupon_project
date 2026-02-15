@@ -53,7 +53,7 @@ export function LeagueSelector({
             const params: any = { limit: 50 }
             if (searchTerm) params.search = searchTerm
 
-            const res = await apiClient.get('/leagues', { params })
+            const res = await apiClient.get('/leagues/', { params })
             const data = Array.isArray(res.data) ? res.data : []
             setLeagues(data)
 
