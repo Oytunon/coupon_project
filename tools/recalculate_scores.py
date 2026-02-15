@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from shared.database import SessionLocal
 from shared.models.coupon_event_result import CouponEventResult
 from shared.models.enrollment import EventParticipant
