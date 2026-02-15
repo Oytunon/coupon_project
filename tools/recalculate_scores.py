@@ -3,6 +3,7 @@ from shared.models.coupon_event_result import CouponEventResult
 from shared.models.enrollment import EventParticipant
 from shared.models.coupon import Coupon
 from shared.models.event import Event
+from shared.models.participant import Participant
 from shared.domain.scoring_engine import calculate_points_for_event
 import logging
 
