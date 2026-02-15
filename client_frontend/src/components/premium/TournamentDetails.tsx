@@ -757,10 +757,12 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                             ) : (
                                                 <div className="bg-black rounded-xl border border-[#FFB800]/30 overflow-hidden">
                                                     {rewardWinners.map((winner, idx) => {
-                                                        const rewardTypeLabel = winner.reward_type === 'cash' ? '💰 Nakit' :
-                                                            winner.reward_type === 'freebet' ? '🎟️ Freebet' :
-                                                                winner.reward_type === 'spin' ? '🎰 Spin' :
-                                                                    winner.reward_type === 'bonus' ? '🎁 Bonus' : '🏆 Ödül';
+                                                        const rawRType = String(winner.reward_type || '').toLowerCase();
+                                                        const isSpin = rawRType.includes('spin');
+                                                        const rewardTypeLabel = rawRType.includes('cash') ? '💰 Nakit' :
+                                                            rawRType.includes('freebet') || rawRType.includes('bet') ? '🎟️ Freebet' :
+                                                                isSpin ? '🎰 Spin' :
+                                                                    rawRType.includes('bonus') ? '🎁 Bonus' : '🏆 Ödül';
 
                                                         const criteriaLabel = winner.criteria_type === 'rank_exact' ? `${winner.criteria_value}. Sıra` :
                                                             winner.criteria_type === 'rank' ? `İlk ${winner.criteria_value}` :
@@ -781,7 +783,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                                                 </div>
                                                                 <div className="text-right">
                                                                     <div className="text-sm md:text-base font-bold text-[#FFB800]">
-                                                                        {Number(winner.amount).toLocaleString('tr-TR')}₺
+                                                                        {Number(String(winner.amount).replace(/[₺TL]/g, '')).toLocaleString('tr-TR')}{isSpin ? '' : '₺'}
                                                                     </div>
                                                                     <div className="text-gray-500 text-[10px] md:text-xs">{rewardTypeLabel}</div>
                                                                 </div>
@@ -795,7 +797,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                                             Toplam {rewardWinners.length} kişi ödül aldı
                                                         </div>
                                                         <div className="text-[#FFB800] font-bold text-sm md:text-base">
-                                                            {rewardWinners.reduce((sum, w) => sum + Number(w.amount || 0), 0).toLocaleString('tr-TR')}₺
+                                                            {rewardWinners.reduce((sum, w) => sum + Number(String(w.amount || '0').replace(/[₺TL]/g, '')), 0).toLocaleString('tr-TR')}{rewardWinners.some(w => String(w.reward_type || '').toLowerCase().includes('spin')) ? '' : '₺'}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1052,7 +1054,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                         return (
                                             <div key={idx} className={`bg-gradient-to-br ${bgClass} rounded-xl p-4 md:p-6 text-center border border-[#FFB800]/30`}>
                                                 <div className="text-gray-300 text-xs md:text-sm mb-2 font-semibold">{getRewardLabel(reward)}</div>
-                                                <div className="text-3xl md:text-5xl font-black text-[#FFB800]">₺<CountUpAnimation target={Number(reward.amount)} /></div>
+                                                <div className="text-3xl md:text-5xl font-black text-[#FFB800]">{(reward.reward_type || '').toLowerCase().includes('spin') ? '' : '₺'}<CountUpAnimation target={Number(reward.amount)} /></div>
                                             </div>
                                         );
                                     })}
@@ -1065,7 +1067,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                     {otherRewards.map((reward: any, idx: number) => (
                                         <div key={idx} className="bg-black rounded-xl p-4 md:p-6 text-center border border-[#FFB800]/50">
                                             <div className="text-[#FFB800]/70 text-xs md:text-sm mb-2 font-semibold">{getRewardLabel(reward)}</div>
-                                            <div className="text-2xl md:text-3xl font-bold text-[#FFB800]">₺<CountUpAnimation target={Number(reward.amount)} /></div>
+                                            <div className="text-2xl md:text-3xl font-bold text-[#FFB800]">{(reward.reward_type || '').toLowerCase().includes('spin') ? '' : '₺'}<CountUpAnimation target={Number(reward.amount)} /></div>
                                         </div>
                                     ))}
                                 </div>
