@@ -1,22 +1,6 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:16
-    container_name: coupon_postgres_prod
-    restart: always
-    environment:
-      POSTGRES_DB: coupon_db
-      POSTGRES_USER: coupon_user
-      POSTGRES_PASSWORD: coupon_pass
-    volumes:
-      - pgdata_prod:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U coupon_user -d coupon_db" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   api:
     build:
       context: .
@@ -25,15 +9,10 @@ services:
     restart: always
     ports:
       - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql://coupon_user:coupon_pass@postgres:5432/coupon_db
     env_file:
       - .env
     volumes:
       - ./media_data:/app/media
-    depends_on:
-      postgres:
-        condition: service_healthy
 
   worker:
     build:
@@ -41,48 +20,15 @@ services:
       dockerfile: worker/Dockerfile
     container_name: coupon_worker_prod
     restart: always
-    environment:
-      - DATABASE_URL=postgresql://coupon_user:coupon_pass@postgres:5432/coupon_db
     env_file:
       - .env
-    depends_on:
-      postgres:
-        condition: service_healthy
+
   reward_worker:
     build:
       context: .
       dockerfile: Dockerfile.reward_worker
     container_name: coupon_reward_worker_prod
     restart: always
-    environment:
-      - DATABASE_URL=postgresql://coupon_user:coupon_pass@postgres:5432/coupon_db
     env_file:
       - .env
-    depends_on:
-      postgres:
-        condition: service_healthy
   # Frontends are deployed to Vercel
-  # client:
-  #   build:
-  #     context: client_frontend
-  #     dockerfile: Dockerfile
-  #   container_name: coupon_client_prod
-  #   restart: always
-  #   ports:
-  #     - "3000:80"
-  #   depends_on:
-  #     - api
-
-  # admin:
-  #   build:
-  #     context: admin_frontend
-  #     dockerfile: Dockerfile
-  #   container_name: coupon_admin_prod
-  #   restart: always
-  #   ports:
-  #     - "8080:80"
-  #   depends_on:
-  #     - api
-
-volumes:
-  pgdata_prod:

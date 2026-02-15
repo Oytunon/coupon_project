@@ -1,14 +1,34 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { CheckCircle2, Search, X, Check, ListFilter, Plus } from "lucide-react"
-import { staticLeagues } from "../data/staticLeagues"
+import { CheckCircle2, Search, X, Check, ListFilter, Plus, Loader2 } from "lucide-react"
+import { apiClient } from "../api/client"
+
+
+// Simple debounce hook implementation if not available
+function useDebounceValue<T>(value: T, delay: number): T {
+    const [debouncedValue, setDebouncedValue] = useState<T>(value);
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [value, delay]);
+    return debouncedValue;
+}
 
 interface LeagueSelectorProps {
     selectedIds: number[]
     onChange: (ids: number[]) => void
+}
+
+interface League {
+    id: number
+    name: string
 }
 
 export function LeagueSelector({
@@ -17,35 +37,59 @@ export function LeagueSelector({
 }: LeagueSelectorProps) {
     const [open, setOpen] = useState(false)
     const [search, setSearch] = useState("")
-    const [leagues, setLeagues] = useState<any[]>([])
+    const [leagues, setLeagues] = useState<League[]>([])
+    const [loading, setLoading] = useState(false)
+    const debouncedSearch = useDebounceValue(search, 500)
 
     // Internal state for pending changes
     const [tempSelected, setTempSelected] = useState<number[]>([])
 
+    // Cache for league names (to display selected ones even if not in current search results)
+    const [leagueNameCache, setLeagueNameCache] = useState<Record<number, string>>({})
+
+    const loadLeagues = useCallback(async (searchTerm: string = "") => {
+        setLoading(true)
+        try {
+            const params: any = { limit: 50 }
+            if (searchTerm) params.search = searchTerm
+
+            const res = await apiClient.get('/leagues', { params })
+            setLeagues(res.data)
+
+            // Update cache
+            const newCache = { ...leagueNameCache }
+            res.data.forEach((l: League) => {
+                newCache[l.id] = l.name
+            })
+            setLeagueNameCache(newCache)
+        } catch (error) {
+            console.error("Failed to load leagues", error)
+        } finally {
+            setLoading(false)
+        }
+    }, [leagueNameCache])
+
+    // Initial load to get names of selected IDs
+    useEffect(() => {
+        // If we have selected IDs but no names, we might want to fetch them.
+        // For now, we'll just load the default list. 
+        // Ideally, we'd have an endpoint to fetch specific IDs.
+        loadLeagues("")
+    }, [])
+
     useEffect(() => {
         if (open) {
             setTempSelected([...selectedIds])
-            loadLeagues()
+            loadLeagues("")
+            setSearch("")
         }
     }, [open])
 
     useEffect(() => {
-        loadLeagues()
-    }, [search])
-
-    const loadLeagues = () => {
-        let filtered = staticLeagues;
-
-        if (search) {
-            const lowerSearch = search.toLowerCase();
-            filtered = staticLeagues.filter(l =>
-                l.name.toLowerCase().includes(lowerSearch) ||
-                l.id.toString().includes(search)
-            );
+        if (open) {
+            loadLeagues(debouncedSearch)
         }
-
-        setLeagues(filtered);
-    }
+    }, [debouncedSearch])
 
     const toggleLeague = (id: number) => {
         if (tempSelected.includes(id)) {
@@ -60,8 +104,8 @@ export function LeagueSelector({
             const id = parseInt(search);
             if (!tempSelected.includes(id)) {
                 setTempSelected([...tempSelected, id]);
-                // If not in static list, we could temporarily add it to display, 
-                // but for now we rely on the component just handling the ID.
+                // Ensure we don't lose the "name" if it was strictly manual
+                // If the API didn't return it, we might just show ID.
                 setSearch("");
             }
         }
@@ -77,10 +121,10 @@ export function LeagueSelector({
     }
 
     const getLeagueName = (id: number) => {
-        const l = staticLeagues.find(x => x.id === id)
-        return l ? l.name : `Lig #${id}`
+        return leagueNameCache[id] || `Lig #${id}`
     }
 
+    // Check if the search term is a number and NOT already in the list
     const isManualAddable = search && /^\d+$/.test(search) && !leagues.some(l => l.id.toString() === search);
 
     return (
@@ -150,6 +194,7 @@ export function LeagueSelector({
                                         className="pl-9 bg-zinc-950 border-zinc-800"
                                         autoFocus
                                     />
+                                    {loading && <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />}
                                 </div>
                                 {isManualAddable && (
                                     <Button type="button" size="sm" onClick={handleManualAdd} className="bg-blue-600 hover:bg-blue-500 text-white gap-1">
@@ -163,15 +208,6 @@ export function LeagueSelector({
                                     type="button"
                                     size="sm"
                                     variant="ghost"
-                                    className="h-6 text-[10px] text-muted-foreground hover:text-primary"
-                                    onClick={() => setTempSelected(staticLeagues.map(l => l.id))}
-                                >
-                                    Tümünü Seç
-                                </Button>
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="ghost"
                                     className="h-6 text-[10px] text-muted-foreground hover:text-destructive"
                                     onClick={() => setTempSelected([])}
                                 >
@@ -181,7 +217,7 @@ export function LeagueSelector({
                         </div>
 
                         <CardContent className="flex-1 overflow-y-auto p-2 custom-scrollbar">
-                            {leagues.length === 0 ? (
+                            {leagues.length === 0 && !loading ? (
                                 <div className="text-center py-12 text-muted-foreground">
                                     <p>Sonuç bulunamadı.</p>
                                     {search && <p className="text-xs mt-2">ID girerek yukarıdaki mavi butondan ekleyebilirsiniz.</p>}

@@ -49,15 +49,6 @@ def calculate_points_for_event(
         base_points = (coupon.stake * truncated_odds) / 10
         formula_str = "(stake * odds) / 10"
     
-    # Combo Bonus Logic
-    if formula == "combo_bonus":
-        combo_bonus_enabled = rules.get("combo_bonus_enabled", False)
-        if combo_bonus_enabled and coupon.combination_count and coupon.combination_count > 2:
-            bonus_multiplier = rules.get("combo_bonus_multiplier", 0.1)
-            combo_bonus = 1 + (coupon.combination_count - 2) * bonus_multiplier
-            base_points *= combo_bonus # Effect: Odds * ComboBonus
-            formula_str = f"odds * combo_bonus"
-    
     # NEW RULE: Truncate final points to 2 decimal places
     final_points = math.floor(base_points * multiplier * 100) / 100.0
     
