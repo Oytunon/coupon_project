@@ -1,4 +1,3 @@
-import { API_URL } from '../config/api'
 import { getAuthHeaders } from '../config/auth'
 import { apiClient } from './client'
 
