@@ -40,17 +40,23 @@ export function LeagueSelector({
     const [leagues, setLeagues] = useState<League[]>([])
     const [loading, setLoading] = useState(false)
     const debouncedSearch = useDebounceValue(search, 500)
+    const [hasMore, setHasMore] = useState(true)
+    const LIMIT = 50
 
     // Internal state for pending changes
     const [tempSelected, setTempSelected] = useState<number[]>([])
 
-    // Cache for league names (to display selected ones even if not in current search results)
+    // Cache for league names
     const [leagueNameCache, setLeagueNameCache] = useState<Record<number, string>>({})
 
-    const loadLeagues = useCallback(async (searchTerm: string = "") => {
+    const loadLeagues = useCallback(async (searchTerm: string = "", isAppend: boolean = false) => {
         setLoading(true)
         try {
-            const params: any = { limit: 50 }
+            const currentSkip = isAppend ? leagues.length : 0
+            const params: any = {
+                limit: LIMIT,
+                skip: currentSkip
+            }
             if (searchTerm) params.search = searchTerm
 
             const res = await apiClient.get('/leagues', { params })
@@ -60,7 +66,14 @@ export function LeagueSelector({
             } else if (res.data && Array.isArray(res.data.items)) {
                 data = res.data.items
             }
-            setLeagues(data)
+
+            if (isAppend) {
+                setLeagues(prev => [...prev, ...data])
+            } else {
+                setLeagues(data)
+            }
+
+            setHasMore(data.length === LIMIT)
 
             // Update cache
             const newCache = { ...leagueNameCache }
@@ -73,13 +86,10 @@ export function LeagueSelector({
         } finally {
             setLoading(false)
         }
-    }, [leagueNameCache])
+    }, [leagueNameCache, leagues.length])
 
     // Initial load to get names of selected IDs
     useEffect(() => {
-        // If we have selected IDs but no names, we might want to fetch them.
-        // For now, we'll just load the default list. 
-        // Ideally, we'd have an endpoint to fetch specific IDs.
         loadLeagues("")
     }, [])
 
@@ -89,13 +99,13 @@ export function LeagueSelector({
             loadLeagues("")
             setSearch("")
         }
-    }, [open])
+    }, [open, selectedIds])
 
     useEffect(() => {
         if (open) {
             loadLeagues(debouncedSearch)
         }
-    }, [debouncedSearch])
+    }, [debouncedSearch, open])
 
     const toggleLeague = (id: number) => {
         if (tempSelected.includes(id)) {
@@ -141,15 +151,15 @@ export function LeagueSelector({
             </div>
 
             {/* Summary View */}
-            <div className="flex flex-wrap gap-2 mb-2 p-3 bg-black/20 rounded-lg border border-white/5 min-h-[50px] items-start content-start max-h-[120px] overflow-y-auto">
+            <div className="flex flex-wrap gap-2 mb-2 p-3 bg-black/20 rounded-lg border border-white/5 min-h-[50px] items-start content-start max-h-[160px] overflow-y-auto custom-scrollbar">
                 {selectedIds.length === 0 && (
                     <span className="text-xs text-muted-foreground italic w-full text-center py-2">
                         Kısıtlama yok, tüm ligler aktif.
                     </span>
                 )}
                 {selectedIds.map(id => (
-                    <Badge key={id} variant="secondary" className="gap-1 bg-emerald-500/10 border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/20 transition-colors pl-2 pr-1 py-1">
-                        <span className="truncate max-w-[150px]">{getLeagueName(id)}</span>
+                    <Badge key={id} variant="secondary" className="gap-1 bg-emerald-500/10 border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/20 transition-all pl-2 pr-1 py-1 animate-in zoom-in-95 duration-200">
+                        <span className="truncate max-w-[150px] font-medium">{getLeagueName(id)}</span>
                         <button
                             type="button"
                             onClick={() => handleRemove(id)}
@@ -229,40 +239,57 @@ export function LeagueSelector({
                                     {search && <p className="text-xs mt-2">ID girerek yukarıdaki mavi butondan ekleyebilirsiniz.</p>}
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 gap-1">
-                                    {leagues.map(league => {
-                                        const isSelected = tempSelected.includes(league.id)
-                                        return (
-                                            <div
-                                                key={league.id}
-                                                onClick={() => toggleLeague(league.id)}
-                                                className={`
-                                                    flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border
-                                                    ${isSelected
-                                                        ? "bg-primary/10 border-primary/30"
-                                                        : "hover:bg-zinc-900 border-transparent hover:border-zinc-800"}
-                                                `}
-                                            >
-                                                <div className={`
-                                                    h-5 w-5 rounded border flex items-center justify-center transition-colors
-                                                    ${isSelected ? "bg-primary border-primary text-primary-foreground" : "border-zinc-700 bg-zinc-900"}
-                                                `}>
-                                                    {isSelected && <Check size={12} strokeWidth={3} />}
-                                                </div>
-
-                                                <div className="flex-1 min-w-0">
-                                                    <div className={`text-sm font-medium truncate ${isSelected ? "text-primary" : "text-zinc-300"}`}>
-                                                        {league.name}
+                                <>
+                                    <div className="grid grid-cols-1 gap-1">
+                                        {leagues.map(league => {
+                                            const isSelected = tempSelected.includes(league.id)
+                                            return (
+                                                <div
+                                                    key={league.id}
+                                                    onClick={() => toggleLeague(league.id)}
+                                                    className={`
+                                                        flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border
+                                                        ${isSelected
+                                                            ? "bg-primary/20 border-primary/40 shadow-[0_0_15px_rgba(16,185,129,0.1)]"
+                                                            : "hover:bg-zinc-900 border-transparent hover:border-zinc-800"}
+                                                    `}
+                                                >
+                                                    <div className={`
+                                                        h-5 w-5 rounded border flex items-center justify-center transition-all duration-300
+                                                        ${isSelected ? "bg-primary border-primary text-primary-foreground scale-110" : "border-zinc-700 bg-zinc-900"}
+                                                    `}>
+                                                        {isSelected && <Check size={12} strokeWidth={3} className="animate-in zoom-in duration-300" />}
                                                     </div>
-                                                </div>
 
-                                                <Badge variant="outline" className="text-[10px] font-mono opacity-50 bg-zinc-950">
-                                                    #{league.id}
-                                                </Badge>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className={`text-sm font-medium truncate ${isSelected ? "text-primary" : "text-zinc-300"}`}>
+                                                            {league.name}
+                                                        </div>
+                                                    </div>
+
+                                                    <Badge variant="outline" className="text-[10px] font-mono opacity-50 bg-zinc-950">
+                                                        #{league.id}
+                                                    </Badge>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+
+                                    {hasMore && (
+                                        <div className="py-4 px-2">
+                                            <Button
+                                                type="button"
+                                                variant="secondary"
+                                                className="w-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 text-xs h-9"
+                                                disabled={loading}
+                                                onClick={() => loadLeagues(search, true)}
+                                            >
+                                                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-3 w-3 mr-2" />}
+                                                Daha Fazla Lig Yükle
+                                            </Button>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </CardContent>
 
