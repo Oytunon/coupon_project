@@ -86,40 +86,28 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
 
                 {/* Mobile/Tablet Layout (smaller than lg) */}
                 <div className="lg:hidden flex flex-col">
-                    {/* Row 1: Logo and Logout Only (User Badge Removed per request) */}
-                    <div className="h-14 flex items-center justify-between px-3 border-b border-white/5">
+                    {/* Row 1: Logo Only (Centered per request, User controls removed) */}
+                    <div className="h-14 flex items-center justify-center px-3 border-b border-white/5 relative">
                         <div className="flex-shrink-0 flex items-center group cursor-pointer" onClick={() => window.location.href = '/'}>
                             <img src={logo} alt="Extrabet Logo" className="h-7 w-auto" />
                         </div>
-
-                        <div className="flex items-center">
-                            <button
-                                className="p-2 text-white/40 hover:text-red-500 transition-colors"
-                                onClick={() => {/* logout handled in parent */ }}
-                            >
-                                <LogOut size={20} />
-                            </button>
-                        </div>
                     </div>
 
-                    {/* Row 2: Navigation Buttons (Always visible row, use compact labels) */}
-                    <div className="flex items-center justify-between gap-1 overflow-x-auto scrollbar-hide px-2 py-1.5 bg-black">
+                    {/* Row 2: Navigation Buttons (Always visible row, use compact labels + old border look) */}
+                    <div className="flex items-center justify-between gap-1 overflow-x-auto scrollbar-hide px-2 py-2 bg-black">
                         {mobileNavItems.map((item) => {
                             const Icon = item.icon
                             const isActive = activeCategory === item.id
-                            const isSpecial = item.id === 'report' || item.id === 'enrollments'
                             return (
                                 <button
                                     key={item.id}
                                     onClick={() => onCategoryChange?.(item.id)}
                                     className={`
                                         flex-1 flex flex-col items-center justify-center rounded-lg transition-all duration-300
-                                        min-w-[54px] h-11
+                                        min-w-[54px] h-12
                                         ${isActive
                                             ? 'bg-primary text-black shadow-[0_0_8px_rgba(255,184,0,0.4)]'
-                                            : isSpecial
-                                                ? 'text-white border border-white/20 bg-white/5'
-                                                : 'text-white/60 bg-white/[0.02]'}
+                                            : 'text-white/80 border border-primary/40 bg-white/[0.02] hover:bg-white/10'}
                                     `}
                                 >
                                     <Icon className="mb-0.5" size={isActive ? 14 : 12} />
