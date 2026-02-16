@@ -18,7 +18,7 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
     ]
 
     return (
-        <nav className="border-b border-primary/20 bg-black/95 backdrop-blur-xl sticky top-0 z-50">
+        <nav className="border-b border-primary/40 bg-black/95 backdrop-blur-xl sticky top-0 z-50">
             <div className="max-w-[1400px] mx-auto">
                 {/* Desktop Layout (lg and above) */}
                 <div className="hidden lg:flex h-20 items-center justify-between px-4 gap-8">
@@ -28,7 +28,7 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
                     </div>
 
                     {/* Navigation - No scroll, Shrinks proportionally */}
-                    <div className="flex-1 flex items-center justify-center gap-2 px-2 overflow-hidden">
+                    <div className="flex-1 flex items-center justify-center gap-2 px-2 overflow-hidden text-white">
                         {navItems.map((item) => {
                             const Icon = item.icon
                             const isActive = activeCategory === item.id
@@ -41,7 +41,7 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
                                         px-4 h-11 min-w-0
                                         ${isActive
                                             ? 'bg-primary text-black shadow-[0_0_15px_rgba(255,184,0,0.3)]'
-                                            : 'text-white/80 border border-primary/20 bg-white/[0.02] hover:bg-white/10'}
+                                            : 'text-white/90 border border-primary/40 bg-primary/[0.03] hover:bg-primary/[0.08]'}
                                     `}
                                 >
                                     <Icon className={`flex-shrink-0 transition-transform duration-300 ${isActive ? 'scale-110' : ''}`} size={16} />
@@ -59,7 +59,7 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
                 {/* Mobile/Tablet Layout (smaller than lg) */}
                 <div className="lg:hidden flex flex-col">
                     {/* Row 1: Logo Only (Centered) */}
-                    <div className="h-14 flex items-center justify-center px-3 border-b border-primary/20 relative">
+                    <div className="h-14 flex items-center justify-center px-3 border-b border-primary/40 relative">
                         <div className="flex-shrink-0 flex items-center group cursor-pointer" onClick={() => window.location.href = '/'}>
                             <img src={logo} alt="Extrabet Logo" className="h-7 w-auto" />
                         </div>
@@ -79,7 +79,7 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
                                         h-10 px-1 min-w-0
                                         ${isActive
                                             ? 'bg-primary text-black shadow-[0_0_8px_rgba(255,184,0,0.4)]'
-                                            : 'text-white/80 border border-primary/40 bg-white/[0.02]'}
+                                            : 'text-white/90 border border-primary/60 bg-primary/[0.03]'}
                                     `}
                                 >
                                     <Icon className="flex-shrink-0" size={14} />
