@@ -166,7 +166,6 @@ export default function AdminPage() {
     const [selectedEventId, setSelectedEventId] = useState<number | null>(null)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState<string | null>(null)
-    const [message, setMessage] = useState<{ type: "success" | "error", text: string } | null>(null)
 
     const [showAddUser, setShowAddUser] = useState(false)
     const [newUser, setNewUser] = useState({ username: "", password: "", email: "", role: "admin" })
@@ -255,7 +254,11 @@ export default function AdminPage() {
             setEvents(Array.isArray(e) ? e : [])
         } catch (err) {
             console.error("Data load failed", err)
-            setMessage({ type: "error", text: "Veriler yüklenirken bir hata oluştu." })
+            toast({
+                title: "Hata",
+                description: "Veriler yüklenirken bir hata oluştu.",
+                variant: "destructive"
+            })
         } finally {
             setLoading(false)
         }
@@ -275,7 +278,11 @@ export default function AdminPage() {
             link.remove();
         } catch (error) {
             console.error("Export error:", error);
-            setMessage({ type: "error", text: "Excel indirilemedi." });
+            toast({
+                title: "Hata",
+                description: "Excel indirilemedi.",
+                variant: "destructive"
+            });
         }
     };
 
@@ -313,16 +320,22 @@ export default function AdminPage() {
         setSaving("create_user")
         try {
             await createAdminUser(newUser)
-            setMessage({ type: "success", text: "Kullanıcı başarıyla oluşturuldu." })
+            toast({
+                title: "Başarılı",
+                description: "Kullanıcı başarıyla oluşturuldu.",
+            })
             setShowAddUser(false)
             setNewUser({ username: "", password: "", email: "", role: "admin" })
             const u = await fetchAdminUsers()
             setAdminUsers(u)
         } catch (err: any) {
-            setMessage({ type: "error", text: err.response?.data?.detail || "Kullanıcı oluşturulamadı." })
+            toast({
+                title: "Hata",
+                description: err.response?.data?.detail || "Kullanıcı oluşturulamadı.",
+                variant: "destructive"
+            })
         } finally {
             setSaving(null)
-            setTimeout(() => setMessage(null), 3000)
         }
     }
 
@@ -348,7 +361,10 @@ export default function AdminPage() {
                 }
             }
 
-            setMessage({ type: "success", text: "Kampanya taslağı oluşturuldu." })
+            toast({
+                title: "Başarılı",
+                description: "Kampanya taslağı oluşturuldu.",
+            })
             setShowAddEvent(false)
             setTempImageFile(null)
             const eList = await fetchEvents()
@@ -362,21 +378,31 @@ export default function AdminPage() {
                 else if (Array.isArray(d)) msg = d.map((e: any) => `${e.loc.join('.')} : ${e.msg}`).join(' | ')
                 else msg = JSON.stringify(d)
             }
-            setMessage({ type: "error", text: msg })
+            toast({
+                title: "Hata",
+                description: msg,
+                variant: "destructive"
+            })
         } finally {
             setSaving(null)
-            setTimeout(() => setMessage(null), 5000)
         }
     }
 
     const handleEventStatus = async (id: number, status: string) => {
         try {
             await updateEventStatus(id, status)
-            setMessage({ type: "success", text: `Kampanya durumu güncellendi: ${status}` })
+            toast({
+                title: "Başarılı",
+                description: `Kampanya durumu güncellendi: ${status}`,
+            })
             const e = await fetchEvents()
             setEvents(e)
         } catch (err: any) {
-            setMessage({ type: "error", text: err.response?.data?.detail || "Durum güncellenemedi" })
+            toast({
+                title: "Hata",
+                description: err.response?.data?.detail || "Durum güncellenemedi",
+                variant: "destructive"
+            })
         }
     }
 
@@ -385,11 +411,18 @@ export default function AdminPage() {
         if (!confirm("Bu kampanyayı silmek istediğinize emin misiniz? Bu işlem geri alınamaz!")) return;
         try {
             await deleteEvent(id)
-            setMessage({ type: "success", text: "Kampanya silindi." })
+            toast({
+                title: "Başarılı",
+                description: "Kampanya silindi.",
+            })
             const e = await fetchEvents()
             setEvents(e)
         } catch (err: any) {
-            setMessage({ type: "error", text: "Silme işlemi başarısız: " + (err.response?.data?.detail || err.message) })
+            toast({
+                title: "Hata",
+                description: "Silme işlemi başarısız: " + (err.response?.data?.detail || err.message),
+                variant: "destructive"
+            })
         }
     }
 
@@ -412,10 +445,6 @@ export default function AdminPage() {
                     if (job.status === 'completed' || job.status === 'failed') {
                         clearInterval(checkStatus)
                         if (job.status === 'completed') {
-                            setMessage({ type: "success", text: `Tarama Bitti! ${job.processed} kupon tarandı, ${job.saved} yeni kupon eklendi.` })
-                            // Auto-clear message after 10 seconds
-                            setTimeout(() => setMessage(null), 10000)
-
                             toast({
                                 title: "İşlem Tamamlandı",
                                 description: `${job.processed} kupon incelendi, ${job.saved} adet yeni kupon kaydedildi.`,
@@ -423,7 +452,6 @@ export default function AdminPage() {
                                 duration: 10000
                             })
                         } else {
-                            // setMessage({ type: "error", text: `Worker hatası: ${job.error}` })
                             toast({
                                 title: "Worker Durduruldu",
                                 description: job.error || "Bilinmeyen bir hata oluştu.",
@@ -442,7 +470,11 @@ export default function AdminPage() {
             }, 2000)
 
         } catch (err: any) {
-            setMessage({ type: "error", text: err.response?.data?.detail || "Worker tetiklenemedi" })
+            toast({
+                title: "Hata",
+                description: err.response?.data?.detail || "Worker tetiklenemedi",
+                variant: "destructive"
+            })
         }
     }
 
@@ -607,7 +639,6 @@ export default function AdminPage() {
                 ? detail
                 : (typeof detail === 'object' ? JSON.stringify(detail) : (err.message || "Güncelleme başarısız."))
 
-            setMessage({ type: "error", text: errorMsg })
             toast({
                 title: `Hata (${status || 'Network'})`,
                 description: errorMsg,
@@ -615,7 +646,6 @@ export default function AdminPage() {
             })
         } finally {
             setSaving(null)
-            setTimeout(() => setMessage(null), 3000)
         }
     }
 
@@ -641,7 +671,11 @@ export default function AdminPage() {
             }
         } catch (e) {
             console.error(e)
-            setMessage({ type: 'error', text: 'Detaylar yüklenemedi' })
+            toast({
+                title: "Hata",
+                description: "Detaylar yüklenemedi.",
+                variant: "destructive"
+            })
         } finally {
             setLoading(false)
         }
@@ -659,13 +693,19 @@ export default function AdminPage() {
 
         try {
             await deleteAdminUser(id)
-            setMessage({ type: "success", text: "Kullanıcı silindi." })
+            toast({
+                title: "Başarılı",
+                description: "Kullanıcı silindi.",
+            })
             const u = await fetchAdminUsers()
             setAdminUsers(u)
         } catch (err) {
-            setMessage({ type: "error", text: "Silme işlemi başarısız." })
+            toast({
+                title: "Hata",
+                description: "Silme işlemi başarısız.",
+                variant: "destructive"
+            })
         } finally {
-            setTimeout(() => setMessage(null), 3000)
         }
     }
 
@@ -697,13 +737,6 @@ export default function AdminPage() {
             headerTitle={title}
             headerDescription={description}
         >
-            {message && (
-                <div className={`mb-6 flex items-center gap-2 px-4 py-2 rounded-lg border animate-in fade-in slide-in-from-top-4 ${message.type === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
-                    {message.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-                    <span className="text-sm font-bold">{message.text}</span>
-                </div>
-            )}
-
             {activeTab === 'dashboard' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <StatCard title="Toplam Katılımcı" value={stats?.total_participants || 0} icon={Users} color="text-blue-500" />
