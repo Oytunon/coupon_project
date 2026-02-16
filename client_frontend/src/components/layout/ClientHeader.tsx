@@ -26,7 +26,7 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
                 </div>
 
                 {/* Unified Responsive Navigation */}
-                <div className="flex-1 flex items-center justify-center gap-0.5 md:gap-2 max-w-fit mx-auto overflow-hidden">
+                <div className="flex-1 flex items-center justify-center gap-0.5 md:gap-1 lg:gap-2 mx-auto">
                     {navItems.map((item) => {
                         const Icon = item.icon
                         const isActive = activeCategory === item.id
@@ -36,15 +36,15 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
                                 onClick={() => onCategoryChange?.(item.id)}
                                 className={`
                                     flex flex-col items-center justify-center rounded-lg transition-all duration-300
-                                    min-w-[48px] md:min-w-[80px] lg:min-w-[100px]
+                                    flex-1 min-w-0 max-w-[100px]
                                     h-12 md:h-16
                                     ${isActive
                                         ? 'bg-primary text-black shadow-[0_0_15px_rgba(255,184,0,0.3)]'
                                         : 'text-white/60 hover:text-white hover:bg-white/5'}
                                 `}
                             >
-                                <Icon className={`mb-1 transition-transform duration-300 ${isActive ? 'scale-110' : ''}`} size={isActive ? 18 : 16} />
-                                <span className={`font-black tracking-tighter md:tracking-normal leading-none text-[8px] md:text-[10px] lg:text-xs uppercase`}>
+                                <Icon className={`mb-0.5 md:mb-1 transition-transform duration-300 ${isActive ? 'scale-110' : ''}`} size={isActive ? 16 : 14} />
+                                <span className={`font-black tracking-tighter md:tracking-normal leading-none text-[7.5px] md:text-[9px] lg:text-[10px] xl:text-xs uppercase truncate w-full px-0.5`}>
                                     {item.label}
                                 </span>
                             </button>
