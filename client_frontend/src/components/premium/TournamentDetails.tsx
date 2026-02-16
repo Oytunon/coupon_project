@@ -414,13 +414,15 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                         <Trophy className="w-4 h-4 md:w-[18px] md:h-[18px]" />
                         <span className="text-[10px] sm:text-xs md:text-sm whitespace-nowrap">SIRALAMA</span>
                     </button>
-                    <button
-                        onClick={() => setActiveTab('coupons')}
-                        className={`flex-1 min-w-[60px] flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-2 md:py-3 rounded-xl font-bold transition-all ${activeTab === 'coupons' ? 'bg-[#FFB800] text-black shadow-lg' : 'bg-transparent text-gray-400 hover:text-gray-200'}`}
-                    >
-                        <Ticket className="w-4 h-4 md:w-[18px] md:h-[18px]" />
-                        <span className="text-[10px] sm:text-xs md:text-sm whitespace-nowrap">KUPONLARIM</span>
-                    </button>
+                    {(isJoined || event.status === 'ended') && (
+                        <button
+                            onClick={() => setActiveTab('coupons')}
+                            className={`flex-1 min-w-[60px] flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-2 md:py-3 rounded-xl font-bold transition-all ${activeTab === 'coupons' ? 'bg-[#FFB800] text-black shadow-lg' : 'bg-transparent text-gray-400 hover:text-gray-200'}`}
+                        >
+                            <Ticket className="w-4 h-4 md:w-[18px] md:h-[18px]" />
+                            <span className="text-[10px] sm:text-xs md:text-sm whitespace-nowrap">KUPONLARIM</span>
+                        </button>
+                    )}
                     <button
                         onClick={() => setActiveTab('rewards')}
                         className={`flex-1 min-w-[60px] flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-2 md:py-3 rounded-xl font-bold transition-all ${activeTab === 'rewards' ? 'bg-[#FFB800] text-black shadow-lg' : 'bg-transparent text-gray-400 hover:text-gray-200'}`}
