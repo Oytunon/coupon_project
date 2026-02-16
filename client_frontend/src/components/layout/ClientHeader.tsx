@@ -64,24 +64,6 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
                             )
                         })}
                     </div>
-
-                    {/* User Section */}
-                    <div className="flex-shrink-0 flex items-center gap-3">
-                        {username && (
-                            <div className="flex items-center gap-4 pl-4 border-l border-white/10">
-                                <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-black font-black text-base">
-                                    {username[0].toUpperCase()}
-                                </div>
-                            </div>
-                        )}
-                        <button
-                            title="Çıkış Yap"
-                            className="p-2 text-white/40 hover:text-red-500 transition-colors"
-                            onClick={() => {/* logout usually handled in parent */ }}
-                        >
-                            <LogOut size={20} />
-                        </button>
-                    </div>
                 </div>
 
                 {/* Mobile/Tablet Layout (smaller than lg) */}
