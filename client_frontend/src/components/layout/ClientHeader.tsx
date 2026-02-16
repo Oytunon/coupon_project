@@ -19,14 +19,13 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
 
     return (
         <nav className="border-b border-primary/20 bg-black/95 backdrop-blur-xl sticky top-0 z-50">
-            <div className="max-w-[1400px] mx-auto px-2 md:px-6 h-16 md:h-20 flex items-center justify-between gap-1 md:gap-4">
-                {/* Logo Section */}
+            <div className="max-w-[1400px] mx-auto px-2 md:px-4 lg:px-6 h-16 md:h-20 flex items-center justify-between gap-1 md:gap-2 lg:gap-4">
                 <div className="flex-shrink-0 flex items-center gap-2 group cursor-pointer" onClick={() => window.location.href = '/'}>
-                    <img src={logo} alt="Extrabet Logo" className="h-6 md:h-12 w-auto transition-transform duration-500 group-hover:scale-105" />
+                    <img src={logo} alt="Extrabet Logo" className="h-6 md:h-9 lg:h-12 w-auto transition-transform duration-500 group-hover:scale-105" />
                 </div>
 
                 {/* Unified Responsive Navigation */}
-                <div className="flex-1 flex items-center justify-center gap-0.5 md:gap-1 lg:gap-2 mx-auto">
+                <div className="flex-1 flex items-center justify-center gap-0.5 md:gap-1 lg:gap-2 px-1">
                     {navItems.map((item) => {
                         const Icon = item.icon
                         const isActive = activeCategory === item.id
@@ -36,7 +35,7 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
                                 onClick={() => onCategoryChange?.(item.id)}
                                 className={`
                                     flex flex-col items-center justify-center rounded-lg transition-all duration-300
-                                    flex-1 min-w-0 max-w-[100px]
+                                    flex-1 min-w-0 max-w-[120px] 
                                     h-12 md:h-16
                                     ${isActive
                                         ? 'bg-primary text-black shadow-[0_0_15px_rgba(255,184,0,0.3)]'
