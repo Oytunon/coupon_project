@@ -30,13 +30,13 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
         <nav className="border-b border-primary/20 bg-black/95 backdrop-blur-xl sticky top-0 z-50">
             <div className="max-w-[1400px] mx-auto">
                 {/* Desktop Layout (lg and above) */}
-                <div className="hidden lg:flex h-20 items-center justify-between px-4 gap-4">
-                    {/* Logo Section */}
+                <div className="hidden lg:flex h-20 items-center justify-between px-4 gap-8">
+                    {/* Logo Section - Keep Left */}
                     <div className="flex-shrink-0 flex items-center group cursor-pointer" onClick={() => window.location.href = '/'}>
                         <img src={logo} alt="Extrabet Logo" className="h-12 w-auto transition-transform duration-500 group-hover:scale-105" />
                     </div>
 
-                    {/* Navigation - Inline for Desktop */}
+                    {/* Navigation - Perfectly Centered for Desktop */}
                     <div className="flex-1 flex items-center justify-center gap-2 overflow-x-auto scrollbar-hide px-2">
                         {desktopNavItems.map((item) => {
                             const Icon = item.icon
@@ -64,19 +64,22 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
                             )
                         })}
                     </div>
+
+                    {/* Empty Spacer to balance the logo on the left and keep nav centered */}
+                    <div className="flex-shrink-0 w-[140px] hidden xl:block" aria-hidden="true" />
                 </div>
 
                 {/* Mobile/Tablet Layout (smaller than lg) */}
                 <div className="lg:hidden flex flex-col">
-                    {/* Row 1: Logo Only (Centered per request, User controls removed) */}
-                    <div className="h-14 flex items-center justify-center px-3 border-b border-white/5 relative">
+                    {/* Row 1: Logo Only (Centered per request, Golden border) */}
+                    <div className="h-14 flex items-center justify-center px-3 border-b border-primary/20 relative">
                         <div className="flex-shrink-0 flex items-center group cursor-pointer" onClick={() => window.location.href = '/'}>
                             <img src={logo} alt="Extrabet Logo" className="h-7 w-auto" />
                         </div>
                     </div>
 
-                    {/* Row 2: Navigation Buttons (Always visible row, use compact labels + old border look) */}
-                    <div className="flex items-center justify-between gap-1 overflow-x-auto scrollbar-hide px-2 py-2 bg-black">
+                    {/* Row 2: Navigation Buttons (Always visible row, golden bottom border fallback) */}
+                    <div className="flex items-center justify-between gap-1 overflow-x-auto scrollbar-hide px-2 py-2 bg-black border-b border-primary/10">
                         {mobileNavItems.map((item) => {
                             const Icon = item.icon
                             const isActive = activeCategory === item.id
