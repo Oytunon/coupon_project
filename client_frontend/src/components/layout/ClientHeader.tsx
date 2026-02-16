@@ -8,117 +8,66 @@ interface ClientHeaderProps {
 }
 
 export function ClientHeader({ username, activeCategory = 'all', onCategoryChange }: ClientHeaderProps) {
+    const navItems = [
+        { id: 'all', label: 'TÜMÜ', icon: LayoutGrid },
+        { id: 'active', label: 'AKTİF', icon: Zap },
+        { id: 'upcoming', label: 'YAKINDA', icon: Calendar },
+        { id: 'finished', label: 'SONUÇLANAN', icon: Award },
+        { id: 'report', label: 'RAPOR', icon: BarChart3 },
+        { id: 'enrollments', label: 'KAYIT', icon: Trophy },
+    ]
+
     return (
-        <nav className="border-b border-primary/20 bg-black/90 backdrop-blur-xl sticky top-0 z-50">
-            <div className="max-w-[1400px] mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between gap-2 md:gap-4">
+        <nav className="border-b border-primary/20 bg-black/95 backdrop-blur-xl sticky top-0 z-50">
+            <div className="max-w-[1400px] mx-auto px-2 md:px-6 h-16 md:h-20 flex items-center justify-between gap-1 md:gap-4">
                 {/* Logo Section */}
-                <div className="hidden md:flex flex-shrink-0 items-center gap-2 group cursor-pointer" onClick={() => window.location.href = '/'}>
-                    <img src={logo} alt="Extrabet Logo" className="h-8 md:h-12 w-auto transition-transform duration-500 group-hover:scale-105" />
+                <div className="flex-shrink-0 flex items-center gap-2 group cursor-pointer" onClick={() => window.location.href = '/'}>
+                    <img src={logo} alt="Extrabet Logo" className="h-6 md:h-12 w-auto transition-transform duration-500 group-hover:scale-105" />
                 </div>
 
-                {/* Mobile Navigation - Compact Static (User Provided HTML) */}
-                <div className="md:hidden bg-black border-b border-[#FFB800]/30 py-1 px-0.5 w-full">
-                    <div className="flex items-center justify-between gap-0.5">
-                        <div className="flex-shrink-0 px-0.5">
-                            <img src={logo} alt="Logo" className="h-5 w-auto object-contain" />
-                        </div>
-                        <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
+                {/* Unified Responsive Navigation */}
+                <div className="flex-1 flex items-center justify-center gap-0.5 md:gap-2 max-w-fit mx-auto overflow-hidden">
+                    {navItems.map((item) => {
+                        const Icon = item.icon
+                        const isActive = activeCategory === item.id
+                        return (
                             <button
-                                onClick={() => onCategoryChange?.('all')}
-                                className={`flex-shrink-0 flex flex-col items-center justify-center gap-0 px-1.5 py-0.5 rounded font-bold text-[7px] transition-all border border-[#FFB800] ${activeCategory === 'all' ? 'bg-[#FFB800] text-black' : 'bg-black text-white hover:bg-[#FFB800]/10'}`}
+                                key={item.id}
+                                onClick={() => onCategoryChange?.(item.id)}
+                                className={`
+                                    flex flex-col items-center justify-center rounded-lg transition-all duration-300
+                                    min-w-[48px] md:min-w-[80px] lg:min-w-[100px]
+                                    h-12 md:h-16
+                                    ${isActive
+                                        ? 'bg-primary text-black shadow-[0_0_15px_rgba(255,184,0,0.3)]'
+                                        : 'text-white/60 hover:text-white hover:bg-white/5'}
+                                `}
                             >
-                                <LayoutGrid size={10} />
-                                <span>TÜMÜ</span>
+                                <Icon className={`mb-1 transition-transform duration-300 ${isActive ? 'scale-110' : ''}`} size={isActive ? 18 : 16} />
+                                <span className={`font-black tracking-tighter md:tracking-normal leading-none text-[8px] md:text-[10px] lg:text-xs uppercase`}>
+                                    {item.label}
+                                </span>
                             </button>
-                            <button
-                                onClick={() => onCategoryChange?.('active')}
-                                className={`flex-shrink-0 flex flex-col items-center justify-center gap-0 px-1.5 py-0.5 rounded font-bold text-[7px] transition-all border border-[#FFB800] ${activeCategory === 'active' ? 'bg-[#FFB800] text-black' : 'bg-black text-white hover:bg-[#FFB800]/10'}`}
-                            >
-                                <CheckCircle2 size={10} />
-                                <span>AKTİF</span>
-                            </button>
-                            <button
-                                onClick={() => onCategoryChange?.('upcoming')}
-                                className={`flex-shrink-0 flex flex-col items-center justify-center gap-0 px-1.5 py-0.5 rounded font-bold text-[7px] transition-all border border-[#FFB800] ${activeCategory === 'upcoming' ? 'bg-[#FFB800] text-black' : 'bg-black text-white hover:bg-[#FFB800]/10'}`}
-                            >
-                                <Calendar size={10} />
-                                <span>YAKINDA</span>
-                            </button>
-                            <button
-                                onClick={() => onCategoryChange?.('finished')}
-                                className={`flex-shrink-0 flex flex-col items-center justify-center gap-0 px-1.5 py-0.5 rounded font-bold text-[7px] transition-all border border-[#FFB800] ${activeCategory === 'finished' ? 'bg-[#FFB800] text-black' : 'bg-black text-white hover:bg-[#FFB800]/10'}`}
-                            >
-                                <Award size={10} />
-                                <span className="text-[6px]">SONUÇ.</span>
-                            </button>
-                            <button
-                                onClick={() => onCategoryChange?.('report')}
-                                className={`flex-shrink-0 flex flex-col items-center justify-center gap-0 px-1.5 py-0.5 rounded font-bold text-[7px] transition-all border border-[#FFB800] ${activeCategory === 'report' ? 'bg-[#FFB800] text-black' : 'bg-black text-white hover:bg-[#FFB800]/10'}`}
-                            >
-                                <BarChart3 size={10} />
-                                <span className="text-[6px]">RAPOR</span>
-                            </button>
-                            <button
-                                onClick={() => onCategoryChange?.('enrollments')}
-                                className={`flex-shrink-0 flex flex-col items-center justify-center gap-0 px-1.5 py-0.5 rounded font-bold text-[7px] transition-all border border-[#FFB800] ${activeCategory === 'enrollments' ? 'bg-[#FFB800] text-black' : 'bg-black text-white hover:bg-[#FFB800]/10'}`}
-                            >
-                                <Trophy size={10} />
-                                <span className="text-[6px]">KAYIT</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Desktop Navigation */}
-                <div className="hidden md:flex items-center gap-1">
-                    <button
-                        onClick={() => onCategoryChange?.('all')}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-sm transition-all ${activeCategory === 'all' ? 'bg-[#FFB800] text-black hover:bg-[#FFB800]/90' : 'text-white hover:bg-white/10'}`}
-                    >
-                        <LayoutGrid size={16} /> TÜMÜ
-                    </button>
-                    <button
-                        onClick={() => onCategoryChange?.('active')}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-sm transition-all ${activeCategory === 'active' ? 'bg-[#FFB800] text-black hover:bg-[#FFB800]/90' : 'text-white hover:bg-white/10'}`}
-                    >
-                        <Zap size={16} /> AKTİF
-                    </button>
-                    <button
-                        onClick={() => onCategoryChange?.('upcoming')}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-sm transition-all ${activeCategory === 'upcoming' ? 'bg-[#FFB800] text-black hover:bg-[#FFB800]/90' : 'text-white hover:bg-white/10'}`}
-                    >
-                        <Calendar size={16} /> YAKINDA
-                    </button>
-                    <button
-                        onClick={() => onCategoryChange?.('finished')}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-sm transition-all ${activeCategory === 'finished' ? 'bg-[#FFB800] text-black hover:bg-[#FFB800]/90' : 'text-white hover:bg-white/10'}`}
-                    >
-                        <CheckSquare size={16} /> SONUÇLANAN
-                    </button>
+                        )
+                    })}
                 </div>
 
                 {/* Right Side Actions */}
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => onCategoryChange?.('report')}
-                        className={`hidden lg:flex items-center gap-2 border border-primary/30 px-5 py-2.5 rounded-lg font-black text-sm transition-all ${activeCategory === 'report' ? 'bg-primary text-black' : 'text-white hover:bg-primary/10'}`}
-                    >
-                        <BarChart3 className={`h-4 w-4 ${activeCategory === 'report' ? 'text-black' : 'text-primary'}`} /> TURNUVA RAPORUM
-                    </button>
-                    <button
-                        onClick={() => onCategoryChange?.('enrollments')}
-                        className={`hidden lg:flex items-center gap-2 border border-primary/30 px-5 py-2.5 rounded-lg font-black text-sm transition-all ${activeCategory === 'enrollments' ? 'bg-primary text-black' : 'text-white hover:bg-primary/10'}`}
-                    >
-                        <Star className={`h-4 w-4 ${activeCategory === 'enrollments' ? 'text-black fill-black/20' : 'text-primary fill-primary/20'}`} /> KATILDIĞIM TURNUVALAR
-                    </button>
-
+                <div className="flex-shrink-0 flex items-center gap-1 md:gap-3">
                     {username && (
-                        <div className="hidden md:flex items-center gap-4 pl-6 border-l border-white/10 ml-3">
-                            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-black font-black shadow-[0_0_15px_rgba(255,188,0,0.3)]">
+                        <div className="flex items-center gap-2 md:gap-4 md:pl-6 md:border-l border-white/10">
+                            <div className="h-7 w-7 md:h-10 md:w-10 rounded-lg md:rounded-xl bg-primary flex items-center justify-center text-black text-xs md:text-base font-black shadow-[0_0_10px_rgba(255,188,0,0.2)]">
                                 {username[0].toUpperCase()}
                             </div>
                         </div>
                     )}
+                    <button
+                        title="Çıkış Yap"
+                        className="p-2 text-white/40 hover:text-red-500 transition-colors"
+                        onClick={() => {/* Logout logic usually handled in parent */ }}
+                    >
+                        <LogOut size={16} className="md:w-5 md:h-5" />
+                    </button>
                 </div>
             </div>
         </nav>
