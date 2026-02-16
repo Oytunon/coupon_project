@@ -8,13 +8,22 @@ interface ClientHeaderProps {
 }
 
 export function ClientHeader({ username, activeCategory = 'all', onCategoryChange }: ClientHeaderProps) {
-    const navItems = [
+    const desktopNavItems = [
         { id: 'all', label: 'TÜMÜ', icon: LayoutGrid },
         { id: 'active', label: 'AKTİF', icon: Zap },
         { id: 'upcoming', label: 'YAKINDA', icon: Calendar },
         { id: 'finished', label: 'SONUÇLANAN', icon: Award },
         { id: 'report', label: 'TURNUVA RAPORUM', icon: BarChart3 },
         { id: 'enrollments', label: 'KATILDIĞIM TURNUVALAR', icon: Star },
+    ]
+
+    const mobileNavItems = [
+        { id: 'all', label: 'TÜMÜ', icon: LayoutGrid },
+        { id: 'active', label: 'AKTİF', icon: Zap },
+        { id: 'upcoming', label: 'YAKINDA', icon: Calendar },
+        { id: 'finished', label: 'SONUÇ.', icon: Award },
+        { id: 'report', label: 'RAPOR', icon: BarChart3 },
+        { id: 'enrollments', label: 'KAYIT', icon: Trophy },
     ]
 
     return (
@@ -29,7 +38,7 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
 
                     {/* Navigation - Inline for Desktop */}
                     <div className="flex-1 flex items-center justify-center gap-2 overflow-x-auto scrollbar-hide px-2">
-                        {navItems.map((item) => {
+                        {desktopNavItems.map((item) => {
                             const Icon = item.icon
                             const isActive = activeCategory === item.id
                             const isSpecial = item.id === 'report' || item.id === 'enrollments'
@@ -77,30 +86,25 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
 
                 {/* Mobile/Tablet Layout (smaller than lg) */}
                 <div className="lg:hidden flex flex-col">
-                    {/* Row 1: Logo and User Profile */}
-                    <div className="h-16 flex items-center justify-between px-3 border-b border-white/5">
-                        <div className="flex-shrink-0 flex items-center" onClick={() => window.location.href = '/'}>
-                            <img src={logo} alt="Extrabet Logo" className="h-8 w-auto" />
+                    {/* Row 1: Logo and Logout Only (User Badge Removed per request) */}
+                    <div className="h-14 flex items-center justify-between px-3 border-b border-white/5">
+                        <div className="flex-shrink-0 flex items-center group cursor-pointer" onClick={() => window.location.href = '/'}>
+                            <img src={logo} alt="Extrabet Logo" className="h-7 w-auto" />
                         </div>
 
-                        <div className="flex items-center gap-3">
-                            {username && (
-                                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-black font-black text-sm">
-                                    {username[0].toUpperCase()}
-                                </div>
-                            )}
+                        <div className="flex items-center">
                             <button
-                                className="p-1.5 text-white/40 hover:text-red-500 transition-colors"
+                                className="p-2 text-white/40 hover:text-red-500 transition-colors"
                                 onClick={() => {/* logout handled in parent */ }}
                             >
-                                <LogOut size={18} />
+                                <LogOut size={20} />
                             </button>
                         </div>
                     </div>
 
-                    {/* Row 2: Navigation Buttons (Always visible, scrollable) */}
-                    <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide px-3 py-2 bg-black/40">
-                        {navItems.map((item) => {
+                    {/* Row 2: Navigation Buttons (Always visible row, use compact labels) */}
+                    <div className="flex items-center justify-between gap-1 overflow-x-auto scrollbar-hide px-2 py-1.5 bg-black">
+                        {mobileNavItems.map((item) => {
                             const Icon = item.icon
                             const isActive = activeCategory === item.id
                             const isSpecial = item.id === 'report' || item.id === 'enrollments'
@@ -109,17 +113,17 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
                                     key={item.id}
                                     onClick={() => onCategoryChange?.(item.id)}
                                     className={`
-                                        flex-shrink-0 flex flex-col items-center justify-center rounded-lg transition-all duration-300
-                                        min-w-[64px] h-12 px-1
+                                        flex-1 flex flex-col items-center justify-center rounded-lg transition-all duration-300
+                                        min-w-[54px] h-11
                                         ${isActive
-                                            ? 'bg-primary text-black shadow-[0_0_10px_rgba(255,184,0,0.3)]'
+                                            ? 'bg-primary text-black shadow-[0_0_8px_rgba(255,184,0,0.4)]'
                                             : isSpecial
-                                                ? 'text-white/80 border border-white/10 bg-white/5'
-                                                : 'text-white/60 hover:text-white hover:bg-white/5'}
+                                                ? 'text-white border border-white/20 bg-white/5'
+                                                : 'text-white/60 bg-white/[0.02]'}
                                     `}
                                 >
-                                    <Icon className="mb-1" size={14} />
-                                    <span className="font-black text-[7px] uppercase leading-none text-center px-0.5">
+                                    <Icon className="mb-0.5" size={isActive ? 14 : 12} />
+                                    <span className="font-black text-[7px] uppercase leading-tight text-center whitespace-nowrap px-0.5">
                                         {item.label}
                                     </span>
                                 </button>
