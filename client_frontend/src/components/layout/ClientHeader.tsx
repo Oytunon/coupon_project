@@ -13,12 +13,12 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
         { id: 'active', label: 'AKTİF', icon: Zap },
         { id: 'upcoming', label: 'YAKINDA', icon: Calendar },
         { id: 'finished', label: 'SONUÇLANAN', icon: Award },
-        { id: 'report', label: 'RAPOR', icon: BarChart3 },
-        { id: 'enrollments', label: 'KAYIT', icon: Trophy },
+        { id: 'report', label: 'TURNUVA RAPORUM', icon: BarChart3 },
+        { id: 'enrollments', label: 'KATILDIĞIM TURNUVALAR', icon: Star },
     ]
 
     return (
-        <nav className="border-b border-primary/20 bg-black backdrop-blur-xl sticky top-0 z-50">
+        <nav className="border-b border-primary/20 bg-black/95 backdrop-blur-xl sticky top-0 z-50">
             <div className="max-w-[1400px] mx-auto px-2 md:px-4 h-16 md:h-20 flex items-center justify-between gap-2 overflow-hidden">
                 {/* Logo Section */}
                 <div className="flex-shrink-0 flex items-center group cursor-pointer" onClick={() => window.location.href = '/'}>
@@ -26,26 +26,30 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
                 </div>
 
                 {/* Horizontal Scrollable Navigation */}
-                <div className="flex-1 flex items-center gap-1 md:gap-2 overflow-x-auto scrollbar-hide px-1 md:px-2">
-                    <div className="flex items-center gap-1 md:gap-2 mx-auto">
+                <div className="flex-1 flex items-center gap-1 md:gap-2 lg:gap-3 overflow-x-auto scrollbar-hide px-1 md:px-2">
+                    <div className="flex items-center gap-1 md:gap-2 lg:gap-3 mx-auto">
                         {navItems.map((item) => {
                             const Icon = item.icon
                             const isActive = activeCategory === item.id
+                            const isSpecial = item.id === 'report' || item.id === 'enrollments'
+
                             return (
                                 <button
                                     key={item.id}
                                     onClick={() => onCategoryChange?.(item.id)}
                                     className={`
-                                        flex-shrink-0 flex flex-col items-center justify-center rounded-lg transition-all duration-300
-                                        min-w-[50px] md:min-w-[80px] lg:min-w-[100px]
+                                        flex-shrink-0 flex flex-col sm:flex-row items-center justify-center rounded-lg transition-all duration-300
+                                        min-w-[50px] md:min-w-[80px] lg:min-w-fit lg:px-4
                                         h-12 md:h-16
                                         ${isActive
                                             ? 'bg-primary text-black shadow-[0_0_15px_rgba(255,184,0,0.3)]'
-                                            : 'text-white/60 hover:text-white hover:bg-white/5'}
+                                            : isSpecial
+                                                ? 'text-white/80 border border-white/10 hover:bg-white/5'
+                                                : 'text-white/60 hover:text-white hover:bg-white/5'}
                                     `}
                                 >
-                                    <Icon className={`mb-0.5 md:mb-1 transition-transform duration-300 ${isActive ? 'scale-110' : ''}`} size={isActive ? 16 : 14} />
-                                    <span className="font-black text-[7px] md:text-[10px] uppercase leading-none px-1">
+                                    <Icon className={`mb-0.5 sm:mb-0 sm:mr-2 transition-transform duration-300 ${isActive ? 'scale-110' : ''}`} size={isActive ? 16 : 14} />
+                                    <span className="font-black text-[7px] md:text-[9px] lg:text-[10px] uppercase leading-none whitespace-nowrap">
                                         {item.label}
                                     </span>
                                 </button>
