@@ -26,6 +26,7 @@ export function TournamentCard({
     const [mounted, setMounted] = useState(false)
 
     const isUpcoming = new Date() < new Date(startDate)
+    const isExpired = new Date() > new Date(endDate)
 
     // Calculate time remaining
     const calculateTimeRemaining = () => {
@@ -164,14 +165,14 @@ export function TournamentCard({
 
                             {/* Countdown */}
                             <div className="mt-auto">
-                                {status === 'active' ? (
+                                {status === 'active' && !isExpired ? (
                                     isUpcoming ? (
                                         <div className="mb-1 text-center">
                                             <span className="text-[#FFB800] text-[10px] font-bold uppercase tracking-widest animate-pulse">BAŞLIYOR</span>
                                         </div>
                                     ) : null
                                 ) : null}
-                                {status === 'active' ? (
+                                {status === 'active' && !isExpired ? (
                                     <div className="flex justify-center items-end gap-1.5">
                                         {/* Days */}
                                         <div className="text-center">
@@ -205,7 +206,7 @@ export function TournamentCard({
                                     </div>
                                 ) : (
                                     <div className="bg-neutral-900/80 border border-white/10 rounded-lg py-2 px-4 text-center">
-                                        <span className="text-neutral-400 text-xs font-bold uppercase tracking-widest">Turnuva Bitti</span>
+                                        <span className="text-neutral-400 text-xs font-bold uppercase tracking-widest">Turnuva Sona Erdi</span>
                                     </div>
                                 )}
                             </div>
@@ -225,8 +226,8 @@ export function TournamentCard({
                                 <div className={`absolute top-6 -right-6 w-32 transform rotate-45 shadow-lg flex justify-center py-1 ${status === 'active' ? 'bg-gradient-to-r from-[#FFB800] to-[#FFA500]' : 'bg-gradient-to-r from-gray-600 to-gray-500 border-t border-b border-gray-400/30'}`}>
                                     <div className="flex items-center justify-center gap-1">
                                         {status === 'active' && <div className="w-1 h-1 bg-black rounded-full animate-pulse"></div>}
-                                        <span className={`font-oswald ${status === 'active' ? 'text-black' : 'text-white'} text-[9px] font-bold tracking-wider uppercase`}>
-                                            {status === 'active' ? (isUpcoming ? 'YAKINDA' : 'AKTİF') : 'SONUÇLANMIŞ'}
+                                        <span className={`font-oswald ${status === 'active' && !isExpired ? 'text-black' : 'text-white'} text-[9px] font-bold tracking-wider uppercase`}>
+                                            {status === 'active' ? (isExpired ? 'SONUÇLANMIŞ' : isUpcoming ? 'YAKINDA' : 'AKTİF') : 'SONUÇLANMIŞ'}
                                         </span>
                                     </div>
                                 </div>
@@ -321,7 +322,7 @@ export function TournamentCard({
                                 ) : null}
 
                                 <div className="w-full flex flex-col gap-2 items-center">
-                                    {status === 'active' && !isJoined && !isUpcoming && (
+                                    {status === 'active' && !isJoined && !isUpcoming && !isExpired && (
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
@@ -338,7 +339,7 @@ export function TournamentCard({
                                             <span className="text-[#FFB800] text-xs font-bold uppercase tracking-widest animate-pulse">BAŞLIYOR</span>
                                         </div>
                                     )}
-                                    {status === 'active' ? (
+                                    {status === 'active' && !isExpired ? (
                                         <div className="flex justify-center gap-2">
                                             {/* Days */}
                                             <div className="text-center">

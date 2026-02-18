@@ -29,6 +29,9 @@ async def check_user_enrollment(
     if target_event.status != "active":
         return {"can_join": False, "reason": "event_not_active"}
 
+    if target_event.end_date < datetime.utcnow():
+        return {"can_join": False, "reason": "event_expired"}
+
     # Resolve Client ID
     if username:
         # Optimization: Check DB first
@@ -99,6 +102,9 @@ async def join_event(
 
     if target_event.status != "active":
         raise HTTPException(status_code=400, detail="Bu turnuva şu an aktif değil.")
+
+    if target_event.end_date < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Bu turnuvanın süresi dolmuştur.")
         
     # Resolve User
     resolved_username = username

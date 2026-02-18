@@ -95,6 +95,13 @@ export default function UserDashboard() {
             toast({ title: "Hata", description: "Katılmak için giriş yapmalısınız.", variant: "destructive" })
             return
         }
+
+        const event = publicEvents.find(e => e.id === id)
+        if (event && new Date() > parseDate(event.end_date)) {
+            toast({ title: "Hata", description: "Bu turnuvanın süresi dolmuştur.", variant: "destructive" })
+            return
+        }
+
         try {
             await joinCampaign(username, id)
             toast({ title: "Başarılı", description: "Turnuvaya başarıyla katıldınız!" })
@@ -153,17 +160,19 @@ export default function UserDashboard() {
     const filteredEvents = publicEvents.filter(e => {
         const now = new Date()
         const start = parseDate(e.start_date)
+        const end = parseDate(e.end_date)
         const isStarted = now >= start
+        const isExpired = now > end
         const isJoined = myEnrollments.some(enr => enr.event_id === e.id)
 
-        if (activeCategory === 'all') return e.status === 'active' && isStarted && !isJoined
-        if (activeCategory === 'active') return e.status === 'active' && isStarted
-        if (activeCategory === 'upcoming') return e.status === 'paused' || (e.status === 'active' && !isStarted)
+        if (activeCategory === 'all') return e.status === 'active' && isStarted && !isExpired && !isJoined
+        if (activeCategory === 'active') return e.status === 'active' && isStarted && !isExpired
+        if (activeCategory === 'upcoming') return e.status === 'paused' || (e.status === 'active' && !isStarted && !isExpired)
         if (activeCategory === 'enrollments') return isJoined
         return false
     })
 
-    const pastEvents = publicEvents.filter(e => e.status === 'ended')
+    const pastEvents = publicEvents.filter(e => e.status === 'ended' || (e.status === 'active' && new Date() > parseDate(e.end_date)))
 
     if (targetEventId) {
         const selectedEvent = publicEvents.find(e => e.id === targetEventId)
@@ -240,7 +249,7 @@ export default function UserDashboard() {
                                     </div>
                                     <div className="h-4 w-px bg-gradient-to-b from-transparent via-gray-700 to-transparent"></div>
                                     <div className="flex items-baseline gap-1">
-                                        <span className="text-lg font-black bg-gradient-to-r from-[#FFA500] to-[#FF8C00] bg-clip-text text-transparent tabular-nums">{publicEvents.filter(e => e.status === 'active' && new Date() >= parseDate(e.start_date)).length}</span>
+                                        <span className="text-lg font-black bg-gradient-to-r from-[#FFA500] to-[#FF8C00] bg-clip-text text-transparent tabular-nums">{publicEvents.filter(e => e.status === 'active' && new Date() >= parseDate(e.start_date) && new Date() <= parseDate(e.end_date)).length}</span>
                                         <span className="text-[8px] text-white font-medium uppercase">aktif</span>
                                     </div>
                                 </div>
@@ -267,7 +276,7 @@ export default function UserDashboard() {
                                 </div>
                                 <div className="w-px h-10 bg-white/10"></div>
                                 <div className="flex items-center gap-4">
-                                    <span className="text-primary font-black text-4xl italic tracking-tighter leading-none">{publicEvents.filter(e => e.status === 'active' && new Date() >= parseDate(e.start_date)).length}</span>
+                                    <span className="text-primary font-black text-4xl italic tracking-tighter leading-none">{publicEvents.filter(e => e.status === 'active' && new Date() >= parseDate(e.start_date) && new Date() <= parseDate(e.end_date)).length}</span>
                                     <span className="text-[10px] text-white font-black uppercase tracking-widest leading-tight">AKTİF<br />TURNUVA</span>
                                 </div>
                             </div>
@@ -338,7 +347,7 @@ export default function UserDashboard() {
                                     <div className="text-center p-4 text-neutral-500 italic bg-white/5 rounded-xl border border-dashed border-white/10">
                                         {(() => {
                                             if (activeCategory !== 'all') return "Bu kategoride turnuva bulunamadı.";
-                                            const activeStartedEvents = publicEvents.filter(e => e.status === 'active' && new Date() >= new Date(e.start_date));
+                                            const activeStartedEvents = publicEvents.filter(e => e.status === 'active' && new Date() >= new Date(e.start_date) && new Date() <= new Date(e.end_date));
                                             if (activeStartedEvents.length > 0 && activeStartedEvents.every(e => myEnrollments.some(enr => enr.event_id === e.id))) {
                                                 return "Tüm aktif turnuvalara katıldınız,";
                                             }
