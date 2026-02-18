@@ -41,15 +41,18 @@ export default function Lobby() {
 
     // Filter Logic matching UserDashboard
     const activeEvents = isEventsArray ? events.filter(e => {
-        if (activeCategory === 'all') return e.status !== 'ended'
-        if (activeCategory === 'active') return e.status === 'active'
-        if (activeCategory === 'upcoming') return e.status === 'paused'
+        const now = new Date()
+        const isExpired = now > new Date(e.end_date)
+
+        if (activeCategory === 'all') return e.status !== 'ended' && !isExpired
+        if (activeCategory === 'active') return e.status === 'active' && !isExpired
+        if (activeCategory === 'upcoming') return e.status === 'paused' && !isExpired
         return false
     }) : []
 
     // Only show past events if category is finished
     const showPastEvents = activeCategory === 'finished'
-    const pastEvents = isEventsArray && showPastEvents ? events.filter(e => e.status === 'ended') : []
+    const pastEvents = isEventsArray && showPastEvents ? events.filter(e => e.status === 'ended' || (e.status === 'active' && new Date() > new Date(e.end_date))) : []
 
     const handleJoin = (eventId: number) => {
         let url = `/event/${eventId}`
@@ -137,9 +140,17 @@ function EventCard({ event, onAction, actionLabel, variant = "primary" }: { even
 
             {/* Status Badge */}
             <div className="absolute top-4 right-4 z-10">
-                <Badge className={`${event.status === 'active' ? 'bg-green-500/20 text-green-500 hover:bg-green-500/30' : 'bg-gray-500/20 text-gray-500'} uppercase font-bold tracking-wider border-none`}>
-                    {event.status === 'active' ? '● CANLI' : (event.status === 'paused' ? 'DURAKLATILDI' : 'TAMAMLANDI')}
-                </Badge>
+                {(() => {
+                    const isExpired = new Date() > new Date(event.end_date)
+                    const statusText = event.status === 'active' ? (isExpired ? 'TAMAMLANDI' : '● CANLI') : (event.status === 'paused' ? 'DURAKLATILDI' : 'TAMAMLANDI')
+                    const isActive = event.status === 'active' && !isExpired
+
+                    return (
+                        <Badge className={`${isActive ? 'bg-green-500/20 text-green-500 hover:bg-green-500/30' : 'bg-gray-500/20 text-gray-500'} uppercase font-bold tracking-wider border-none`}>
+                            {statusText}
+                        </Badge>
+                    )
+                })()}
             </div>
 
             <CardHeader className="space-y-2">

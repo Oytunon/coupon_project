@@ -95,6 +95,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
     const [leagues, setLeagues] = useState<any[]>([])
 
     const isUpcoming = new Date() < new Date(event.start_date)
+    const isExpired = new Date() > new Date(event.end_date)
 
     // Calculate dynamic values
     const totalPrize = calculateTotalPrize(event.rules);
@@ -337,7 +338,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                         </div>
                                     )}
 
-                                    {!isJoined && event.status === 'active' && (
+                                    {!isJoined && event.status === 'active' && !isExpired && (
                                         <button
                                             onClick={isUpcoming ? undefined : onJoin}
                                             disabled={isUpcoming}
