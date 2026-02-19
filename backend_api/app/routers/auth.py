@@ -56,11 +56,16 @@ async def request_magic_link_with_credentials(
     user = db.query(AdminUser).filter(AdminUser.username == credentials.username).first()
     
     if not user or not verify_password(credentials.password, user.hashed_password):
-        # Security: Yanlış bilgilerde de başarılı gibi görün
-        return {"message": "Bilgiler doğruysa, email adresinize giriş linki gönderildi."}
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Hatalı kullanıcı adı veya şifre"
+        )
     
     if not user.is_active:
-        return {"message": "Bilgiler doğruysa, email adresinize giriş linki gönderildi."}
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Kullanıcı hesabı aktif değil"
+        )
     
     # Random token oluştur (32 byte = 256 bit güvenlik)
     token = secrets.token_urlsafe(32)
