@@ -614,8 +614,8 @@ export default function AdminPage() {
         setEditingEvent({
             ...event,
             description: event.description || "",
-            start_date: new Date(event.start_date).toISOString().slice(0, 16),
-            end_date: new Date(event.end_date).toISOString().slice(0, 16),
+            start_date: formatDateTimeLocal(event.start_date),
+            end_date: formatDateTimeLocal(event.end_date),
             rules: {
                 min_stake: rules.min_stake ?? 100,
                 min_odd: rules.min_odd ?? 1.5,
@@ -1141,7 +1141,7 @@ export default function AdminPage() {
                                                 <span className="text-xs text-muted-foreground uppercase font-bold text-[10px] tracking-wider">Tarih Aralığı</span>
                                                 <div className="flex items-center gap-2 text-sm font-medium">
                                                     <Calendar className="h-3.5 w-3.5 text-primary" />
-                                                    {new Date(event.start_date).toLocaleDateString("tr-TR")} - {new Date(event.end_date).toLocaleDateString("tr-TR")}
+                                                    {new Date(event.start_date).toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })} - {new Date(event.end_date).toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                                                 </div>
                                             </div>
                                             <div className="space-y-1">
