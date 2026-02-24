@@ -829,7 +829,7 @@ export default function AdminPage() {
                             <Plus className="h-4 w-4" /> Yeni Lig Ekle
                         </Button>
                     </div>
-                    
+
                     <div className="flex items-center gap-4 bg-black/20 p-4 rounded-xl border border-white/5">
                         <div className="flex-1">
                             <Input
@@ -885,7 +885,7 @@ export default function AdminPage() {
                                                     <SelectItem value="1">Futbol (1)</SelectItem>
                                                     <SelectItem value="2">Basketbol (2)</SelectItem>
                                                     <SelectItem value="3">Tenis (3)</SelectItem>
-                                                    <SelectItem value="5">Voleybol (5)</SelectItem>
+                                                    <SelectItem value="4">Voleybol (4)</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -915,7 +915,7 @@ export default function AdminPage() {
                                         <tr key={league.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                                             <td className="px-6 py-4"><Badge variant="outline" className="font-mono">#{league.id}</Badge></td>
                                             <td className="px-6 py-4 font-medium text-white">{league.name}</td>
-                                            <td className="px-6 py-4"><Badge className="bg-amber-500/10 text-amber-500 hover:bg-amber-500/20">{league.sport_id === 1 ? 'Futbol' : league.sport_id === 2 ? 'Basketbol' : league.sport_id === 3 ? 'Tenis' : 'Diğer (' + league.sport_id + ')'}</Badge></td>
+                                            <td className="px-6 py-4"><Badge className="bg-amber-500/10 text-amber-500 hover:bg-amber-500/20">{league.sport_id === 1 ? 'Futbol' : league.sport_id === 2 ? 'Basketbol' : league.sport_id === 3 ? 'Tenis' : league.sport_id === 4 ? 'Voleybol' : 'Diğer (' + league.sport_id + ')'}</Badge></td>
                                             <td className="px-6 py-4 text-right">
                                                 <Button size="icon" variant="ghost" onClick={() => {
                                                     setEditingLeague(league)
