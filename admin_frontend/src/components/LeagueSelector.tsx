@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -143,6 +143,17 @@ export function LeagueSelector({
     // Check if the search term is a number and NOT already in the list
     const isManualAddable = search && /^\d+$/.test(search) && !leagues.some(l => l.id.toString() === search);
 
+    const displayLeagues = useMemo(() => {
+        const list = [...leagues];
+        tempSelected.forEach(id => {
+            if (!list.some(l => l.id === id)) {
+                // Not in current search results, but it is selected, let's prepend it
+                list.unshift({ id, name: getLeagueName(id) });
+            }
+        });
+        return list;
+    }, [leagues, tempSelected, leagueNameCache]);
+
     return (
         <div className="space-y-2">
             <div className="flex justify-between items-center">
@@ -233,7 +244,7 @@ export function LeagueSelector({
                         </div>
 
                         <CardContent className="flex-1 overflow-y-auto p-2 custom-scrollbar">
-                            {leagues.length === 0 && !loading ? (
+                            {displayLeagues.length === 0 && !loading ? (
                                 <div className="text-center py-12 text-muted-foreground">
                                     <p>Sonuç bulunamadı.</p>
                                     {search && <p className="text-xs mt-2">ID girerek yukarıdaki mavi butondan ekleyebilirsiniz.</p>}
@@ -241,7 +252,7 @@ export function LeagueSelector({
                             ) : (
                                 <>
                                     <div className="grid grid-cols-1 gap-1">
-                                        {leagues.map(league => {
+                                        {displayLeagues.map(league => {
                                             const isSelected = tempSelected.includes(league.id)
                                             return (
                                                 <div
