@@ -179,13 +179,13 @@ export default function AdminPage() {
     const [showAddLeague, setShowAddLeague] = useState(false)
     const [editingLeague, setEditingLeague] = useState<any | null>(null)
     const [newLeague, setNewLeague] = useState({ id: "", name: "", sport_id: 1, region: "" })
-    
+
     useEffect(() => {
         if (activeTab === "leagues") {
             loadLeaguesData()
         }
     }, [activeTab])
-    
+
     const loadLeaguesData = async () => {
         setLoadingLeagues(true)
         try {
@@ -197,16 +197,16 @@ export default function AdminPage() {
             setLoadingLeagues(false)
         }
     }
-    
+
     const handleSaveLeague = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
             if (editingLeague) {
-                await updateLeague(editingLeague.id, { 
-                    id: editingLeague.id, 
-                    name: newLeague.name, 
-                    sport_id: newLeague.sport_id, 
-                    region: newLeague.region 
+                await updateLeague(editingLeague.id, {
+                    id: editingLeague.id,
+                    name: newLeague.name,
+                    sport_id: newLeague.sport_id,
+                    region: newLeague.region
                 })
                 toast({ title: "Başarılı", description: "Lig güncellendi" })
             } else {
@@ -222,18 +222,18 @@ export default function AdminPage() {
             setEditingLeague(null)
             setNewLeague({ id: "", name: "", sport_id: 1, region: "" })
             loadLeaguesData()
-        } catch(err: any) {
+        } catch (err: any) {
             toast({ title: "Hata", description: err?.response?.data?.detail || "İşlem başarısız", variant: "destructive" })
         }
     }
-    
+
     const handleDeleteLeague = async (id: number) => {
-        if(confirm("Bu ligi silmek istediğinize emin misiniz?")) {
+        if (confirm("Bu ligi silmek istediğinize emin misiniz?")) {
             try {
                 await deleteLeague(id)
                 toast({ title: "Başarılı", description: "Lig silindi" })
                 loadLeaguesData()
-            } catch(e) {
+            } catch (e) {
                 toast({ title: "Hata", description: "Silme işlemi başarısız", variant: "destructive" })
             }
         }
@@ -817,18 +817,18 @@ export default function AdminPage() {
             headerTitle={title}
             headerDescription={description}
         >
-            
+
             {activeTab === 'leagues' && (
                 <div className="space-y-6">
                     <div className="flex justify-between items-center">
                         <h2 className="text-2xl font-bold font-oswald text-white flex items-center gap-2">
-                             Lig Yönetimi
+                            Lig Yönetimi
                         </h2>
                         <Button onClick={() => { setEditingLeague(null); setNewLeague({ id: "", name: "", sport_id: 1, region: "" }); setShowAddLeague(true) }} className="bg-amber-500 hover:bg-amber-600 font-bold gap-2">
                             <Plus className="h-4 w-4" /> Yeni Lig Ekle
                         </Button>
                     </div>
-                    
+
                     {showAddLeague && (
                         <Card className="bg-card/50 border-white/5 backdrop-blur-xl animate-in slide-in-from-top-4">
                             <CardHeader>
@@ -863,7 +863,7 @@ export default function AdminPage() {
                                         <label className="text-xs font-bold text-muted-foreground uppercase">Spor Türü</label>
                                         <Select
                                             value={newLeague.sport_id.toString()}
-                                            onValueChange={v => setNewLeague({...newLeague, sport_id: parseInt(v)})}
+                                            onValueChange={v => setNewLeague({ ...newLeague, sport_id: parseInt(v) })}
                                         >
                                             <SelectTrigger className="h-11 bg-white/5 border-white/10">
                                                 <SelectValue placeholder="Spor Seçin" />
@@ -885,7 +885,7 @@ export default function AdminPage() {
                             </CardContent>
                         </Card>
                     )}
-                    
+
                     <Card className="bg-black/40 border-white/5 backdrop-blur-xl overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm text-left">
@@ -924,7 +924,7 @@ export default function AdminPage() {
                     </Card>
                 </div>
             )}
-\n            {activeTab === 'dashboard' && (
+            {activeTab === 'dashboard' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <StatCard title="Toplam Katılımcı" value={stats?.total_participants || 0} icon={Users} color="text-blue-500" />
                     <StatCard title="Toplam Kupon" value={stats?.total_coupons || 0} icon={FileText} color="text-purple-500" />
