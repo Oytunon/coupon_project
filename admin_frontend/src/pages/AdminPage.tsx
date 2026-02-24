@@ -157,8 +157,14 @@ const deleteLeague = async (id: number) => {
 
 const formatDateTimeLocal = (dateString: string) => {
     if (!dateString) return "";
+    // If it's already in the local format (e.g. from the input itself), return as-is
+    if (dateString.length === 16 && dateString.includes('T') && !dateString.endsWith('Z')) return dateString;
+    
     try {
-        const d = new Date(dateString);
+        let dStr = dateString;
+        if (!dStr.endsWith('Z') && !dStr.includes('+')) dStr += 'Z'; // Force UTC parsing if API returned naive datetime
+        
+        const d = new Date(dStr);
         if (isNaN(d.getTime())) return "";
         const tzOffset = d.getTimezoneOffset() * 60000; 
         return (new Date(d.getTime() - tzOffset)).toISOString().slice(0, 16);
