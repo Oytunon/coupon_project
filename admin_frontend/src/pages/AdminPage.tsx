@@ -174,6 +174,7 @@ export default function AdminPage() {
     const [page, setPage] = useState(1)
     const [limit] = useState(20)
     const [searchQuery, setSearchQuery] = useState("")
+    const [leagueSearchQuery, setLeagueSearchQuery] = useState("")
     const [leaguesData, setLeaguesData] = useState<any[]>([])
     const [loadingLeagues, setLoadingLeagues] = useState(false)
     const [showAddLeague, setShowAddLeague] = useState(false)
@@ -828,62 +829,74 @@ export default function AdminPage() {
                             <Plus className="h-4 w-4" /> Yeni Lig Ekle
                         </Button>
                     </div>
+                    
+                    <div className="flex items-center gap-4 bg-black/20 p-4 rounded-xl border border-white/5">
+                        <div className="flex-1">
+                            <Input
+                                placeholder="Lig ID veya Adı ile ara..."
+                                value={leagueSearchQuery}
+                                onChange={(e) => setLeagueSearchQuery(e.target.value)}
+                                className="h-11 bg-white/5 border-white/10 w-full md:w-96"
+                            />
+                        </div>
+                    </div>
 
                     {showAddLeague && (
-                        <Card className="bg-card/50 border-white/5 backdrop-blur-xl animate-in slide-in-from-top-4">
-                            <CardHeader>
-                                <CardTitle>{editingLeague ? "Ligi Düzenle" : "Yeni Lig Ekle"}</CardTitle>
-                                <CardDescription>Bir ligin BetConstruct ID'sini girebilir ve bir isim belirleyebilirsiniz.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <form onSubmit={handleSaveLeague} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-muted-foreground uppercase">Lig ID (Sayısal)</label>
-                                        <Input
-                                            disabled={!!editingLeague}
-                                            type="number"
-                                            className="h-11 bg-white/5 border-white/10"
-                                            placeholder="Örn: 999123"
-                                            value={newLeague.id}
-                                            onChange={e => setNewLeague({ ...newLeague, id: e.target.value })}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-2 col-span-2">
-                                        <label className="text-xs font-bold text-muted-foreground uppercase">Lig Adı</label>
-                                        <Input
-                                            className="h-11 bg-white/5 border-white/10"
-                                            placeholder="Örn: Türkiye Süper Lig"
-                                            value={newLeague.name}
-                                            onChange={e => setNewLeague({ ...newLeague, name: e.target.value })}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-muted-foreground uppercase">Spor Türü</label>
-                                        <Select
-                                            value={newLeague.sport_id.toString()}
-                                            onValueChange={v => setNewLeague({ ...newLeague, sport_id: parseInt(v) })}
-                                        >
-                                            <SelectTrigger className="h-11 bg-white/5 border-white/10">
-                                                <SelectValue placeholder="Spor Seçin" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="1">Futbol (1)</SelectItem>
-                                                <SelectItem value="2">Basketbol (2)</SelectItem>
-                                                <SelectItem value="3">Tenis (3)</SelectItem>
-                                                <SelectItem value="4">Buz Hokeyi (4)</SelectItem>
-                                                <SelectItem value="5">Voleybol (5)</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="md:col-span-4 flex justify-end gap-2 mt-2">
-                                        <Button type="button" variant="outline" onClick={() => setShowAddLeague(false)}>İptal</Button>
-                                        <Button type="submit" className="bg-amber-500 hover:bg-amber-600 font-bold">Kaydet</Button>
-                                    </div>
-                                </form>
-                            </CardContent>
-                        </Card>
+                        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+                            <Card className="bg-slate-900 border-white/10 shadow-2xl w-full max-w-2xl animate-in zoom-in-95">
+                                <CardHeader>
+                                    <CardTitle className="text-xl font-bold text-white">{editingLeague ? "Ligi Düzenle" : "Yeni Lig Ekle"}</CardTitle>
+                                    <div className="text-sm text-muted-foreground">Bir ligin BetConstruct ID'sini girebilir ve bir isim belirleyebilirsiniz.</div>
+                                </CardHeader>
+                                <CardContent>
+                                    <form onSubmit={handleSaveLeague} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-muted-foreground uppercase">Lig ID</label>
+                                            <Input
+                                                disabled={!!editingLeague}
+                                                type="number"
+                                                className="h-11 bg-white/5 border-white/10"
+                                                placeholder="Örn: 999123"
+                                                value={newLeague.id}
+                                                onChange={e => setNewLeague({ ...newLeague, id: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-2 col-span-2">
+                                            <label className="text-xs font-bold text-muted-foreground uppercase">Lig Adı</label>
+                                            <Input
+                                                className="h-11 bg-white/5 border-white/10"
+                                                placeholder="Örn: Türkiye Süper Lig"
+                                                value={newLeague.name}
+                                                onChange={e => setNewLeague({ ...newLeague, name: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-muted-foreground uppercase">Spor Türü</label>
+                                            <Select
+                                                value={newLeague.sport_id.toString()}
+                                                onValueChange={v => setNewLeague({ ...newLeague, sport_id: parseInt(v) })}
+                                            >
+                                                <SelectTrigger className="h-11 bg-white/5 border-white/10">
+                                                    <SelectValue placeholder="Spor Seçin" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="1">Futbol (1)</SelectItem>
+                                                    <SelectItem value="2">Basketbol (2)</SelectItem>
+                                                    <SelectItem value="3">Tenis (3)</SelectItem>
+                                                    <SelectItem value="5">Voleybol (5)</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="md:col-span-4 flex justify-end gap-3 mt-4 pt-4 border-t border-white/5">
+                                            <Button type="button" variant="ghost" onClick={() => setShowAddLeague(false)}>İptal</Button>
+                                            <Button type="submit" className="bg-amber-500 hover:bg-amber-600 font-bold px-8">Kaydet</Button>
+                                        </div>
+                                    </form>
+                                </CardContent>
+                            </Card>
+                        </div>
                     )}
 
                     <Card className="bg-black/40 border-white/5 backdrop-blur-xl overflow-hidden">
@@ -898,7 +911,7 @@ export default function AdminPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {leaguesData.map((league) => (
+                                    {leaguesData.filter(l => l.name.toLowerCase().includes(leagueSearchQuery.toLowerCase()) || l.id.toString().includes(leagueSearchQuery)).map((league) => (
                                         <tr key={league.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                                             <td className="px-6 py-4"><Badge variant="outline" className="font-mono">#{league.id}</Badge></td>
                                             <td className="px-6 py-4 font-medium text-white">{league.name}</td>
@@ -913,9 +926,9 @@ export default function AdminPage() {
                                             </td>
                                         </tr>
                                     ))}
-                                    {leaguesData.length === 0 && !loadingLeagues && (
+                                    {leaguesData.filter(l => l.name.toLowerCase().includes(leagueSearchQuery.toLowerCase()) || l.id.toString().includes(leagueSearchQuery)).length === 0 && !loadingLeagues && (
                                         <tr>
-                                            <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">Kayıtlı lig bulunamadı</td>
+                                            <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">Aradığınız kriterlere uygun lig bulunamadı</td>
                                         </tr>
                                     )}
                                 </tbody>
