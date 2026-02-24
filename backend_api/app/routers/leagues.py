@@ -56,3 +56,54 @@ async def seed_leagues(
     
     db.commit()
     return {"message": f"{count} leagues processed"}
+
+@router.post("/", response_model=LeagueSchema)
+async def create_league(
+    league: LeagueSchema,
+    db: Session = Depends(get_db)
+):
+    existing = db.query(League).filter(League.id == league.id).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="League with this ID already exists")
+    
+    new_league = League(
+        id=league.id,
+        name=league.name,
+        sport_id=league.sport_id,
+        region=league.region
+    )
+    db.add(new_league)
+    db.commit()
+    db.refresh(new_league)
+    return new_league
+
+@router.put("/{league_id}", response_model=LeagueSchema)
+async def update_league(
+    league_id: int,
+    league_data: LeagueSchema,
+    db: Session = Depends(get_db)
+):
+    league = db.query(League).filter(League.id == league_id).first()
+    if not league:
+        raise HTTPException(status_code=404, detail="League not found")
+        
+    league.name = league_data.name
+    league.sport_id = league_data.sport_id
+    league.region = league_data.region
+    
+    db.commit()
+    db.refresh(league)
+    return league
+
+@router.delete("/{league_id}")
+async def delete_league(
+    league_id: int,
+    db: Session = Depends(get_db)
+):
+    league = db.query(League).filter(League.id == league_id).first()
+    if not league:
+        raise HTTPException(status_code=404, detail="League not found")
+        
+    db.delete(league)
+    db.commit()
+    return {"message": "League deleted successfully"}

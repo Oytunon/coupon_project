@@ -5,7 +5,8 @@ import {
     Shield,
     Settings,
     LogOut,
-    Zap
+    Zap,
+    Map
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -22,6 +23,7 @@ export function Sidebar({ activeTab, setActiveTab, logout }: SidebarProps) {
         { id: 'events', label: 'Kampanyalar', icon: Trophy },
         { id: 'participants', label: 'Katılımcılar', icon: Users },
         { id: 'users', label: 'Yöneticiler', icon: Shield },
+        { id: 'leagues', label: 'Lig Yönetimi', icon: Map },
     ]
 
     return (
