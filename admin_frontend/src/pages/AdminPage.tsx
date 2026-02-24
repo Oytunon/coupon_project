@@ -155,19 +155,29 @@ const deleteLeague = async (id: number) => {
 }
 
 
+const formatDisplayDate = (dateString: string) => {
+    if (!dateString) return "";
+    try {
+        // e.g. 2026-02-24T22:45:00 -> 24.02.2026 22:45
+        const dt = dateString.split('.')[0].slice(0, 16).split('T');
+        if (dt.length !== 2) return dateString;
+        const [year, month, day] = dt[0].split('-');
+        return `${day}.${month}.${year} ${dt[1]}`;
+    } catch (e) {
+        return dateString;
+    }
+}
+
+// Strips timezone formatting completely, maps string straight to input compatible string
 const formatDateTimeLocal = (dateString: string) => {
     if (!dateString) return "";
     // If it's already in the local format (e.g. from the input itself), return as-is
     if (dateString.length === 16 && dateString.includes('T') && !dateString.endsWith('Z')) return dateString;
-
+    
+    // Fallback naive slicing (YYYY-MM-DDTHH:mm) - ignores JS timezone offsets entirely
+    // We expect the DB string to come back exactly as it was saved (e.g. 2026-02-24T22:45:00)
     try {
-        let dStr = dateString;
-        if (!dStr.endsWith('Z') && !dStr.includes('+')) dStr += 'Z'; // Force UTC parsing if API returned naive datetime
-
-        const d = new Date(dStr);
-        if (isNaN(d.getTime())) return "";
-        const tzOffset = d.getTimezoneOffset() * 60000;
-        return (new Date(d.getTime() - tzOffset)).toISOString().slice(0, 16);
+        return dateString.split('.')[0].slice(0, 16);
     } catch (e) {
         return "";
     }
