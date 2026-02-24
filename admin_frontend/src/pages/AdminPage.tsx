@@ -154,6 +154,19 @@ const deleteLeague = async (id: number) => {
     return res.data
 }
 
+
+const formatDateTimeLocal = (dateString: string) => {
+    if (!dateString) return "";
+    try {
+        const d = new Date(dateString);
+        if (isNaN(d.getTime())) return "";
+        const tzOffset = d.getTimezoneOffset() * 60000; 
+        return (new Date(d.getTime() - tzOffset)).toISOString().slice(0, 16);
+    } catch (e) {
+        return "";
+    }
+}
+
 export default function AdminPage() {
 
     const { toast } = useToast()
@@ -1182,11 +1195,11 @@ export default function AdminPage() {
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div className="space-y-2">
                                                             <label className="text-xs font-bold text-muted-foreground">Başlangıç</label>
-                                                            <Input type="datetime-local" value={newEvent.start_date} onChange={e => setNewEvent({ ...newEvent, start_date: e.target.value })} required className="bg-black/20" />
+                                                            <Input type="datetime-local" value={formatDateTimeLocal(newEvent.start_date)} onChange={e => setNewEvent({ ...newEvent, start_date: e.target.value })} required className="bg-black/20" />
                                                         </div>
                                                         <div className="space-y-2">
                                                             <label className="text-xs font-bold text-muted-foreground">Bitiş</label>
-                                                            <Input type="datetime-local" value={newEvent.end_date} onChange={e => setNewEvent({ ...newEvent, end_date: e.target.value })} required className="bg-black/20" />
+                                                            <Input type="datetime-local" value={formatDateTimeLocal(newEvent.end_date)} onChange={e => setNewEvent({ ...newEvent, end_date: e.target.value })} required className="bg-black/20" />
                                                         </div>
                                                     </div>
 
@@ -1390,11 +1403,11 @@ export default function AdminPage() {
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div className="space-y-2">
                                                             <label className="text-xs font-bold text-muted-foreground">Başlangıç</label>
-                                                            <Input type="datetime-local" value={editingEvent.start_date} onChange={e => setEditingEvent({ ...editingEvent, start_date: e.target.value })} required className="bg-black/20" />
+                                                            <Input type="datetime-local" value={formatDateTimeLocal(editingEvent.start_date)} onChange={e => setEditingEvent({ ...editingEvent, start_date: e.target.value })} required className="bg-black/20" />
                                                         </div>
                                                         <div className="space-y-2">
                                                             <label className="text-xs font-bold text-muted-foreground">Bitiş</label>
-                                                            <Input type="datetime-local" value={editingEvent.end_date} onChange={e => setEditingEvent({ ...editingEvent, end_date: e.target.value })} required className="bg-black/20" />
+                                                            <Input type="datetime-local" value={formatDateTimeLocal(editingEvent.end_date)} onChange={e => setEditingEvent({ ...editingEvent, end_date: e.target.value })} required className="bg-black/20" />
                                                         </div>
                                                     </div>
 
