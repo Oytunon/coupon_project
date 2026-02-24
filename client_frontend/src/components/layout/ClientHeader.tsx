@@ -28,7 +28,7 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
                     </div>
 
                     {/* Navigation - No scroll, Shrinks proportionally */}
-                    <div className="flex-1 flex items-center justify-center gap-2 px-2 overflow-hidden text-white">
+                    <div className="flex-1 flex items-center justify-center gap-2 px-2 overflow-hidden text-[#F7EBA5]">
                         {navItems.map((item) => {
                             const Icon = item.icon
                             const isActive = activeCategory === item.id
@@ -41,7 +41,7 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
                                         px-4 h-11 min-w-0
                                         ${isActive
                                             ? 'bg-primary text-black shadow-[0_0_15px_rgba(255,184,0,0.3)]'
-                                            : 'text-white/90 border border-primary/40 bg-primary/[0.03] hover:bg-primary/[0.08]'}
+                                            : 'text-[#F7EBA5]/90 border border-primary/40 bg-primary/[0.03] hover:bg-primary/[0.08]'}
                                     `}
                                 >
                                     <Icon className={`flex-shrink-0 transition-transform duration-300 ${isActive ? 'scale-110' : ''}`} size={16} />
@@ -79,7 +79,7 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
                                         h-10 px-1 min-w-0
                                         ${isActive
                                             ? 'bg-primary text-black shadow-[0_0_8px_rgba(255,184,0,0.4)]'
-                                            : 'text-white/90 border border-primary/60 bg-primary/[0.03]'}
+                                            : 'text-[#F7EBA5]/90 border border-primary/60 bg-primary/[0.03]'}
                                     `}
                                 >
                                     <Icon className="flex-shrink-0" size={14} />

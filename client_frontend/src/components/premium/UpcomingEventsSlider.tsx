@@ -115,10 +115,10 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                     <div className="lg:hidden">
                         <div
                             onClick={() => onDetails(currentEvent.id)}
-                            className="relative rounded-xl overflow-hidden cursor-pointer bg-black border-2 border-[#FFB800] shadow-xl"
+                            className="relative rounded-xl overflow-hidden cursor-pointer bg-black border-2 border-[#D9B648] shadow-xl"
                         >
                             <div className="flex items-stretch gap-0">
-                                <div className="flex-shrink-0 w-28 border-r-2 border-[#FFB800] overflow-hidden">
+                                <div className="flex-shrink-0 w-28 border-r-2 border-[#D9B648] overflow-hidden">
                                     <img
                                         src={currentEvent.image_url || "/placeholder-tournament.jpg"}
                                         alt={currentEvent.name}
@@ -126,29 +126,29 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                     />
                                 </div>
                                 <div className="flex-1 flex flex-col gap-1.5 p-2 min-w-0">
-                                    <h3 className="font-oswald text-sm font-black text-white tracking-tight leading-tight line-clamp-2 uppercase">
+                                    <h3 className="font-oswald text-sm font-black text-[#F7EBA5] tracking-tight leading-tight line-clamp-2 uppercase">
                                         {currentEvent.name}
                                     </h3>
                                     <div className="flex items-stretch gap-1.5">
-                                        <div className="flex-1 bg-[#1a1a1a] border-2 border-[#FFB800] rounded-lg px-1.5 py-1.5 flex flex-col items-center justify-center">
+                                        <div className="flex-1 bg-[#1a1a1a] border-2 border-[#D9B648] rounded-lg px-1.5 py-1.5 flex flex-col items-center justify-center">
                                             <div className="flex items-center justify-center gap-1 mb-0.5">
-                                                <svg className="w-3 h-3 text-[#FFB800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <svg className="w-3 h-3 text-[#D9B648]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                                 </svg>
-                                                <span className="text-[8px] text-[#FFB800] font-bold uppercase tracking-wide">Katılımcı</span>
+                                                <span className="text-[8px] text-[#D9B648] font-bold uppercase tracking-wide">Katılımcı</span>
                                             </div>
-                                            <div className="font-oswald text-base font-black text-white text-center leading-none">
+                                            <div className="font-oswald text-base font-black text-[#F7EBA5] text-center leading-none">
                                                 {currentEvent.participant_count || 0}
                                             </div>
                                         </div>
-                                        <div className="flex-1 bg-gradient-to-br from-[#FFB800]/20 to-black border-2 border-[#FFB800] rounded-lg px-1.5 py-1.5 flex flex-col items-center justify-center">
+                                        <div className="flex-1 bg-gradient-to-br from-[#D9B648]/20 to-black border-2 border-[#D9B648] rounded-lg px-1.5 py-1.5 flex flex-col items-center justify-center">
                                             <div className="flex items-center justify-center gap-1 mb-0.5">
-                                                <svg className="w-3 h-3 text-[#FFB800]" fill="currentColor" viewBox="0 0 24 24">
+                                                <svg className="w-3 h-3 text-[#D9B648]" fill="currentColor" viewBox="0 0 24 24">
                                                     <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"></path>
                                                 </svg>
-                                                <span className="text-[8px] text-[#FFB800] font-bold uppercase tracking-wide">Ödül</span>
+                                                <span className="text-[8px] text-[#D9B648] font-bold uppercase tracking-wide">Ödül</span>
                                             </div>
-                                            <div className="font-oswald text-sm font-black text-[#FFB800] text-center leading-none whitespace-nowrap">
+                                            <div className="font-oswald text-sm font-black text-[#D9B648] text-center leading-none whitespace-nowrap">
                                                 {calculateTotalPrize(currentEvent.rules).toLocaleString('tr-TR')}₺
                                             </div>
                                         </div>
@@ -157,7 +157,7 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                         <div className="flex justify-center items-end gap-1.5">
                                             {/* Days */}
                                             <div className="text-center">
-                                                <div className="bg-black border-2 border-[#FFB800] rounded-lg px-1.5 py-1 shadow-lg shadow-[#FFB800]/20">
+                                                <div className="bg-black border-2 border-[#D9B648] rounded-lg px-1.5 py-1 shadow-lg shadow-[#D9B648]/20">
                                                     <div className="flex gap-0.5">
                                                         {d.split('').map((digit, i) => (
                                                             <div key={i} className="relative w-[18px] h-[28px] overflow-hidden">
@@ -167,48 +167,48 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                                                         animation: mounted ? `digitSlideIn 0.5s ${i * 0.08}s cubic-bezier(0.34, 1.56, 0.64, 1) both` : 'none',
                                                                     }}
                                                                 >
-                                                                    <span className="text-xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
+                                                                    <span className="text-xl font-bold text-[#D9B648] tabular-nums">{digit}</span>
                                                                 </div>
                                                                 <div className="absolute top-1/2 left-0 right-0 h-[0.5px] bg-black/60 z-10"></div>
                                                             </div>
                                                         ))}
                                                     </div>
                                                 </div>
-                                                <div className="text-[9px] text-white mt-1 font-bold uppercase tracking-wide">GÜN</div>
+                                                <div className="text-[9px] text-[#F7EBA5] mt-1 font-bold uppercase tracking-wide">GÜN</div>
                                             </div>
-                                            <div className="font-oswald text-2xl font-bold text-[#FFB800]/70 pb-5 animate-pulse">:</div>
+                                            <div className="font-oswald text-2xl font-bold text-[#D9B648]/70 pb-5 animate-pulse">:</div>
                                             {/* Hours */}
                                             <div className="text-center">
-                                                <div className="bg-black border-2 border-[#FFB800] rounded-lg px-1.5 py-1 shadow-lg shadow-[#FFB800]/20">
+                                                <div className="bg-black border-2 border-[#D9B648] rounded-lg px-1.5 py-1 shadow-lg shadow-[#D9B648]/20">
                                                     <div className="flex gap-0.5">
                                                         {h.split('').map((digit, i) => (
                                                             <div key={i} className="relative w-[18px] h-[28px] overflow-hidden">
                                                                 <div className="absolute inset-0 flex items-center justify-center bg-black rounded">
-                                                                    <span className="text-xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
+                                                                    <span className="text-xl font-bold text-[#D9B648] tabular-nums">{digit}</span>
                                                                 </div>
                                                                 <div className="absolute top-1/2 left-0 right-0 h-[0.5px] bg-black/60 z-10"></div>
                                                             </div>
                                                         ))}
                                                     </div>
                                                 </div>
-                                                <div className="text-[9px] text-white mt-1 font-bold uppercase tracking-wide">SAAT</div>
+                                                <div className="text-[9px] text-[#F7EBA5] mt-1 font-bold uppercase tracking-wide">SAAT</div>
                                             </div>
-                                            <div className="font-oswald text-2xl font-bold text-[#FFB800]/70 pb-5 animate-pulse">:</div>
+                                            <div className="font-oswald text-2xl font-bold text-[#D9B648]/70 pb-5 animate-pulse">:</div>
                                             {/* Minutes */}
                                             <div className="text-center">
-                                                <div className="bg-black border-2 border-[#FFB800] rounded-lg px-1.5 py-1 shadow-lg shadow-[#FFB800]/20">
+                                                <div className="bg-black border-2 border-[#D9B648] rounded-lg px-1.5 py-1 shadow-lg shadow-[#D9B648]/20">
                                                     <div className="flex gap-0.5">
                                                         {m.split('').map((digit, i) => (
                                                             <div key={i} className="relative w-[18px] h-[28px] overflow-hidden">
                                                                 <div className="absolute inset-0 flex items-center justify-center bg-black rounded">
-                                                                    <span className="text-xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
+                                                                    <span className="text-xl font-bold text-[#D9B648] tabular-nums">{digit}</span>
                                                                 </div>
                                                                 <div className="absolute top-1/2 left-0 right-0 h-[0.5px] bg-black/60 z-10"></div>
                                                             </div>
                                                         ))}
                                                     </div>
                                                 </div>
-                                                <div className="text-[9px] text-white mt-1 font-bold uppercase tracking-wide">DAK</div>
+                                                <div className="text-[9px] text-[#F7EBA5] mt-1 font-bold uppercase tracking-wide">DAK</div>
                                             </div>
                                         </div>
                                     </div>
@@ -218,14 +218,14 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                     </div>
 
                     {/* DESKTOP VIEW */}
-                    <div className="hidden lg:block border-2 border-[#FFB800] rounded-xl lg:rounded-2xl overflow-hidden hover:scale-[1.01] transition-transform duration-300">
-                        <div className="relative rounded-xl overflow-hidden cursor-pointer transition-transform duration-300 bg-black border-2 border-[#FFB800] shadow-2xl hover:shadow-[0_0_30px_rgba(255,184,0,0.4)]">
+                    <div className="hidden lg:block border-2 border-[#D9B648] rounded-xl lg:rounded-2xl overflow-hidden hover:scale-[1.01] transition-transform duration-300">
+                        <div className="relative rounded-xl overflow-hidden cursor-pointer transition-transform duration-300 bg-black border-2 border-[#D9B648] shadow-2xl hover:shadow-[0_0_30px_rgba(255,184,0,0.4)]">
 
                             <div className="relative">
                                 <div className="flex flex-row items-stretch justify-between">
                                     <div className="flex flex-row items-stretch gap-0 flex-1 relative z-10 w-full">
                                         {/* Image */}
-                                        <div className="w-[240px] shrink-0 border-r-2 border-[#FFB800]">
+                                        <div className="w-[240px] shrink-0 border-r-2 border-[#D9B648]">
                                             <img
                                                 src={currentEvent.image_url || "/placeholder-tournament.jpg"}
                                                 alt={currentEvent.name}
@@ -236,26 +236,26 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                         {/* Middle: Title and Stats Boxes */}
                                         <div className="flex flex-col flex-1 px-4 py-3 w-full justify-center">
                                             <div className="text-center mb-2">
-                                                <h3 className="font-oswald text-4xl font-black text-white tracking-tight leading-tight mb-2 px-2 uppercase">
+                                                <h3 className="font-oswald text-4xl font-black text-[#F7EBA5] tracking-tight leading-tight mb-2 px-2 uppercase">
                                                     {currentEvent.name}
                                                 </h3>
-                                                <div className="h-0.5 w-12 mx-auto bg-gradient-to-r from-transparent via-[#FFB800] to-transparent rounded-full"></div>
+                                                <div className="h-0.5 w-12 mx-auto bg-gradient-to-r from-transparent via-[#D9B648] to-transparent rounded-full"></div>
                                             </div>
 
                                             <div className="flex flex-wrap items-center justify-center gap-3">
 
 
                                                 {/* Prize Box */}
-                                                <div className="group relative bg-gradient-to-br from-[#FFB800]/20 via-[#FFA500]/10 to-black border-2 border-[#FFB800] rounded-2xl p-6 hover:border-[#FFA500] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#FFB800]/20 hover:shadow-[#FFB800]/40 hover:shadow-xl flex-1 min-w-[180px] max-w-[220px]">
-                                                    <div className="absolute inset-0 bg-gradient-to-br from-[#FFB800]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
+                                                <div className="group relative bg-gradient-to-br from-[#D9B648]/20 via-[#F7EBA5]/10 to-black border-2 border-[#D9B648] rounded-2xl p-6 hover:border-[#F7EBA5] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#D9B648]/20 hover:shadow-[#D9B648]/40 hover:shadow-xl flex-1 min-w-[180px] max-w-[220px]">
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-[#D9B648]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"></div>
                                                     <div className="relative flex flex-col items-center justify-center gap-2">
                                                         <div className="flex items-center justify-center gap-2 mb-1">
-                                                            <svg className="w-6 h-6 text-[#FFB800]" fill="currentColor" viewBox="0 0 24 24">
+                                                            <svg className="w-6 h-6 text-[#D9B648]" fill="currentColor" viewBox="0 0 24 24">
                                                                 <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"></path>
                                                             </svg>
-                                                            <span className="text-sm text-[#FFB800] font-bold uppercase tracking-widest">Ödül</span>
+                                                            <span className="text-sm text-[#D9B648] font-bold uppercase tracking-widest">Ödül</span>
                                                         </div>
-                                                        <div className="text-center font-oswald text-3xl font-black text-[#FFB800] tracking-tight">
+                                                        <div className="text-center font-oswald text-3xl font-black text-[#D9B648] tracking-tight">
                                                             {calculateTotalPrize(currentEvent.rules).toLocaleString('tr-TR')}₺
                                                         </div>
                                                     </div>
@@ -270,7 +270,7 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                             <div className="flex justify-center gap-2">
                                                 {/* Days */}
                                                 <div className="text-center">
-                                                    <div className="bg-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5 shadow-lg shadow-[#FFB800]/20">
+                                                    <div className="bg-black border-2 border-[#D9B648] rounded-lg px-2 py-1.5 shadow-lg shadow-[#D9B648]/20">
                                                         <div className="flex gap-0.5">
                                                             {d.split('').map((digit, i) => (
                                                                 <div key={i} className="relative w-[20px] h-[32px] overflow-hidden">
@@ -280,19 +280,19 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                                                             animation: mounted ? `digitSlideIn 0.5s ${i * 0.08}s cubic-bezier(0.34, 1.56, 0.64, 1) both` : 'none',
                                                                         }}
                                                                     >
-                                                                        <span className="text-2xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
+                                                                        <span className="text-2xl font-bold text-[#D9B648] tabular-nums">{digit}</span>
                                                                     </div>
                                                                     <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-black/60 z-10"></div>
                                                                 </div>
                                                             ))}
                                                         </div>
                                                     </div>
-                                                    <div className="text-[10px] text-white mt-1 font-bold uppercase tracking-wide">GÜN</div>
+                                                    <div className="text-[10px] text-[#F7EBA5] mt-1 font-bold uppercase tracking-wide">GÜN</div>
                                                 </div>
-                                                <div className="font-oswald text-xl font-bold text-[#FFB800]/70 self-center pb-4 animate-pulse">:</div>
+                                                <div className="font-oswald text-xl font-bold text-[#D9B648]/70 self-center pb-4 animate-pulse">:</div>
                                                 {/* Hours */}
                                                 <div className="text-center">
-                                                    <div className="bg-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5 shadow-lg shadow-[#FFB800]/20">
+                                                    <div className="bg-black border-2 border-[#D9B648] rounded-lg px-2 py-1.5 shadow-lg shadow-[#D9B648]/20">
                                                         <div className="flex gap-0.5">
                                                             {h.split('').map((digit, i) => (
                                                                 <div key={i} className="relative w-[20px] h-[32px] overflow-hidden">
@@ -302,19 +302,19 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                                                             animation: mounted ? `digitSlideIn 0.5s ${(2 + i) * 0.08}s cubic-bezier(0.34, 1.56, 0.64, 1) both` : 'none',
                                                                         }}
                                                                     >
-                                                                        <span className="text-2xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
+                                                                        <span className="text-2xl font-bold text-[#D9B648] tabular-nums">{digit}</span>
                                                                     </div>
                                                                     <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-black/60 z-10"></div>
                                                                 </div>
                                                             ))}
                                                         </div>
                                                     </div>
-                                                    <div className="text-[10px] text-white mt-1 font-bold uppercase tracking-wide">SAAT</div>
+                                                    <div className="text-[10px] text-[#F7EBA5] mt-1 font-bold uppercase tracking-wide">SAAT</div>
                                                 </div>
-                                                <div className="font-oswald text-xl font-bold text-[#FFB800]/70 self-center pb-4 animate-pulse">:</div>
+                                                <div className="font-oswald text-xl font-bold text-[#D9B648]/70 self-center pb-4 animate-pulse">:</div>
                                                 {/* Minutes */}
                                                 <div className="text-center">
-                                                    <div className="bg-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5 shadow-lg shadow-[#FFB800]/20">
+                                                    <div className="bg-black border-2 border-[#D9B648] rounded-lg px-2 py-1.5 shadow-lg shadow-[#D9B648]/20">
                                                         <div className="flex gap-0.5">
                                                             {m.split('').map((digit, i) => (
                                                                 <div key={i} className="relative w-[20px] h-[32px] overflow-hidden">
@@ -324,14 +324,14 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                                                             animation: mounted ? `digitSlideIn 0.5s ${(4 + i) * 0.08}s cubic-bezier(0.34, 1.56, 0.64, 1) both` : 'none',
                                                                         }}
                                                                     >
-                                                                        <span className="text-2xl font-bold text-[#FFB800] tabular-nums">{digit}</span>
+                                                                        <span className="text-2xl font-bold text-[#D9B648] tabular-nums">{digit}</span>
                                                                     </div>
                                                                     <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-black/60 z-10"></div>
                                                                 </div>
                                                             ))}
                                                         </div>
                                                     </div>
-                                                    <div className="text-[10px] text-white mt-1 font-bold uppercase tracking-wide">DAK</div>
+                                                    <div className="text-[10px] text-[#F7EBA5] mt-1 font-bold uppercase tracking-wide">DAK</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -341,7 +341,7 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                                 e.stopPropagation();
                                                 onDetails(currentEvent.id);
                                             }}
-                                            className="px-6 py-2 bg-[#FFB800] hover:bg-[#FFA500] text-black rounded-lg font-bold text-sm shadow-lg hover:shadow-xl transition-all w-auto"
+                                            className="px-6 py-2 bg-[#D9B648] hover:bg-[#F7EBA5] text-black rounded-lg font-bold text-sm shadow-lg hover:shadow-xl transition-all w-auto"
                                         >
                                             Detayları Gör
                                         </button>
@@ -360,7 +360,7 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                 key={idx}
                                 onClick={() => setCurrentIndex(idx)}
                                 className={`h-2 rounded-full transition-all duration-300 ${idx === currentIndex
-                                    ? 'bg-[#FFB800] w-8'
+                                    ? 'bg-[#D9B648] w-8'
                                     : 'bg-gray-600 hover:bg-gray-500 w-2'
                                     }`}
                                 aria-label={`Go to slide ${idx + 1}`}

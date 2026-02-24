@@ -234,23 +234,23 @@ export default function UserDashboard() {
                 <div className="space-y-6">
                     {/* Mobile Compact User Stats (User Provided HTML) */}
                     <div className="md:hidden px-2 pt-2">
-                        <div className="bg-black border border-[#FFB800]/20 rounded-lg p-2 mb-0">
+                        <div className="bg-black border border-[#D9B648]/20 rounded-lg p-2 mb-0">
                             <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2">
-                                    <div className="w-7 h-7 bg-gradient-to-br from-[#FFB800] to-[#FFA500] rounded-full flex items-center justify-center border border-black">
+                                    <div className="w-7 h-7 bg-gradient-to-br from-[#D9B648] to-[#F7EBA5] rounded-full flex items-center justify-center border border-black">
                                         <Users className="w-3.5 h-3.5 text-black" />
                                     </div>
-                                    <span className="text-sm font-black text-[#FFB800] uppercase tracking-wide">{username || "MİSAFİR"}</span>
+                                    <span className="text-sm font-black text-[#D9B648] uppercase tracking-wide">{username || "MİSAFİR"}</span>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="flex items-baseline gap-1">
-                                        <span className="text-lg font-black bg-gradient-to-r from-[#FFB800] to-[#FFA500] bg-clip-text text-transparent tabular-nums">{myEnrollments.filter(e => e.status === 'active').length}</span>
-                                        <span className="text-[8px] text-white font-medium uppercase">kayıtlı</span>
+                                        <span className="text-lg font-black bg-gradient-to-r from-[#D9B648] to-[#F7EBA5] bg-clip-text text-transparent tabular-nums">{myEnrollments.filter(e => e.status === 'active').length}</span>
+                                        <span className="text-[8px] text-[#F7EBA5] font-medium uppercase">kayıtlı</span>
                                     </div>
                                     <div className="h-4 w-px bg-gradient-to-b from-transparent via-gray-700 to-transparent"></div>
                                     <div className="flex items-baseline gap-1">
-                                        <span className="text-lg font-black bg-gradient-to-r from-[#FFA500] to-[#FF8C00] bg-clip-text text-transparent tabular-nums">{publicEvents.filter(e => e.status === 'active' && new Date() >= parseDate(e.start_date) && new Date() <= parseDate(e.end_date)).length}</span>
-                                        <span className="text-[8px] text-white font-medium uppercase">aktif</span>
+                                        <span className="text-lg font-black bg-gradient-to-r from-[#F7EBA5] to-[#FF8C00] bg-clip-text text-transparent tabular-nums">{publicEvents.filter(e => e.status === 'active' && new Date() >= parseDate(e.start_date) && new Date() <= parseDate(e.end_date)).length}</span>
+                                        <span className="text-[8px] text-[#F7EBA5] font-medium uppercase">aktif</span>
                                     </div>
                                 </div>
                             </div>
@@ -265,19 +265,19 @@ export default function UserDashboard() {
                                 <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center text-black font-black text-lg shadow-lg">
                                     <Users className="h-6 w-6" />
                                 </div>
-                                <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">{username || "Misafir"}</h2>
+                                <h2 className="text-2xl font-black text-[#F7EBA5] italic tracking-tighter uppercase">{username || "Misafir"}</h2>
                             </div>
 
                             {/* Simplified Stats */}
                             <div className="flex items-center gap-10">
                                 <div className="flex items-center gap-4">
                                     <span className="text-primary font-black text-4xl italic tracking-tighter leading-none">{myEnrollments.filter(e => e.status === 'active').length}</span>
-                                    <span className="text-[10px] text-white font-black uppercase tracking-widest leading-tight">KAYITLI<br />TURNUVA</span>
+                                    <span className="text-[10px] text-[#F7EBA5] font-black uppercase tracking-widest leading-tight">KAYITLI<br />TURNUVA</span>
                                 </div>
                                 <div className="w-px h-10 bg-white/10"></div>
                                 <div className="flex items-center gap-4">
                                     <span className="text-primary font-black text-4xl italic tracking-tighter leading-none">{publicEvents.filter(e => e.status === 'active' && new Date() >= parseDate(e.start_date) && new Date() <= parseDate(e.end_date)).length}</span>
-                                    <span className="text-[10px] text-white font-black uppercase tracking-widest leading-tight">AKTİF<br />TURNUVA</span>
+                                    <span className="text-[10px] text-[#F7EBA5] font-black uppercase tracking-widest leading-tight">AKTİF<br />TURNUVA</span>
                                 </div>
                             </div>
                         </div>
@@ -299,7 +299,7 @@ export default function UserDashboard() {
                                 <div className="space-y-1.5 pb-1 border-b border-white/10 mb-1">
                                     <div className="flex items-center gap-2 lg:gap-4 justify-center">
                                         <div className="h-px bg-gradient-to-r from-transparent to-primary/30 flex-1"></div>
-                                        <h3 className="text-sm lg:text-xl font-black text-white uppercase italic tracking-widest px-2 lg:px-8 whitespace-nowrap">
+                                        <h3 className="text-sm lg:text-xl font-black text-[#F7EBA5] uppercase italic tracking-widest px-2 lg:px-8 whitespace-nowrap">
                                             KAYITLI TURNUVALARIM
                                         </h3>
                                         <div className="h-px bg-gradient-to-l from-transparent to-primary/30 flex-1"></div>
@@ -335,7 +335,7 @@ export default function UserDashboard() {
                         <div className="flex flex-col gap-1 opacity-100 transition-opacity duration-300">
                             <div className="flex items-center gap-2 lg:gap-4 justify-center">
                                 <div className="h-px bg-gradient-to-r from-transparent to-primary/30 flex-1"></div>
-                                <h3 className="text-sm lg:text-xl font-black text-white uppercase italic tracking-widest px-2 lg:px-8 whitespace-nowrap">
+                                <h3 className="text-sm lg:text-xl font-black text-[#F7EBA5] uppercase italic tracking-widest px-2 lg:px-8 whitespace-nowrap">
                                     {activeCategory === 'all' ? 'AKTİF TURNUVALAR' : activeCategory === 'active' ? 'AKTİF TURNUVALAR' : activeCategory === 'upcoming' ? 'YAKINDA BAŞLAYACAKLAR' : 'KATILDIĞIM TURNUVALAR'}
                                 </h3>
                                 <div className="h-px bg-gradient-to-l from-transparent to-primary/30 flex-1"></div>
@@ -383,7 +383,7 @@ export default function UserDashboard() {
                             <div className="space-y-1.5 pt-1 border-t border-white/10">
                                 <div className="flex items-center gap-2 lg:gap-4 justify-center">
                                     <div className="h-px bg-gradient-to-r from-transparent to-primary/30 flex-1"></div>
-                                    <h3 className="text-sm lg:text-xl font-black text-white uppercase italic tracking-widest px-2 lg:px-8 whitespace-nowrap">
+                                    <h3 className="text-sm lg:text-xl font-black text-[#F7EBA5] uppercase italic tracking-widest px-2 lg:px-8 whitespace-nowrap">
                                         GELECEK TURNUVALAR
                                     </h3>
                                     <div className="h-px bg-gradient-to-l from-transparent to-primary/30 flex-1"></div>
@@ -408,7 +408,7 @@ export default function UserDashboard() {
                             <div className="space-y-1.5 pt-1 border-t border-white/10">
                                 <div className="flex items-center gap-2 lg:gap-4 justify-center">
                                     <div className="h-px bg-gradient-to-r from-transparent to-primary/30 flex-1"></div>
-                                    <h3 className="text-sm lg:text-xl font-black text-white uppercase italic tracking-widest px-2 lg:px-8 whitespace-nowrap">
+                                    <h3 className="text-sm lg:text-xl font-black text-[#F7EBA5] uppercase italic tracking-widest px-2 lg:px-8 whitespace-nowrap">
                                         GEÇMİŞ TURNUVALAR
                                     </h3>
                                     <div className="h-px bg-gradient-to-l from-transparent to-primary/30 flex-1"></div>
@@ -454,7 +454,7 @@ export default function UserDashboard() {
                         <div className="px-2 lg:px-4 mb-2 lg:mb-6">
                             <div className="flex items-center justify-center gap-2 lg:gap-3">
                                 <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent to-gray-500"></div>
-                                <h2 className="text-xs lg:text-xl font-semibold text-white uppercase tracking-wide whitespace-nowrap px-2">Geçmiş Turnuvalar</h2>
+                                <h2 className="text-xs lg:text-xl font-semibold text-[#F7EBA5] uppercase tracking-wide whitespace-nowrap px-2">Geçmiş Turnuvalar</h2>
                                 <div className="h-[2px] flex-1 bg-gradient-to-r from-gray-500 to-transparent"></div>
                             </div>
                         </div>
@@ -476,27 +476,27 @@ export default function UserDashboard() {
                                         <div key={event.id}>
                                             {/* Mobile Card */}
                                             <div className="lg:hidden">
-                                                <div className="relative rounded-lg overflow-hidden cursor-pointer bg-black border-2 border-[#FFB800] shadow-xl" onClick={() => handleSwitchEvent(event.id)}>
+                                                <div className="relative rounded-lg overflow-hidden cursor-pointer bg-black border-2 border-[#D9B648] shadow-xl" onClick={() => handleSwitchEvent(event.id)}>
                                                     <div className="flex items-stretch gap-0 p-1.5">
-                                                        <div className="flex-shrink-0 w-32 h-34 rounded-l border-r-2 border-[#FFB800]/50 overflow-hidden">
+                                                        <div className="flex-shrink-0 w-32 h-34 rounded-l border-r-2 border-[#D9B648]/50 overflow-hidden">
                                                             <img src={event.image_url || "/5.jpg"} alt={event.name} className="w-full h-full object-cover" />
                                                         </div>
                                                         <div className="flex-1 flex flex-col gap-1.5 pl-2 pr-1 py-1 min-w-0">
-                                                            <h3 className="text-xs font-black text-white tracking-tight leading-tight line-clamp-2">{event.name}</h3>
+                                                            <h3 className="text-xs font-black text-[#F7EBA5] tracking-tight leading-tight line-clamp-2">{event.name}</h3>
                                                             <div className="flex items-center gap-1.5">
-                                                                <div className="flex-1 bg-[#1a1a1a] border-2 border-[#FFB800] rounded-lg px-2 py-1.5">
+                                                                <div className="flex-1 bg-[#1a1a1a] border-2 border-[#D9B648] rounded-lg px-2 py-1.5">
                                                                     <div className="flex items-center justify-center gap-1 mb-1">
-                                                                        <Users className="w-3 h-3 text-[#FFB800]" />
-                                                                        <span className="text-[8px] text-[#FFB800] font-bold uppercase tracking-wide">Katılımcı</span>
+                                                                        <Users className="w-3 h-3 text-[#D9B648]" />
+                                                                        <span className="text-[8px] text-[#D9B648] font-bold uppercase tracking-wide">Katılımcı</span>
                                                                     </div>
-                                                                    <div className="text-sm font-black text-white text-center leading-none">{event.participant_count.toLocaleString()}</div>
+                                                                    <div className="text-sm font-black text-[#F7EBA5] text-center leading-none">{event.participant_count.toLocaleString()}</div>
                                                                 </div>
-                                                                <div className="flex-1 bg-gradient-to-br from-[#FFB800]/20 to-black border-2 border-[#FFB800] rounded-lg px-2 py-1.5">
+                                                                <div className="flex-1 bg-gradient-to-br from-[#D9B648]/20 to-black border-2 border-[#D9B648] rounded-lg px-2 py-1.5">
                                                                     <div className="flex items-center justify-center gap-1 mb-1">
-                                                                        <Trophy className="w-3 h-3 text-[#FFB800]" />
-                                                                        <span className="text-[8px] text-[#FFB800] font-bold uppercase tracking-wide">Ödül</span>
+                                                                        <Trophy className="w-3 h-3 text-[#D9B648]" />
+                                                                        <span className="text-[8px] text-[#D9B648] font-bold uppercase tracking-wide">Ödül</span>
                                                                     </div>
-                                                                    <div className="text-[11px] font-black text-[#FFB800] text-center leading-none">{calculateTotalPrize(event.rules).toLocaleString('tr-TR')}₺</div>
+                                                                    <div className="text-[11px] font-black text-[#D9B648] text-center leading-none">{calculateTotalPrize(event.rules).toLocaleString('tr-TR')}₺</div>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -505,14 +505,14 @@ export default function UserDashboard() {
                                             </div>
 
                                             {/* Desktop Card */}
-                                            <div className="hidden lg:block border-2 border-[#FFB800] rounded-xl lg:rounded-2xl overflow-hidden hover:scale-[1.01] transition-transform duration-300">
-                                                <div className="relative rounded-xl overflow-hidden cursor-pointer transition-transform duration-300 bg-black border-2 border-[#FFB800] shadow-2xl hover:shadow-[0_0_30px_rgba(255,184,0,0.4)]" onClick={() => handleSwitchEvent(event.id)}>
+                                            <div className="hidden lg:block border-2 border-[#D9B648] rounded-xl lg:rounded-2xl overflow-hidden hover:scale-[1.01] transition-transform duration-300">
+                                                <div className="relative rounded-xl overflow-hidden cursor-pointer transition-transform duration-300 bg-black border-2 border-[#D9B648] shadow-2xl hover:shadow-[0_0_30px_rgba(255,184,0,0.4)]" onClick={() => handleSwitchEvent(event.id)}>
                                                     <div className="absolute top-0 right-0 z-30 overflow-hidden">
                                                         <div className="relative">
                                                             <div className="absolute top-0 right-0 w-24 h-24 md:w-32 md:h-32 overflow-hidden">
                                                                 <div className="absolute top-6 -right-6 md:top-8 md:-right-8 w-32 md:w-40 bg-gradient-to-r from-gray-600 to-gray-500 transform rotate-45 shadow-lg border-t border-b border-gray-400/30">
                                                                     <div className="flex items-center justify-center py-1.5 md:py-2">
-                                                                        <span className="text-white text-[10px] md:text-xs font-bold tracking-wider">SONUÇLANMIŞ</span>
+                                                                        <span className="text-[#F7EBA5] text-[10px] md:text-xs font-bold tracking-wider">SONUÇLANMIŞ</span>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -521,33 +521,33 @@ export default function UserDashboard() {
                                                     <div className="relative">
                                                         <div className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4 md:gap-0">
                                                             <div className="flex flex-col md:flex-row items-start md:items-center gap-0 flex-1 relative z-10 w-full">
-                                                                <div className="w-full h-28 md:w-[280px] md:h-full shrink-0 md:border-r-2 border-[#FFB800]">
+                                                                <div className="w-full h-28 md:w-[280px] md:h-full shrink-0 md:border-r-2 border-[#D9B648]">
                                                                     <img src={event.image_url || "/5.jpg"} alt={event.name} className="w-full h-full object-cover" />
                                                                 </div>
                                                                 <div className="flex flex-col flex-1 px-3 md:px-6 py-3 md:py-6 w-full">
                                                                     <div className="text-center mb-2 md:mb-4">
-                                                                        <h3 className="text-base md:text-2xl lg:text-3xl font-black text-white tracking-tight leading-tight mb-1 md:mb-2 px-2">{event.name}</h3>
-                                                                        <div className="h-0.5 w-12 md:w-16 mx-auto bg-gradient-to-r from-transparent via-[#FFB800] to-transparent rounded-full"></div>
+                                                                        <h3 className="text-base md:text-2xl lg:text-3xl font-black text-[#F7EBA5] tracking-tight leading-tight mb-1 md:mb-2 px-2">{event.name}</h3>
+                                                                        <div className="h-0.5 w-12 md:w-16 mx-auto bg-gradient-to-r from-transparent via-[#D9B648] to-transparent rounded-full"></div>
                                                                     </div>
                                                                     <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4">
-                                                                        <div className="group relative bg-[#1a1a1a] border-2 border-[#FFB800] rounded-xl md:rounded-2xl p-3 md:p-8 hover:border-[#FFA500] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#1a1a1a]/20 hover:shadow-xl hover:shadow-[#FFB800]/40 flex-1 min-w-[110px] md:min-w-[130px] max-w-[150px] md:max-w-[180px]">
+                                                                        <div className="group relative bg-[#1a1a1a] border-2 border-[#D9B648] rounded-xl md:rounded-2xl p-3 md:p-8 hover:border-[#F7EBA5] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#1a1a1a]/20 hover:shadow-xl hover:shadow-[#D9B648]/40 flex-1 min-w-[110px] md:min-w-[130px] max-w-[150px] md:max-w-[180px]">
                                                                             <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl md:rounded-2xl"></div>
                                                                             <div className="relative">
                                                                                 <div className="flex items-center justify-center gap-1 md:gap-2 mb-1 md:mb-2">
-                                                                                    <Users className="w-3 h-3 md:w-6 md:h-6 text-[#FFB800]" />
-                                                                                    <span className="text-[9px] md:text-xs text-[#FFB800] font-bold uppercase tracking-wide md:tracking-widest">Katılımcı</span>
+                                                                                    <Users className="w-3 h-3 md:w-6 md:h-6 text-[#D9B648]" />
+                                                                                    <span className="text-[9px] md:text-xs text-[#D9B648] font-bold uppercase tracking-wide md:tracking-widest">Katılımcı</span>
                                                                                 </div>
-                                                                                <div className="text-center text-base md:text-2xl lg:text-3xl font-black text-white">{event.participant_count.toLocaleString()}</div>
+                                                                                <div className="text-center text-base md:text-2xl lg:text-3xl font-black text-[#F7EBA5]">{event.participant_count.toLocaleString()}</div>
                                                                             </div>
                                                                         </div>
-                                                                        <div className="group relative bg-gradient-to-br from-[#FFB800]/20 via-[#FFA500]/10 to-black border-2 border-[#FFB800] rounded-xl md:rounded-2xl p-3 md:p-8 hover:border-[#FFA500] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#FFB800]/20 hover:shadow-[#FFB800]/40 hover:shadow-xl flex-1 min-w-[110px] md:min-w-[130px] max-w-[150px] md:max-w-[180px]">
-                                                                            <div className="absolute inset-0 bg-gradient-to-br from-[#FFB800]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl md:rounded-2xl"></div>
+                                                                        <div className="group relative bg-gradient-to-br from-[#D9B648]/20 via-[#F7EBA5]/10 to-black border-2 border-[#D9B648] rounded-xl md:rounded-2xl p-3 md:p-8 hover:border-[#F7EBA5] transition-all duration-300 hover:scale-105 shadow-lg shadow-[#D9B648]/20 hover:shadow-[#D9B648]/40 hover:shadow-xl flex-1 min-w-[110px] md:min-w-[130px] max-w-[150px] md:max-w-[180px]">
+                                                                            <div className="absolute inset-0 bg-gradient-to-br from-[#D9B648]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl md:rounded-2xl"></div>
                                                                             <div className="relative">
                                                                                 <div className="flex items-center justify-center gap-1 md:gap-2 mb-1 md:mb-2">
-                                                                                    <Trophy className="w-3 h-3 md:w-6 md:h-6 text-[#FFB800]" />
-                                                                                    <span className="text-[9px] md:text-xs text-[#FFB800] font-bold uppercase tracking-wide md:tracking-widest">Ödül</span>
+                                                                                    <Trophy className="w-3 h-3 md:w-6 md:h-6 text-[#D9B648]" />
+                                                                                    <span className="text-[9px] md:text-xs text-[#D9B648] font-bold uppercase tracking-wide md:tracking-widest">Ödül</span>
                                                                                 </div>
-                                                                                <div className="text-center text-sm md:text-lg lg:text-xl font-black text-[#FFB800]">{calculateTotalPrize(event.rules).toLocaleString('tr-TR')}₺</div>
+                                                                                <div className="text-center text-sm md:text-lg lg:text-xl font-black text-[#D9B648]">{calculateTotalPrize(event.rules).toLocaleString('tr-TR')}₺</div>
                                                                             </div>
                                                                         </div>
                                                                     </div>
@@ -563,34 +563,34 @@ export default function UserDashboard() {
                                                                                     <Zap className="w-3 h-3 md:w-4 md:h-4" />
                                                                                     <span className="text-[9px] md:text-xs uppercase tracking-wide">Puanım</span>
                                                                                 </div>
-                                                                                <div className="text-lg md:text-3xl lg:text-4xl font-bold text-white">{(Math.floor((enrollment.score || 0) * 100) / 100).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
+                                                                                <div className="text-lg md:text-3xl lg:text-4xl font-bold text-[#F7EBA5]">{(Math.floor((enrollment.score || 0) * 100) / 100).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
                                                                             </div>
-                                                                            <div className="w-px h-10 md:h-16 bg-[#FFB800]/30"></div>
+                                                                            <div className="w-px h-10 md:h-16 bg-[#D9B648]/30"></div>
                                                                             <div className="text-center">
-                                                                                <div className="flex items-center justify-center gap-1 md:gap-2 text-[#FFB800] mb-0.5 md:mb-1">
+                                                                                <div className="flex items-center justify-center gap-1 md:gap-2 text-[#D9B648] mb-0.5 md:mb-1">
                                                                                     <Trophy className="w-3 h-3 md:w-4 md:h-4" />
                                                                                     <span className="text-[9px] md:text-xs uppercase tracking-wide">Sıralama</span>
                                                                                 </div>
-                                                                                <div className="text-lg md:text-3xl lg:text-4xl font-bold text-[#FFB800]">#{enrollment.rank}</div>
+                                                                                <div className="text-lg md:text-3xl lg:text-4xl font-bold text-[#D9B648]">#{enrollment.rank}</div>
                                                                             </div>
                                                                         </div>
                                                                         {userPrize && (
-                                                                            <div className="bg-gradient-to-r from-[#FFB800]/20 to-[#FFA500]/20 border-2 border-[#FFB800] rounded-xl px-3 md:px-6 py-2.5 md:py-4">
+                                                                            <div className="bg-gradient-to-r from-[#D9B648]/20 to-[#F7EBA5]/20 border-2 border-[#D9B648] rounded-xl px-3 md:px-6 py-2.5 md:py-4">
                                                                                 <div className="text-center">
                                                                                     <p className="text-gray-400 text-[10px] md:text-xs uppercase tracking-wide mb-1">Kazandığınız Ödül</p>
-                                                                                    <p className="text-[#FFB800] text-xl md:text-3xl font-bold">{userPrize}</p>
+                                                                                    <p className="text-[#D9B648] text-xl md:text-3xl font-bold">{userPrize}</p>
                                                                                 </div>
                                                                             </div>
                                                                         )}
                                                                     </>
                                                                 ) : (
-                                                                    <div className="bg-black border border-[#FFB800]/30 rounded-xl px-4 md:px-6 py-3 md:py-4">
+                                                                    <div className="bg-black border border-[#D9B648]/30 rounded-xl px-4 md:px-6 py-3 md:py-4">
                                                                         <p className="text-gray-400 text-xs md:text-sm font-semibold text-center md:text-left">Bu turnuvaya katılmadınız</p>
                                                                     </div>
                                                                 )}
                                                                 <button
                                                                     onClick={() => handleSwitchEvent(event.id)}
-                                                                    className="px-4 md:px-8 py-1.5 md:py-3 bg-[#FFB800] hover:bg-[#FFA500] text-black rounded-lg md:rounded-xl font-bold text-xs md:text-base shadow-lg hover:shadow-xl transition-all w-full md:w-auto"
+                                                                    className="px-4 md:px-8 py-1.5 md:py-3 bg-[#D9B648] hover:bg-[#F7EBA5] text-black rounded-lg md:rounded-xl font-bold text-xs md:text-base shadow-lg hover:shadow-xl transition-all w-full md:w-auto"
                                                                 >
                                                                     Sonuçları Gör
                                                                 </button>
@@ -625,7 +625,7 @@ export default function UserDashboard() {
                             {/* Back Button */}
                             <button
                                 onClick={() => setActiveCategory('all')}
-                                className="flex items-center gap-2 px-6 py-3 bg-black border border-[#FFB800] hover:bg-[#FFA500] hover:text-black text-[#FFB800] rounded-xl transition-all font-bold shadow-lg mb-8 group"
+                                className="flex items-center gap-2 px-6 py-3 bg-black border border-[#D9B648] hover:bg-[#F7EBA5] hover:text-black text-[#D9B648] rounded-xl transition-all font-bold shadow-lg mb-8 group"
                             >
                                 <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
                                 <span>ANA SAYFA</span>
@@ -634,67 +634,67 @@ export default function UserDashboard() {
                             <div className="space-y-6 md:space-y-8">
                                 {/* Top Row - Key Stats */}
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-                                    <div className="bg-gradient-to-br from-[#FFB800]/20 via-[#FFB800]/10 to-black border-2 border-[#FFB800] rounded-xl p-4 md:p-6 hover:scale-105 transition-transform">
+                                    <div className="bg-gradient-to-br from-[#D9B648]/20 via-[#D9B648]/10 to-black border-2 border-[#D9B648] rounded-xl p-4 md:p-6 hover:scale-105 transition-transform">
                                         <div className="flex flex-col gap-2">
-                                            <DollarSign className="w-6 h-6 text-[#FFB800]" />
+                                            <DollarSign className="w-6 h-6 text-[#D9B648]" />
                                             <p className="text-gray-400 text-xs md:text-sm">Toplam Kazanç</p>
-                                            <p className="text-2xl md:text-3xl font-black text-[#FFB800]">{totalWinnings.toLocaleString('tr-TR')}₺</p>
+                                            <p className="text-2xl md:text-3xl font-black text-[#D9B648]">{totalWinnings.toLocaleString('tr-TR')}₺</p>
                                         </div>
                                     </div>
-                                    <div className="bg-gradient-to-br from-[#FFB800]/20 via-[#FFB800]/10 to-black border-2 border-[#FFB800] rounded-xl p-4 md:p-6 hover:scale-105 transition-transform">
+                                    <div className="bg-gradient-to-br from-[#D9B648]/20 via-[#D9B648]/10 to-black border-2 border-[#D9B648] rounded-xl p-4 md:p-6 hover:scale-105 transition-transform">
                                         <div className="flex flex-col gap-2">
-                                            <Award className="w-6 h-6 text-[#FFB800]" />
+                                            <Award className="w-6 h-6 text-[#D9B648]" />
                                             <p className="text-gray-400 text-xs md:text-sm">Ortalama Sıralama</p>
-                                            <p className="text-2xl md:text-3xl font-black text-[#FFB800]">#{avgRank}</p>
+                                            <p className="text-2xl md:text-3xl font-black text-[#D9B648]">#{avgRank}</p>
                                         </div>
                                     </div>
-                                    <div className="bg-gradient-to-br from-[#FFB800]/20 via-[#FFB800]/10 to-black border-2 border-[#FFB800] rounded-xl p-4 md:p-6 hover:scale-105 transition-transform">
+                                    <div className="bg-gradient-to-br from-[#D9B648]/20 via-[#D9B648]/10 to-black border-2 border-[#D9B648] rounded-xl p-4 md:p-6 hover:scale-105 transition-transform">
                                         <div className="flex flex-col gap-2">
-                                            <Medal className="w-6 h-6 text-[#FFB800]" />
+                                            <Medal className="w-6 h-6 text-[#D9B648]" />
                                             <p className="text-gray-400 text-xs md:text-sm">En İyi Sıralama</p>
-                                            <p className="text-2xl md:text-3xl font-black text-[#FFB800]">#{bestRank}</p>
+                                            <p className="text-2xl md:text-3xl font-black text-[#D9B648]">#{bestRank}</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Middle Row - Secondary Stats */}
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
-                                    <div className="bg-black border-2 border-[#FFB800]/30 rounded-xl p-4 md:p-6 hover:border-[#FFB800] transition-colors">
+                                    <div className="bg-black border-2 border-[#D9B648]/30 rounded-xl p-4 md:p-6 hover:border-[#D9B648] transition-colors">
                                         <div className="flex items-center justify-between mb-3">
                                             <div className="flex items-center gap-2">
-                                                <Calendar className="w-5 h-5 text-[#FFB800]" />
+                                                <Calendar className="w-5 h-5 text-[#D9B648]" />
                                                 <p className="text-sm font-semibold text-gray-400">Katılım</p>
                                             </div>
-                                            <p className="text-2xl font-black text-white">{participationCount}</p>
+                                            <p className="text-2xl font-black text-[#F7EBA5]">{participationCount}</p>
                                         </div>
                                         <p className="text-xs text-gray-500">Toplam Turnuva</p>
                                     </div>
-                                    <div className="bg-black border-2 border-[#FFB800]/30 rounded-xl p-4 md:p-6 hover:border-[#FFB800] transition-colors">
+                                    <div className="bg-black border-2 border-[#D9B648]/30 rounded-xl p-4 md:p-6 hover:border-[#D9B648] transition-colors">
                                         <div className="flex items-center justify-between mb-3">
                                             <div className="flex items-center gap-2">
-                                                <Trophy className="w-5 h-5 text-[#FFB800]" />
+                                                <Trophy className="w-5 h-5 text-[#D9B648]" />
                                                 <p className="text-sm font-semibold text-gray-400">İlk 3</p>
                                             </div>
-                                            <p className="text-2xl font-black text-white">{top3Count}</p>
+                                            <p className="text-2xl font-black text-[#F7EBA5]">{top3Count}</p>
                                         </div>
                                         <p className="text-xs text-gray-500">Derece Sayısı</p>
                                     </div>
-                                    <div className="bg-black border-2 border-[#FFB800]/30 rounded-xl p-4 md:p-6 hover:border-[#FFB800] transition-colors">
+                                    <div className="bg-black border-2 border-[#D9B648]/30 rounded-xl p-4 md:p-6 hover:border-[#D9B648] transition-colors">
                                         <div className="flex items-center justify-between mb-3">
                                             <div className="flex items-center gap-2">
-                                                <Activity className="w-5 h-5 text-[#FFB800]" />
+                                                <Activity className="w-5 h-5 text-[#D9B648]" />
                                                 <p className="text-sm font-semibold text-gray-400">Başarı</p>
                                             </div>
-                                            <p className="text-2xl font-black text-white">%{successRate}</p>
+                                            <p className="text-2xl font-black text-[#F7EBA5]">%{successRate}</p>
                                         </div>
                                         <p className="text-xs text-gray-500">Kazanma Oranı</p>
                                     </div>
                                 </div>
 
                                 {/* Tournament History Table */}
-                                <div className="bg-black border-2 border-[#FFB800]/30 rounded-xl p-4 md:p-6">
+                                <div className="bg-black border-2 border-[#D9B648]/30 rounded-xl p-4 md:p-6">
                                     <h2 className="text-lg md:text-xl font-bold mb-4 md:mb-6 flex items-center gap-2">
-                                        <Trophy className="w-6 h-6 text-[#FFB800]" />
+                                        <Trophy className="w-6 h-6 text-[#D9B648]" />
                                         Turnuva Geçmişi
                                     </h2>
                                     <div className="overflow-x-auto">
@@ -703,7 +703,7 @@ export default function UserDashboard() {
                                         ) : (
                                             <table className="w-full">
                                                 <thead>
-                                                    <tr className="border-b-2 border-[#FFB800]/30">
+                                                    <tr className="border-b-2 border-[#D9B648]/30">
                                                         <th className="text-left py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold">Turnuva</th>
                                                         <th className="text-center py-3 px-1 md:px-4 text-gray-400 text-xs md:text-sm font-bold table-cell">Tarih</th>
                                                         <th className="text-center py-3 px-2 md:px-4 text-gray-400 text-xs md:text-sm font-bold hidden md:table-cell">Durum</th>
@@ -731,12 +731,12 @@ export default function UserDashboard() {
                                                         }
 
                                                         return (
-                                                            <tr key={enr.event_id} className="border-b border-[#FFB800]/10 hover:bg-[#FFB800]/5 transition-colors cursor-pointer" onClick={() => toggleLeaderboard(enr.event_id)}>
+                                                            <tr key={enr.event_id} className="border-b border-[#D9B648]/10 hover:bg-[#D9B648]/5 transition-colors cursor-pointer" onClick={() => toggleLeaderboard(enr.event_id)}>
                                                                 <td className="py-3 md:py-4 px-2 md:px-4">
                                                                     <div className="flex items-center gap-2">
-                                                                        <div className="hidden md:flex w-6 h-6 rounded-full bg-gradient-to-br from-[#FFB800] to-[#FFA500] items-center justify-center text-black text-xs font-bold">{idx + 1}</div>
+                                                                        <div className="hidden md:flex w-6 h-6 rounded-full bg-gradient-to-br from-[#D9B648] to-[#F7EBA5] items-center justify-center text-black text-xs font-bold">{idx + 1}</div>
                                                                         <div>
-                                                                            <div className="font-bold text-xs md:text-sm text-white">{enr.event_name}</div>
+                                                                            <div className="font-bold text-xs md:text-sm text-[#F7EBA5]">{enr.event_name}</div>
                                                                             {/* Placeholder user count as data is not available yet */}
                                                                             <div className="text-[10px] md:text-xs text-gray-400 flex items-center gap-1 mt-0.5">
                                                                                 <Users className="w-3 h-3" />
@@ -754,12 +754,12 @@ export default function UserDashboard() {
                                                                     </Badge>
                                                                 </td>
                                                                 <td className="py-3 md:py-4 px-2 md:px-4 text-center">
-                                                                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs font-bold ${enr.rank <= 3 ? 'bg-[#FFB800]/30 text-[#FFB800]' : 'bg-gray-800 text-gray-400'}`}>
+                                                                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs font-bold ${enr.rank <= 3 ? 'bg-[#D9B648]/30 text-[#D9B648]' : 'bg-gray-800 text-gray-400'}`}>
                                                                         #{enr.rank || '-'}
                                                                     </span>
                                                                 </td>
                                                                 <td className="py-3 md:py-4 px-1 md:px-4 text-center text-xs font-semibold table-cell text-gray-300">{(Math.floor((enr.score || 0) * 100) / 100).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
-                                                                <td className="text-right py-3 md:py-4 px-2 md:px-4 font-bold text-[#FFB800] text-xs md:text-sm">
+                                                                <td className="text-right py-3 md:py-4 px-2 md:px-4 font-bold text-[#D9B648] text-xs md:text-sm">
                                                                     {rewardDisplay}
                                                                 </td>
                                                             </tr>
@@ -781,7 +781,7 @@ export default function UserDashboard() {
                         <TabsContent value="leaderboard" className="mt-6 animation-in fade-in slide-in-from-bottom-2">
                             <Card className="border-white/5 bg-zinc-950/40 backdrop-blur-xl">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-white"><Trophy className="h-5 w-5 text-amber-500" /> Sıralamarım</CardTitle>
+                                    <CardTitle className="flex items-center gap-2 text-[#F7EBA5]"><Trophy className="h-5 w-5 text-amber-500" /> Sıralamarım</CardTitle>
                                     <CardDescription className="text-neutral-500">Katıldığınız aktif ve geçmiş turnuvalardaki durumunuz.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -805,14 +805,14 @@ export default function UserDashboard() {
                                                     {myEnrollments.map((enr) => (
                                                         <Fragment key={enr.event_id}>
                                                             <TableRow className="border-white/5 hover:bg-white/5 transition-colors">
-                                                                <TableCell className="font-bold text-white">{enr.event_name}</TableCell>
+                                                                <TableCell className="font-bold text-[#F7EBA5]">{enr.event_name}</TableCell>
                                                                 <TableCell>
                                                                     <Badge variant={enr.status === 'active' ? 'default' : 'secondary'} className={enr.status === 'active' ? 'bg-emerald-500/20 text-emerald-500 border-none' : 'bg-white/5 text-neutral-500 border-none'}>
                                                                         {enr.status === 'active' ? 'AKTİF' : 'TAMAMLANDI'}
                                                                     </Badge>
                                                                 </TableCell>
                                                                 <TableCell className="text-right font-mono text-amber-500 font-bold">{enr.score.toLocaleString()}</TableCell>
-                                                                <TableCell className="text-right font-black text-xl text-white italic">#{enr.rank}</TableCell>
+                                                                <TableCell className="text-right font-black text-xl text-[#F7EBA5] italic">#{enr.rank}</TableCell>
                                                                 <TableCell className="text-right">
                                                                     <Button size="sm" variant="ghost" className="text-amber-500 hover:text-amber-400 hover:bg-amber-500/10" onClick={() => toggleLeaderboard(enr.event_id)}>
                                                                         {expandedEventId === enr.event_id ? 'Kapat' : 'Sıralama'}
@@ -826,29 +826,29 @@ export default function UserDashboard() {
                                                                             {loadingLeaderboard ? (
                                                                                 <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber-500" /></div>
                                                                             ) : (
-                                                                                <div className="bg-black rounded-xl border border-[#FFB800]/30 overflow-hidden">
+                                                                                <div className="bg-black rounded-xl border border-[#D9B648]/30 overflow-hidden">
                                                                                     <div className="text-center p-4 text-gray-500 italic text-sm">
                                                                                         Detaylı sıralama için turnuva detay sayfasına gidiniz.
                                                                                     </div>
 
                                                                                     {/* Current User Rank Fixed Footer */}
-                                                                                    <div className="mt-6 bg-black rounded-xl border-2 border-[#FFB800] overflow-hidden">
+                                                                                    <div className="mt-6 bg-black rounded-xl border-2 border-[#D9B648] overflow-hidden">
                                                                                         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 md:px-6 py-4 md:py-5">
                                                                                             <div className="flex items-center gap-3 md:gap-4">
-                                                                                                <div className="w-10 h-10 md:w-12 md:h-12 bg-black border-2 border-[#FFB800] rounded-full flex items-center justify-center text-[#FFB800] font-bold text-sm md:text-base">
+                                                                                                <div className="w-10 h-10 md:w-12 md:h-12 bg-black border-2 border-[#D9B648] rounded-full flex items-center justify-center text-[#D9B648] font-bold text-sm md:text-base">
                                                                                                     {enr.rank || '-'}
                                                                                                 </div>
-                                                                                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-[#FFB800] to-[#FFA500] flex items-center justify-center font-bold text-base md:text-lg text-black">
+                                                                                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-[#D9B648] to-[#F7EBA5] flex items-center justify-center font-bold text-base md:text-lg text-black">
                                                                                                     {username ? username.substring(0, 2).toUpperCase() : 'ME'}
                                                                                                 </div>
                                                                                                 <div>
                                                                                                     <div className="text-gray-400 text-xs font-semibold uppercase tracking-wide">Senin Sıran</div>
-                                                                                                    <div className="text-[#FFB800] font-bold text-sm md:text-base">#{enr.rank || '-'}</div>
+                                                                                                    <div className="text-[#D9B648] font-bold text-sm md:text-base">#{enr.rank || '-'}</div>
                                                                                                 </div>
                                                                                             </div>
                                                                                             <div className="text-center sm:text-right">
                                                                                                 <div className="text-gray-400 text-xs font-semibold uppercase tracking-wide">Puanın</div>
-                                                                                                <div className="text-lg md:text-xl font-bold text-white">{enr.score.toLocaleString()}</div>
+                                                                                                <div className="text-lg md:text-xl font-bold text-[#F7EBA5]">{enr.score.toLocaleString()}</div>
                                                                                             </div>
                                                                                         </div>
                                                                                     </div>
@@ -871,16 +871,16 @@ export default function UserDashboard() {
                         <TabsContent value="my-coupons" className="mt-6 animation-in fade-in slide-in-from-bottom-2">
                             <Card className="border-white/5 bg-zinc-950/40 backdrop-blur-xl">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-white"><Ticket className="h-5 w-5 text-amber-500" /> Kuponlarım</CardTitle>
+                                    <CardTitle className="flex items-center gap-2 text-[#F7EBA5]"><Ticket className="h-5 w-5 text-amber-500" /> Kuponlarım</CardTitle>
                                     <div className="flex items-center gap-4 mt-4">
                                         <Select value={eventId ? eventId.toString() : ""} onValueChange={(val) => {
                                             setEventId(Number(val))
                                             setSlug(null)
                                         }}>
-                                            <SelectTrigger className="w-full sm:w-[320px] bg-white/5 border-white/10 text-white">
+                                            <SelectTrigger className="w-full sm:w-[320px] bg-white/5 border-white/10 text-[#F7EBA5]">
                                                 <SelectValue placeholder="Turnuva Seçiniz" />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-zinc-900 border-white/10 text-white">
+                                            <SelectContent className="bg-zinc-900 border-white/10 text-[#F7EBA5]">
                                                 {myEnrollments.length > 0 ? (
                                                     myEnrollments.map((enr) => (
                                                         <SelectItem key={enr.event_id} value={enr.event_id.toString()}>
@@ -920,7 +920,7 @@ export default function UserDashboard() {
                                                             <div className="text-[10px] text-neutral-500 font-medium">
                                                                 {new Date(coupon.created_at || coupon.inserted_at).toLocaleString('tr-TR')}
                                                             </div>
-                                                            {coupon.is_live && <Badge className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0 h-4 border-none">CANLI</Badge>}
+                                                            {coupon.is_live && <Badge className="bg-red-500 text-[#F7EBA5] text-[9px] font-black px-1.5 py-0 h-4 border-none">CANLI</Badge>}
                                                         </div>
 
                                                         <div className="col-span-12 sm:col-span-6 bg-white/5 rounded-lg p-3 text-xs border border-white/5">
@@ -940,7 +940,7 @@ export default function UserDashboard() {
                                                                         <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-2">
                                                                             {coupon.bet_data.Selections.map((sel: any, i: number) => (
                                                                                 <div key={i} className="flex flex-col gap-1 border-b border-white/5 last:border-0 pb-2 last:pb-0">
-                                                                                    <div className="text-white font-bold text-[11px] leading-tight">{sel.MatchName}</div>
+                                                                                    <div className="text-[#F7EBA5] font-bold text-[11px] leading-tight">{sel.MatchName}</div>
                                                                                     <div className="flex justify-between items-center text-[10px]">
                                                                                         <span className="text-amber-500 font-medium">{sel.DisplaySelectionName || sel.SelectionName}</span>
                                                                                         <span className="text-neutral-500">{sel.DisplayMarketName || sel.MarketName}</span>
@@ -961,8 +961,8 @@ export default function UserDashboard() {
                                                             </div>
                                                             <div className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">PUAN</div>
                                                             <div className="flex justify-end gap-3 text-[10px] items-center pt-1 border-white/5 border-t mt-1">
-                                                                <span className="text-neutral-500">Tutar: <span className="text-white font-mono">{coupon.stake}TL</span></span>
-                                                                <span className="text-neutral-500">Oran: <span className="text-white font-mono">{coupon.odds}</span></span>
+                                                                <span className="text-neutral-500">Tutar: <span className="text-[#F7EBA5] font-mono">{coupon.stake}TL</span></span>
+                                                                <span className="text-neutral-500">Oran: <span className="text-[#F7EBA5] font-mono">{coupon.odds}</span></span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -978,14 +978,14 @@ export default function UserDashboard() {
                             <Card className="border-white/5 bg-zinc-950/40 backdrop-blur-xl">
                                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                                     <div className="space-y-1">
-                                        <CardTitle className="flex items-center gap-2 text-white"><LayoutGrid className="h-5 w-5 text-amber-500" /> Kategoriler</CardTitle>
+                                        <CardTitle className="flex items-center gap-2 text-[#F7EBA5]"><LayoutGrid className="h-5 w-5 text-amber-500" /> Kategoriler</CardTitle>
                                         <CardDescription className="text-neutral-500">Aktif turnuvalara katılarak büyük ödüllerden payınızı alın.</CardDescription>
                                     </div>
                                     <div className="flex bg-white/5 p-1 rounded-lg border border-white/10">
                                         <Button
                                             variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
                                             size="sm"
-                                            className={`h-8 w-8 p-0 ${viewMode === 'grid' ? 'bg-amber-500 text-black hover:bg-amber-400' : 'text-neutral-400 hover:text-white'}`}
+                                            className={`h-8 w-8 p-0 ${viewMode === 'grid' ? 'bg-amber-500 text-black hover:bg-amber-400' : 'text-neutral-400 hover:text-[#F7EBA5]'}`}
                                             onClick={() => setViewMode('grid')}
                                         >
                                             <LayoutGrid className="h-4 w-4" />
@@ -993,7 +993,7 @@ export default function UserDashboard() {
                                         <Button
                                             variant={viewMode === 'list' ? 'secondary' : 'ghost'}
                                             size="sm"
-                                            className={`h-8 w-8 p-0 ${viewMode === 'list' ? 'bg-amber-500 text-black hover:bg-amber-400' : 'text-neutral-400 hover:text-white'}`}
+                                            className={`h-8 w-8 p-0 ${viewMode === 'list' ? 'bg-amber-500 text-black hover:bg-amber-400' : 'text-neutral-400 hover:text-[#F7EBA5]'}`}
                                             onClick={() => setViewMode('list')}
                                         >
                                             <ListIcon className="h-4 w-4" />
@@ -1043,20 +1043,20 @@ export default function UserDashboard() {
                                                         <TableBody>
                                                             {publicEvents.map((event) => (
                                                                 <TableRow key={event.id} className="border-white/5 hover:bg-white/5 transition-colors">
-                                                                    <TableCell className="font-bold text-white">{event.name}</TableCell>
+                                                                    <TableCell className="font-bold text-[#F7EBA5]">{event.name}</TableCell>
                                                                     <TableCell>
                                                                         <Badge variant={event.status === 'active' ? 'default' : 'secondary'} className={event.status === 'active' ? 'bg-emerald-500/20 text-emerald-500 border-none px-3' : 'bg-neutral-800 text-neutral-500 border-none px-3'}>
                                                                             {event.status === 'active' ? 'AKTİF' : 'TAMAMLANDI'}
                                                                         </Badge>
                                                                     </TableCell>
-                                                                    <TableCell className="text-right font-mono text-white">{event.participant_count}</TableCell>
+                                                                    <TableCell className="text-right font-mono text-[#F7EBA5]">{event.participant_count}</TableCell>
                                                                     <TableCell className="text-right text-[10px] text-neutral-500">
                                                                         <div className="font-bold">{new Date(event.start_date).toLocaleDateString('tr-TR')}</div>
                                                                         <div>{new Date(event.end_date).toLocaleDateString('tr-TR')}</div>
                                                                     </TableCell>
                                                                     <TableCell className="text-right">
                                                                         <Button size="sm" variant={event.status === 'active' ? "default" : "outline"}
-                                                                            className={`font-black text-[10px] uppercase px-4 ${event.status === 'active' ? 'bg-amber-500 text-black hover:bg-amber-400' : 'bg-transparent border-white/10 text-white hover:bg-white/5'}`}
+                                                                            className={`font-black text-[10px] uppercase px-4 ${event.status === 'active' ? 'bg-amber-500 text-black hover:bg-amber-400' : 'bg-transparent border-white/10 text-[#F7EBA5] hover:bg-white/5'}`}
                                                                             disabled={myEnrollments.some(e => e.event_id === event.id)}
                                                                             onClick={() => event.status === 'active' ? handleJoin(event.id) : handleSwitchEvent(event.id)}>
                                                                             {myEnrollments.some(e => e.event_id === event.id) ? 'KATILDI' : (event.status === 'active' ? 'KATIL' : 'BİTTİ')}
@@ -1077,7 +1077,7 @@ export default function UserDashboard() {
                         <TabsContent value="rules" className="mt-6 animation-in fade-in slide-in-from-bottom-2">
                             <Card className="border-white/5 bg-zinc-950/40 backdrop-blur-xl">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-white"><FileText className="h-5 w-5 text-amber-500" /> Turnuva Kuralları</CardTitle>
+                                    <CardTitle className="flex items-center gap-2 text-[#F7EBA5]"><FileText className="h-5 w-5 text-amber-500" /> Turnuva Kuralları</CardTitle>
                                     <CardDescription className="text-neutral-500">Adil bir yarışma için belirtilen kurallara uymanız gerekmektedir.</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-8">
@@ -1098,7 +1098,7 @@ export default function UserDashboard() {
                                                                 <Trophy className="h-8 w-8 text-amber-500" />
                                                             </div>
                                                             <div>
-                                                                <h3 className="text-2xl font-black italic uppercase tracking-tighter text-white">
+                                                                <h3 className="text-2xl font-black italic uppercase tracking-tighter text-[#F7EBA5]">
                                                                     {event.name}
                                                                 </h3>
                                                                 <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest mt-1">Katılım Şartları ve Ödül Havuzu</p>
@@ -1115,7 +1115,7 @@ export default function UserDashboard() {
                                                                 <div className="bg-amber-500/20 p-1.5 rounded-lg">
                                                                     <TrendingUp className="h-4 w-4 text-amber-500" />
                                                                 </div>
-                                                                <h4 className="font-black uppercase tracking-wider text-xs text-white">Yatırım Şartı</h4>
+                                                                <h4 className="font-black uppercase tracking-wider text-xs text-[#F7EBA5]">Yatırım Şartı</h4>
                                                             </div>
                                                             <p className="text-xs text-neutral-400 font-medium leading-relaxed"> Minimum <strong className="text-amber-500 font-black">{rules.min_deposit ?? 1000} TL</strong> yatırım yapmış olmanız gerekmektedir.</p>
                                                         </div>
@@ -1125,7 +1125,7 @@ export default function UserDashboard() {
                                                                 <div className="bg-amber-500/20 p-1.5 rounded-lg">
                                                                     <ArrowUpRight className="h-4 w-4 text-amber-500" />
                                                                 </div>
-                                                                <h4 className="font-black uppercase tracking-wider text-xs text-white">Minimum Oran</h4>
+                                                                <h4 className="font-black uppercase tracking-wider text-xs text-[#F7EBA5]">Minimum Oran</h4>
                                                             </div>
                                                             <p className="text-xs text-neutral-400 font-medium leading-relaxed">Kupon başı toplam oran en az <strong className="text-amber-500 font-black">{(rules.min_odd || 1.5).toFixed(2)}</strong> olmalıdır.</p>
                                                         </div>
@@ -1135,7 +1135,7 @@ export default function UserDashboard() {
                                                                 <div className="bg-amber-500/20 p-1.5 rounded-lg">
                                                                     <Ticket className="h-4 w-4 text-amber-500" />
                                                                 </div>
-                                                                <h4 className="font-black uppercase tracking-wider text-xs text-white">Kombine Şartı</h4>
+                                                                <h4 className="font-black uppercase tracking-wider text-xs text-[#F7EBA5]">Kombine Şartı</h4>
                                                             </div>
                                                             <p className="text-xs text-neutral-400 font-medium leading-relaxed">Her kupon en az <strong className="text-amber-500 font-black">{rules.min_combination || 2} maç</strong> (kombine) içermelidir.</p>
                                                         </div>
@@ -1145,7 +1145,7 @@ export default function UserDashboard() {
                                                                 <div className="bg-amber-500/20 p-1.5 rounded-lg">
                                                                     <Award className="h-4 w-4 text-amber-500" />
                                                                 </div>
-                                                                <h4 className="font-black uppercase tracking-wider text-xs text-white">Minimum Tutar</h4>
+                                                                <h4 className="font-black uppercase tracking-wider text-xs text-[#F7EBA5]">Minimum Tutar</h4>
                                                             </div>
                                                             <p className="text-xs text-neutral-400 font-medium leading-relaxed">Kupon tutarı en az <strong className="text-amber-500 font-black">{rules.min_stake || 100} TL</strong> olmalıdır.</p>
                                                         </div>
@@ -1156,7 +1156,7 @@ export default function UserDashboard() {
                                                         <div className="space-y-6 pt-6 border-t border-white/5">
                                                             <div className="flex items-center gap-3">
                                                                 <div className="h-1 w-8 bg-amber-500 rounded-full" />
-                                                                <h4 className="font-black italic uppercase tracking-widest text-sm text-white flex items-center gap-2">
+                                                                <h4 className="font-black italic uppercase tracking-widest text-sm text-[#F7EBA5] flex items-center gap-2">
                                                                     <Gift className="h-4 w-4 text-amber-500" /> ÖDÜL TABLOSU
                                                                 </h4>
                                                             </div>
@@ -1179,7 +1179,7 @@ export default function UserDashboard() {
                                                                         <div key={idx} className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-zinc-950 transition-all hover:scale-105 hover:border-amber-500/30 group/reward">
                                                                             <div className="flex flex-col">
                                                                                 <span className="text-[9px] font-black text-neutral-500 tracking-tighter">{rankLabel}</span>
-                                                                                <span className="text-xl font-black italic text-white tracking-tight">
+                                                                                <span className="text-xl font-black italic text-[#F7EBA5] tracking-tight">
                                                                                     {reward.amount} <span className="text-[10px] text-amber-500 not-italic ml-1">{rewardTypeLabel}</span>
                                                                                 </span>
                                                                             </div>
@@ -1203,7 +1203,7 @@ export default function UserDashboard() {
                         <TabsContent value="rewards" className="mt-6 animation-in fade-in slide-in-from-bottom-2">
                             <Card className="border-white/5 bg-zinc-950/40 backdrop-blur-xl">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-white"><Gift className="h-5 w-5 text-amber-500" /> Kazandığım Ödüller</CardTitle>
+                                    <CardTitle className="flex items-center gap-2 text-[#F7EBA5]"><Gift className="h-5 w-5 text-amber-500" /> Kazandığım Ödüller</CardTitle>
                                     <CardDescription className="text-neutral-500">Geçmiş turnuvalarda elde ettiğiniz kazançlar.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -1224,7 +1224,7 @@ export default function UserDashboard() {
 
                                                     <div className="space-y-1 relative z-10">
                                                         <div className="text-[9px] font-black uppercase tracking-widest text-neutral-500">Kampanya</div>
-                                                        <h3 className="text-[11px] font-bold text-white uppercase tracking-tight line-clamp-1">{reward.event_name}</h3>
+                                                        <h3 className="text-[11px] font-bold text-[#F7EBA5] uppercase tracking-tight line-clamp-1">{reward.event_name}</h3>
                                                     </div>
 
                                                     <div className="py-2 relative z-10">

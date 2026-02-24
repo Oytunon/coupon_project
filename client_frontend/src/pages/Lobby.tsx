@@ -77,7 +77,7 @@ export default function Lobby() {
 
                 {/* Header */}
                 <div className="text-center space-y-4">
-                    <h1 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter">
+                    <h1 className="text-4xl md:text-6xl font-black text-[#F7EBA5] uppercase tracking-tighter">
                         Turnuva <span className="text-primary">Merkezi</span>
                     </h1>
                     <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -172,7 +172,7 @@ function EventCard({ event, onAction, actionLabel, variant = "primary" }: { even
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Users className="h-4 w-4 text-primary/70" />
                     <span>
-                        <strong className="text-white">{event.participant_count}</strong> Katılımcı
+                        <strong className="text-[#F7EBA5]">{event.participant_count}</strong> Katılımcı
                     </span>
                 </div>
             </CardContent>
