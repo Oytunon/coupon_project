@@ -159,14 +159,14 @@ const formatDateTimeLocal = (dateString: string) => {
     if (!dateString) return "";
     // If it's already in the local format (e.g. from the input itself), return as-is
     if (dateString.length === 16 && dateString.includes('T') && !dateString.endsWith('Z')) return dateString;
-    
+
     try {
         let dStr = dateString;
         if (!dStr.endsWith('Z') && !dStr.includes('+')) dStr += 'Z'; // Force UTC parsing if API returned naive datetime
-        
+
         const d = new Date(dStr);
         if (isNaN(d.getTime())) return "";
-        const tzOffset = d.getTimezoneOffset() * 60000; 
+        const tzOffset = d.getTimezoneOffset() * 60000;
         return (new Date(d.getTime() - tzOffset)).toISOString().slice(0, 16);
     } catch (e) {
         return "";
@@ -446,8 +446,8 @@ export default function AdminPage() {
             const payload = {
                 ...newEvent,
                 slug: newEvent.slug || null,
-                start_date: new Date(newEvent.start_date).toISOString(),
-                end_date: new Date(newEvent.end_date).toISOString()
+                start_date: newEvent.start_date.length === 16 ? newEvent.start_date + ":00" : newEvent.start_date,
+                end_date: newEvent.end_date.length === 16 ? newEvent.end_date + ":00" : newEvent.end_date
             }
             const createdEvent = await createEvent(payload)
 
@@ -706,8 +706,8 @@ export default function AdminPage() {
                 name: editingEvent.name,
                 slug: editingEvent.slug || null,
                 description: editingEvent.description || "",
-                start_date: new Date(editingEvent.start_date).toISOString(),
-                end_date: new Date(editingEvent.end_date).toISOString(),
+                start_date: editingEvent.start_date.length === 16 ? editingEvent.start_date + ":00" : editingEvent.start_date,
+                end_date: editingEvent.end_date.length === 16 ? editingEvent.end_date + ":00" : editingEvent.end_date,
                 won_point_multiplier: Number(editingEvent.won_point_multiplier),
                 loss_point_multiplier: Number(editingEvent.loss_point_multiplier),
                 rules: {
