@@ -911,7 +911,11 @@ export default function AdminPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {leaguesData.filter(l => l.name.toLowerCase().includes(leagueSearchQuery.toLowerCase()) || l.id.toString().includes(leagueSearchQuery)).map((league) => (
+                                    {leaguesData.filter(l => {
+                                        const q = leagueSearchQuery.toLowerCase();
+                                        const sportName = l.sport_id === 1 ? 'futbol' : l.sport_id === 2 ? 'basketbol' : l.sport_id === 3 ? 'voleybol' : l.sport_id === 4 ? 'tenis' : 'diğer';
+                                        return l.name.toLowerCase().includes(q) || l.id.toString().includes(q) || sportName.includes(q);
+                                    }).map((league) => (
                                         <tr key={league.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                                             <td className="px-6 py-4"><Badge variant="outline" className="font-mono">#{league.id}</Badge></td>
                                             <td className="px-6 py-4 font-medium text-white">{league.name}</td>
@@ -926,11 +930,15 @@ export default function AdminPage() {
                                             </td>
                                         </tr>
                                     ))}
-                                    {leaguesData.filter(l => l.name.toLowerCase().includes(leagueSearchQuery.toLowerCase()) || l.id.toString().includes(leagueSearchQuery)).length === 0 && !loadingLeagues && (
-                                        <tr>
-                                            <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">Aradığınız kriterlere uygun lig bulunamadı</td>
-                                        </tr>
-                                    )}
+                                    {leaguesData.filter(l => {
+                                        const q = leagueSearchQuery.toLowerCase();
+                                        const sportName = l.sport_id === 1 ? 'futbol' : l.sport_id === 2 ? 'basketbol' : l.sport_id === 3 ? 'voleybol' : l.sport_id === 4 ? 'tenis' : 'diğer';
+                                        return l.name.toLowerCase().includes(q) || l.id.toString().includes(q) || sportName.includes(q);
+                                    }).length === 0 && !loadingLeagues && (
+                                            <tr>
+                                                <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">Aradığınız kriterlere uygun lig bulunamadı</td>
+                                            </tr>
+                                        )}
                                 </tbody>
                             </table>
                         </div>
