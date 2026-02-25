@@ -433,12 +433,14 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             
                             # 2. Selections Backfill (Fix "No Details" issue)
                             if selections:
-                                current_data = existing_coupon.bet_data or {}
+                                current_data = dict(existing_coupon.bet_data or {})
                                 # Check if Missing OR Empty
                                 if not current_data.get("Selections"):
                                     logger.info(f"   [DEBUG_UPDATE] Backfilling Selections for Bet {bet_id}")
-                                    # bet_history already has Selections merged at this point
-                                    existing_coupon.bet_data = bet_history 
+                                    # Copy to ensure SQLAlchemy detects the JSON mutation
+                                    new_data = dict(bet_history)
+                                    new_data["Selections"] = selections
+                                    existing_coupon.bet_data = new_data
                                     should_update = True
                                     
                             if should_update:
