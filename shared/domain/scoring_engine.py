@@ -189,9 +189,34 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         
                         if mapped_state not in ["won", "lost"]: continue
 
+                        # Strict Type Whitelist (Only Single and Multiple allowed)
+                        type_val = bet_history.get("Type", 1)
+                        type_name = str(bet_history.get("TypeName", "")).lower()
+                        
+                        # 1: Single, 2: Multiple in BetConstruct
+                        allowed_int_types = [1, 2]
+                        allowed_str_types = ["single", "multiple"]
+                        
+                        # Check integer IDs first
+                        if isinstance(type_val, int) and type_val not in allowed_int_types:
+                            continue
+                            
+                        # If type is string (sometimes happens), check against allowed strings
+                        if isinstance(type_val, str):
+                            if type_val.lower() not in allowed_str_types and type_val not in ["1", "2"]:
+                                continue
+                                
+                        # Always check TypeName if it exists to be extra safe against 'BetBuilder', 'System', etc.
+                        if type_name and type_name not in allowed_str_types:
+                            continue
+
                         # Rules Check
                         amount = float(bet_history.get("Amount", 0.0) or 0.0)
-                        sel_count = int(bet_history.get("SelectionCount", 1) or bet_history.get("Type", 1))
+                        
+                        try:
+                            sel_count = int(bet_history.get("SelectionCount") or type_val or 1)
+                        except (ValueError, TypeError):
+                            sel_count = 1
                         
                         eligible_for_events = []
                         raw_created = bet_history.get("CreatedAt") or bet_history.get("Created")
