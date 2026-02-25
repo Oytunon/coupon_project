@@ -32,7 +32,9 @@ import {
     ChevronLeft,
     ChevronRight,
     Gift,
-    ImagePlus
+    ImagePlus,
+    Timer,
+    Info
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -209,6 +211,11 @@ export default function AdminPage() {
     const [showAddLeague, setShowAddLeague] = useState(false)
     const [editingLeague, setEditingLeague] = useState<any | null>(null)
     const [newLeague, setNewLeague] = useState({ id: "", name: "", sport_id: 1, region: "" })
+
+    // Worker Progress Modal states
+    const [workerJob, setWorkerJob] = useState<any | null>(null)
+    const [showWorkerModal, setShowWorkerModal] = useState(false)
+    const [workerStartTime, setWorkerStartTime] = useState<number | null>(null)
 
     useEffect(() => {
         if (activeTab === "leagues") {
@@ -536,55 +543,40 @@ export default function AdminPage() {
         }
     }
 
-    const handleRunWorker = async (id: number) => {
-        if (!confirm("Worker'ı manuel olarak çalıştırmak istediğinize emin misiniz?")) return
+    const handleCancelJob = async (jobId: number) => {
         try {
-            const res = await runEventWorker(id)
+            await apiClient.post(`/admin/worker-jobs/${jobId}/cancel`)
+            toast({ title: "İptal Ediliyor", description: "İşlem durduruluyor..." })
+        } catch (e) {
+            toast({ title: "Hata", description: "İptal edilemedi", variant: "destructive" })
+        }
+    }
+
+    const handleRunWorker = async (event: any) => {
+        try {
+            const res = await runEventWorker(event.id)
             const jobId = res.job_id
 
-            const { id: toastId, update } = toast({
-                title: "Worker Başlatıldı",
-                description: "Tarama arka planda başlıyor...",
-                duration: Infinity // Keep it open until we finish or fail
-            })
+            setWorkerJob({ id: jobId, status: 'pending', total: 0, processed: 0, saved: 0, event_name: event.name })
+            setShowWorkerModal(true)
+            setWorkerStartTime(Date.now())
 
             const checkStatus = setInterval(async () => {
                 try {
                     const statusRes = await apiClient.get(`/admin/worker-jobs/${jobId}`)
                     const job = statusRes.data
 
-                    if (job.status === 'completed' || job.status === 'failed') {
+                    setWorkerJob((prev: any) => ({ ...prev, ...job, event_name: event.name }))
+
+                    if (job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled') {
                         clearInterval(checkStatus)
                         if (job.status === 'completed') {
-                            update({
-                                id: toastId,
+                            toast({
                                 title: "İşlem Tamamlandı",
-                                description: `${job.total || job.processed} kullanıcı incelendi, ${job.saved} adet yeni kupon kaydedildi.`,
-                                variant: "default",
-                                duration: 10000
-                            })
-                        } else {
-                            update({
-                                id: toastId,
-                                title: "Worker Durduruldu",
-                                description: job.error || "Bilinmeyen bir hata oluştu.",
-                                variant: "destructive",
+                                description: `${job.total || job.processed} kullanıcı incelendi.`,
                                 duration: 5000
                             })
                         }
-                    } else if (job.status === 'running') {
-                        const total = job.total || 0;
-                        const processed = job.processed || 0;
-                        const progressStr = total > 0 ? `(${processed}/${total})` : `(${processed} işlendi)`;
-                        const percent = total > 0 ? Math.round((processed / total) * 100) : 0;
-
-                        update({
-                            id: toastId,
-                            title: "Tarama Devam Ediyor...",
-                            description: `Kullanıcılar taranıyor ${progressStr} - %${percent} tamamlandı.`,
-                            variant: "default",
-                            duration: Infinity
-                        })
                     }
                 } catch (e) {
                     console.error("Status check failed", e)
@@ -595,7 +587,7 @@ export default function AdminPage() {
         } catch (err: any) {
             toast({
                 title: "Hata",
-                description: err.response?.data?.detail || "Worker tetiklenemedi",
+                description: err.response?.data?.detail || "Kupon çekme işlemi başlatılamadı",
                 variant: "destructive"
             })
         }
@@ -1123,8 +1115,8 @@ export default function AdminPage() {
 
 
 
-                                            <Button size="icon" variant="ghost" className="text-yellow-400 hover:text-yellow-300 hover:bg-yellow-400/10" onClick={() => handleRunWorker(event.id)} title="Worker'ı Çalıştır">
-                                                <Zap className="h-4 w-4" />
+                                            <Button size="sm" variant="outline" className="border-yellow-800 text-yellow-500 hover:bg-yellow-500/10 font-bold gap-2" onClick={() => handleRunWorker(event)} title="Kuponları Çek">
+                                                <RefreshCw className="h-4 w-4" /> Kuponları Çek
                                             </Button>
 
                                             <Button size="icon" variant="ghost" className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10"
@@ -2067,6 +2059,101 @@ export default function AdminPage() {
                     </div>
                 )
             }
+            {showWorkerModal && workerJob && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+                    <Card className="bg-slate-900/90 border-white/10 shadow-2xl w-full max-w-lg overflow-hidden">
+                        <CardHeader className="border-b border-white/5 pb-4">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <CardTitle className="text-xl font-bold flex items-center gap-2">
+                                        <RefreshCw className={`h-5 w-5 text-primary ${workerJob.status === 'running' ? 'animate-spin' : ''}`} />
+                                        Kuponlar Çekiliyor...
+                                    </CardTitle>
+                                    <CardDescription className="mt-1">{workerJob.event_name}</CardDescription>
+                                </div>
+                                <Badge className={
+                                    workerJob.status === 'completed' ? 'bg-emerald-500' :
+                                        workerJob.status === 'failed' ? 'bg-red-500' :
+                                            workerJob.status === 'cancelled' ? 'bg-orange-500' :
+                                                'bg-primary animate-pulse'
+                                }>
+                                    {workerJob.status === 'running' ? 'Taranıyor' :
+                                        workerJob.status === 'completed' ? 'Bitti' :
+                                            workerJob.status === 'cancelled' ? 'İptal Edildi' : 'Bekliyor'}
+                                </Badge>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="pt-6 space-y-6">
+                            {/* Progress Stats */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-3 bg-white/5 rounded-lg border border-white/5 flex flex-col items-center">
+                                    <span className="text-[10px] text-muted-foreground uppercase font-bold">Kullanıcılar</span>
+                                    <span className="text-xl font-black">{workerJob.processed} / {workerJob.total || '?'}</span>
+                                </div>
+                                <div className="p-3 bg-white/5 rounded-lg border border-white/5 flex flex-col items-center">
+                                    <span className="text-[10px] text-muted-foreground uppercase font-bold">Yeni Kupon</span>
+                                    <span className="text-xl font-black text-emerald-400">+{workerJob.saved}</span>
+                                </div>
+                            </div>
+
+                            {/* Progress Bar */}
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-xs font-bold">
+                                    <span>İlerleme: %{workerJob.total > 0 ? Math.round((workerJob.processed / workerJob.total) * 100) : 0}</span>
+                                    {workerJob.status === 'running' && (
+                                        <span className="text-primary italic flex items-center gap-1">
+                                            <Timer className="h-3 w-3" /> Tahmini: {(() => {
+                                                if (!workerStartTime || workerJob.processed <= 1) return "...";
+                                                const elapsed = (Date.now() - workerStartTime) / 1000;
+                                                const rate = workerJob.processed / elapsed;
+                                                const remaining = (workerJob.total || 0) - workerJob.processed;
+                                                if (remaining <= 0) return "Bitti";
+                                                const eta = Math.round(remaining / rate);
+                                                return eta > 60 ? `${Math.floor(eta / 60)}dk ${eta % 60}sn` : `${eta}sn`;
+                                            })()}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="h-3 bg-black/40 rounded-full overflow-hidden border border-white/5 shadow-inner">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-primary to-emerald-500 transition-all duration-500 ease-out"
+                                        style={{ width: `${workerJob.total > 0 ? (workerJob.processed / workerJob.total) * 100 : 0}%` }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Info Text */}
+                            <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                                <p className="text-[11px] text-blue-400 leading-relaxed italic">
+                                    <Info className="h-3 w-3 inline mr-1 mb-0.5" />
+                                    BetConstruct API üzerinden kullanıcıların bahis geçmişi taranıyor. Aktif kampanyaya uygun kuponlar otomatik olarak eşlenir.
+                                </p>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex flex-col gap-2 pt-2">
+                                {workerJob.status === 'running' && (
+                                    <Button
+                                        variant="outline"
+                                        className="w-full border-red-500/50 text-red-500 hover:bg-red-500/10 font-bold"
+                                        onClick={() => handleCancelJob(workerJob.id)}
+                                    >
+                                        <StopCircle className="h-4 w-4 mr-2" /> İşlemi Durdur
+                                    </Button>
+                                )}
+                                {(workerJob.status === 'completed' || workerJob.status === 'failed' || workerJob.status === 'cancelled') && (
+                                    <Button
+                                        className="w-full bg-primary font-bold"
+                                        onClick={() => setShowWorkerModal(false)}
+                                    >
+                                        Kapat
+                                    </Button>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
         </AdminLayout>
     )
 }

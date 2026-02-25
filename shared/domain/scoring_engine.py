@@ -157,6 +157,17 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
 
         # Rate limit için listeyi sıralı gidelim
         for i, user in enumerate(participants):
+            # Check for cancellation every 3 users to avoid high DB load
+            if job_id and i % 3 == 0:
+                check_db = SessionLocal()
+                try:
+                    job_check = check_db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
+                    if job_check and job_check.status == "cancelled":
+                        logger.info(f"   [WORKER_DIAGNOSTIC] Job {job_id} was CANCELLED. Aborting...")
+                        return
+                finally:
+                    check_db.close()
+
             user_processed_count = 0
             user_saved_count = 0
             try:

@@ -189,6 +189,21 @@ async def get_worker_job_status(job_id: int, db: Session = Depends(get_db)):
         "completed_at": job.completed_at
     }
 
+@router.post("/worker-jobs/{job_id}/cancel")
+async def cancel_worker_job(job_id: int, db: Session = Depends(get_db)):
+    from shared.models.worker_log import WorkerLog
+    job = db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job bulunamadı")
+    
+    if job.status not in ["pending", "running"]:
+        return {"status": "error", "message": "Zaten tamamlanmış veya durdurulmuş bir işlem iptal edilemez."}
+    
+    job.status = "cancelled"
+    job.completed_at = datetime.utcnow()
+    db.commit()
+    return {"status": "success", "message": "İşlem iptal ediliyor..."}
+
 @router.get("/events/{event_id}/stats")
 async def get_event_stats_api(event_id: int, db: Session = Depends(get_db)):
     from shared.models.enrollment import EventParticipant
