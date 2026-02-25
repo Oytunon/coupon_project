@@ -331,7 +331,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
 
                             if not skip_fetching:
                                 try:
-                                    await asyncio.sleep(0.3) # Throttle requests
+                                    await asyncio.sleep(4.0) # Throttle requests (4 seconds to avoid rate limits)
                                     sel_data = await fetch_bet_selections(bet_id) # API çağrısı
                                     selections = sel_data.get("Selections", [])
                                     details_fetched = True
