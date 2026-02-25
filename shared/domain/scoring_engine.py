@@ -319,20 +319,34 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         # Kural var, detay çekildi mi?
                         # FORCE FETCH always for Frontend Details
                         if not details_fetched:
-                            try:
-                                await asyncio.sleep(0.3) # Throttle requests
-                                sel_data = await fetch_bet_selections(bet_id) # API çağrısı
-                                selections = sel_data.get("Selections", [])
-                                details_fetched = True
-                                
-                                # Immediately populate for frontend visibility
-                                if selections:
-                                    bet_history["Selections"] = selections
-                            except Exception as e:
-                                logger.error(f"Selections fetch error {bet_id}: {e}")
-                                # Skip processing this bet to retry later
-                                continue 
-                                # If rules require allowed_leagues, verify later.
+                            
+                            # YENİ OPTİMİZASYON: Kayıp kuponlar için çarpan 0 ise detayları çekmeyip API'yi ve ratelimiti rahatlat.
+                            # NOT: Bunu yaparsak bu kupon Frontend'de "Detay yok" olarak gözükecek ama veritabanında "Kayıp - 0 Puan" işlenecek.
+                            skip_fetching = False
+                            if mapped_state == "lost":
+                                loss_mult = getattr(event, 'loss_point_multiplier', 0.0)
+                                if float(loss_mult) == 0.0:
+                                    logger.info(f"   [OPT] Bet {bet_id} is LOST and Event {event.id} multiplier is 0. Skipping details fetch.")
+                                    skip_fetching = True
+
+                            if not skip_fetching:
+                                try:
+                                    await asyncio.sleep(0.3) # Throttle requests
+                                    sel_data = await fetch_bet_selections(bet_id) # API çağrısı
+                                    selections = sel_data.get("Selections", [])
+                                    details_fetched = True
+                                    
+                                    # Immediately populate for frontend visibility
+                                    if selections:
+                                        bet_history["Selections"] = selections
+                                except Exception as e:
+                                    logger.error(f"Selections fetch error {bet_id}: {e}")
+                                    # Skip processing this bet to retry later
+                                    continue 
+                                    # If rules require allowed_leagues, verify later.
+                            else:
+                                # skipped fetching, so we must assume empty selections.
+                                pass
 
                         rules = event.rules or {}
                         allowed_leagues = rules.get("allowed_league_ids") or []
@@ -344,16 +358,25 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             final_events.append(event)
                             continue
 
-                        
-                        # Seçimlerin HEPSİ izin verilen liglerde mi?
-                        # Eğer kural yoksa (allowed_leagues boşsa) üstte zaten final_events'e eklendi ve continue denildi
-                        # Buraya gelindiyse allowed_leagues DOLU demektir.
+                        # Orijinal Lig Kuralları Kontrolü
                         all_valid = True
                         if not selections:
-                            # Kural var ama bet detayında lig bilgisi (selections) gelmedi.
-                            # O zaman bu kupon kurala UYMUYOR sayılır.
-                            logger.info(f"   [DEBUG_LEAGUE] Bet {bet_id} REJECTED by Event {event.id}: League rule exists but bet has no selections data.")
-                            all_valid = False 
+                            # We didn't fetch details. Why?
+                            # 1. Could be the optimization (Lost bet AND multiplier 0.0) -> This should PASS because they earn 0 points anyway and user wanted it to be processed quickly.
+                            # 2. Could be an actual fetch error or missing data -> This should FAIL.
+                            
+                            is_optimizer_skip = False
+                            if mapped_state == "lost":
+                                loss_mult = getattr(event, 'loss_point_multiplier', 0.0)
+                                if float(loss_mult) == 0.0:
+                                    is_optimizer_skip = True
+                                    
+                            if is_optimizer_skip:
+                                logger.info(f"   [DEBUG_LEAGUE] Bet {bet_id} ALLOWED by Event {event.id}: Bypassing league rules because it's a 0 multiplier lost bet.")
+                                all_valid = True
+                            else:
+                                logger.info(f"   [DEBUG_LEAGUE] Bet {bet_id} REJECTED by Event {event.id}: League rule exists but bet has no selections data.")
+                                all_valid = False 
                         else:
                             for sel in selections:
                                  # API: 'CompetitionId' (18291932)
