@@ -1,21 +1,20 @@
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Optional, List
+from typing import Optional, List, Tuple
+import math
 
 from sqlalchemy import func
 from shared.database import SessionLocal
 from shared.models.coupon import Coupon
 from shared.models.participant import Participant
 from shared.models.enrollment import EventParticipant
-from shared.services.betconstruct import fetch_bet_history, fetch_bet_selections, get_date_range
-from shared.domain.rules_validator import get_eligible_events_for_coupon, get_active_events
+from shared.services.betconstruct import fetch_bet_history, fetch_bet_selections
+from shared.models.worker_log import WorkerLog
 from shared.models.event import Event
+from shared.models.coupon_event_result import CouponEventResult
 
 logger = logging.getLogger(__name__)
-
-from typing import Optional, List, Tuple
-from shared.models.worker_log import WorkerLog
 
 def calculate_points_for_event(
     coupon: Coupon, 
@@ -28,7 +27,6 @@ def calculate_points_for_event(
     formula = rules.get("scoring_formula", "simple")
     state = coupon.state.lower()
     
-    # Pass multipliers
     if state == 'won':
         multiplier = event.won_point_multiplier
     elif state == 'lost':
@@ -36,10 +34,6 @@ def calculate_points_for_event(
     else:
         multiplier = 0.0
     
-    # Base points calculation
-    # Formula: Odds based or Stake * Odds
-    # NEW RULE: Truncate odds to 2 decimal places before calculation
-    import math
     truncated_odds = math.floor(coupon.odds * 100) / 100.0
     
     base_points = truncated_odds
@@ -49,7 +43,6 @@ def calculate_points_for_event(
         base_points = (coupon.stake * truncated_odds) / 10
         formula_str = "(stake * odds) / 10"
     
-    # NEW RULE: Truncate final points to 2 decimal places
     final_points = math.floor(base_points * multiplier * 100) / 100.0
     
     return final_points, {
@@ -61,18 +54,13 @@ def calculate_points_for_event(
         "final_points": final_points,
         "truncated_odds": truncated_odds
     }
+
 async def process_coupons(target_event_id: Optional[int] = None, job_id: Optional[int] = None):
     """
     Kuponları işleyen ana fonksiyon.
-    
-    Args:
-        target_event_id: Eğer belirtilirse sadece bu event için çalışır.
-        job_id: WorkerLog tablosundaki kayıt ID'si (İlerleme takibi için).
     """
     db = SessionLocal()
-    from shared.models.event import Event # Local import to avoid circular dependencies if any
     try:
-        # Job Status güncelleme yardımcı fonksiyonu
         def update_job_status(status: str, processed=0, saved=0, error=None, total=0):
             if not job_id: return
             log_db = SessionLocal()
@@ -97,24 +85,19 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
             update_job_status("running")
 
         if target_event_id:
-            # Manuel tetiklemede statüsüne bakmaksızın event'i çek
             event = db.query(Event).filter(Event.id == target_event_id).first()
             active_events = [event] if event else []
-            
             if not active_events:
                 msg = f"Event {target_event_id} veritabanında bulunamadı."
-                logger.warning(msg)
                 update_job_status("failed", error=msg)
                 return
         else:
+            from shared.domain.rules_validator import get_active_events
             active_events = get_active_events(db=db)
 
         if not active_events:
-            logger.info("Aktif event bulunamadı.")
-            if job_id: update_job_status("completed") # Nothing to do, but success
+            if job_id: update_job_status("completed")
             return
-
-        logger.info(f"İşlenecek event sayısı: {len(active_events)}")
 
         active_event_ids = [e.id for e in active_events]
         enrollments = db.query(EventParticipant).filter(
@@ -122,451 +105,205 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
         ).all()
         
         participant_ids = list(set(e.participant_id for e in enrollments))
-        
         if not participant_ids:
-            logger.info("Aktif eventlere kayıtlı katılımcı bulunamadı.")
             if job_id: update_job_status("completed")
             return
 
         participants = db.query(Participant).filter(Participant.id.in_(participant_ids)).all()
         
-        user_enrollment_map = {} # Mapping participant_id -> {event_id: joined_at}
+        user_enrollment_map = {}
         for enr in enrollments:
             if enr.participant_id not in user_enrollment_map:
                 user_enrollment_map[enr.participant_id] = {}
             user_enrollment_map[enr.participant_id][enr.event_id] = enr.joined_at
 
-        # Cache event data to prevent DetachedInstanceError after commits
         event_info_map = {}
         for e in active_events:
             event_info_map[e.id] = {
                 "object": e,
                 "name": e.name,
-                "won_multiplier": e.won_point_multiplier,
-                "loss_multiplier": e.loss_point_multiplier,
-                "rules_raw": e.rules
+                "rules": e.rules
             }
-            logger.info(f"   [WORKER_DIAGNOSTIC] Event {e.id} Rules: {e.rules}")
-
-        event_names = [info["name"] for info in event_info_map.values()]
-        logger.info(f"   [WORKER_DIAGNOSTIC] Targeting Events: {event_names}")
-        logger.info(f"   [WORKER_DIAGNOSTIC] Total {len(participants)} participants to scan.")
 
         if job_id:
             update_job_status("running", total=len(participants))
 
-        # Rate limit için listeyi sıralı gidelim
         for i, user in enumerate(participants):
-            # Check for cancellation every 3 users to avoid high DB load
-            if job_id and i % 3 == 0:
-                check_db = SessionLocal()
-                try:
-                    job_check = check_db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
-                    if job_check and job_check.status == "cancelled":
-                        logger.info(f"   [WORKER_DIAGNOSTIC] Job {job_id} was CANCELLED. Aborting...")
-                        return
-                finally:
-                    check_db.close()
-
-            user_processed_count = 0
             user_saved_count = 0
             try:
+                # Cancellation Check
+                if job_id and i % 3 == 0:
+                    check_db = SessionLocal()
+                    try:
+                        job_check = check_db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
+                        if job_check and job_check.status == "cancelled":
+                            logger.info(f"   [WORKER] Job {job_id} cancelled.")
+                            return
+                    finally:
+                        check_db.close()
+
                 user_enrollments = user_enrollment_map.get(user.id, {})
                 user_target_events = [event_info_map[eid]["object"] for eid in user_enrollments if eid in event_info_map]
                 
                 if not user_target_events:
-                    logger.info(f"User {user.username}: No active enrollments.")
                     continue
 
-                logger.info(f"User {user.username} is enrolled in events: {[e.id for e in user_target_events]}")
-
-                # logger.info(f"Kullanıcı taranıyor: {user.username} (Client ID: {user.client_id})")
-                
-                # Calculate EARLIEST possible scan point for THIS user
-                # Rules:
-                # 1. max(EventStart, JoinedAt) -> Personal start for EACH event
-                # 2. We scan from the MIN of those personal starts
-                # 3. BUT never further back than 7 days (as requested)
-                
-                # Calculate EARLIEST possible scan point for THIS user among all targeted events
                 seven_days_ago = datetime.utcnow() - timedelta(days=7)
-                
                 user_p_starts = []
                 for event in user_target_events:
                     joined_at = user_enrollments.get(event.id)
                     p_start = max(event.start_date, joined_at or event.start_date)
                     user_p_starts.append(p_start)
                 
-                # Scan from the earliest start among events, but cap at 7 days
-                if user_p_starts:
-                    scan_start = max(min(user_p_starts), seven_days_ago)
-                else:
-                    scan_start = seven_days_ago
-                
+                scan_start = max(min(user_p_starts), seven_days_ago) if user_p_starts else seven_days_ago
                 start_str = scan_start.strftime("%Y-%m-%dT%H:%M:%SZ")
-                # Add 1 hour buffer to end_date in case server clock is BEHIND the API clock
-                end_date_with_buffer = datetime.utcnow() + timedelta(hours=1)
-                end_str = end_date_with_buffer.strftime("%Y-%m-%dT%H:%M:%SZ")
+                end_str = (datetime.utcnow() + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-                logger.info(f"   [WORKER_DIAGNOSTIC] User {user.username}: Scanning bets from {start_str} to {end_str}")
+                logger.info(f"User {user.username}: Scanning from {start_str}")
                 bet_history_data = await fetch_bet_history(user.client_id, start_str, end_str)
                 
-                # Robust parsing
                 bets = []
                 if isinstance(bet_history_data, dict):
                     bets = bet_history_data.get("Bets", []) or bet_history_data.get("Data", []) or bet_history_data.get("Objects", [])
                 elif isinstance(bet_history_data, list):
                     bets = bet_history_data
                 
-                if not bets:
-                    logger.info(f"   [WORKER_DIAGNOSTIC] User {user.username}: No bets found at all in BetConstruct.")
-                    continue
-                
-                logger.info(f"   [WORKER_DIAGNOSTIC] User {user.username}: Found {len(bets)} total bets to evaluate.")
+                if bets:
+                    for bet_history in bets:
+                        bet_id = str(bet_history.get("BetId") or bet_history.get("Id"))
+                        if not bet_id: continue
 
-                    
-                for bet_history in bets:
-                    user_processed_count += 1
-                    bet_id = str(bet_history.get("BetId") or bet_history.get("Id"))
-                    
-                    # Parse Bet Creation Date (Unified)
-                    raw_created = bet_history.get("CreatedAt") or bet_history.get("Created") or bet_history.get("CreatedLocal")
-                    bet_created_dt = datetime.utcnow()
-                    if raw_created:
-                         try:
-                             # Clean up common ISO variations
-                             clean_created = str(raw_created).split('.')[0].replace("Z", "")
-                             if "+" in clean_created: clean_created = clean_created.split("+")[0]
-                             
-                             if "T" in clean_created:
-                                 bet_created_dt = datetime.strptime(clean_created, "%Y-%m-%dT%H:%M:%S")
-                             else:
-                                 bet_created_dt = datetime.strptime(clean_created, "%Y-%m-%d %H:%M:%S")
-                         except Exception as e:
-                             logger.error(f"Date parse error for bet {bet_id}: {raw_created} -> {e}")
-
-                    created_dt = bet_created_dt # Master date variable for lower blocks
-
-                    if not bet_id: 
-                        logger.debug(f"Skipping bet with no ID")
-                        continue
-
-                    
-                    # 1. State Mapping from Raw JSON
-                    # Raw JSON shows: "StateName": "Lost" or "Won", "State": 3 or 4
-                    state_name = bet_history.get("StateName", "").lower()
-                    
-                    mapped_state = "open"
-                    if "won" in state_name: mapped_state = "won"
-                    elif "lost" in state_name: mapped_state = "lost"
-                    elif "cashout" in state_name: mapped_state = "cashout"
-                    elif "returned" in state_name: mapped_state = "returned"
-                    
-                    # Fallback to State ID if name is empty
-                    if mapped_state == "open":
-                        sid = bet_history.get("State", 0)
-                        if sid == 4: mapped_state = "won"
-                        elif sid == 3: mapped_state = "lost"
-                        elif sid == 2 or sid == 5: mapped_state = "cashout"
-                    
-                    if mapped_state not in ["won", "lost"]:
-                        logger.info(f"Bet {bet_id} skipped: State {mapped_state}")
-                        continue
-
-
-
-                    # 2. Eligible Event Check
-                    eligible_for_events = []
-                    
-                    # Amount & Selection Count Logic
-                    amount = float(bet_history.get("Amount", 0.0) or 0.0) # Stake
-                    sel_count = int(bet_history.get("SelectionCount", 1) or bet_history.get("Type", 1)) # Type often means 1/2 (single/multi)
-
-                    for target_event in user_target_events:
-                        # 0. Participation Time Check
-                        # Ensure bet was placed AFTER user joined AND AFTER event started
-                        joined_at = user_enrollments.get(target_event.id)
-                        participation_start = max(target_event.start_date, joined_at or target_event.start_date)
+                        # State Mapping
+                        state_name = bet_history.get("StateName", "").lower()
+                        mapped_state = "open"
+                        if "won" in state_name: mapped_state = "won"
+                        elif "lost" in state_name: mapped_state = "lost"
+                        elif "cashout" in state_name: mapped_state = "cashout"
+                        elif "returned" in state_name: mapped_state = "returned"
                         
-                        is_timing_valid = bet_created_dt >= participation_start
+                        if mapped_state == "open":
+                            sid = bet_history.get("State", 0)
+                            if sid == 4: mapped_state = "won"
+                            elif sid == 3: mapped_state = "lost"
+                            elif sid == 2 or sid == 5: mapped_state = "cashout"
                         
-                        logger.info(f"   [WORKER_DIAGNOSTIC] Bet {bet_id} Timing: Bet({bet_created_dt}) vs Start({participation_start}). Valid: {is_timing_valid}")
+                        if mapped_state not in ["won", "lost"]: continue
+
+                        # Rules Check
+                        amount = float(bet_history.get("Amount", 0.0) or 0.0)
+                        sel_count = int(bet_history.get("SelectionCount", 1) or bet_history.get("Type", 1))
                         
-                        if not is_timing_valid:
-                             continue
+                        eligible_for_events = []
+                        raw_created = bet_history.get("CreatedAt") or bet_history.get("Created")
+                        bet_created_dt = datetime.utcnow()
+                        if raw_created:
+                            try:
+                                clean_created = str(raw_created).split('.')[0].replace("Z", "").split("+")[0]
+                                bet_created_dt = datetime.strptime(clean_created, "%Y-%m-%dT%H:%M:%S") if "T" in clean_created else datetime.strptime(clean_created, "%Y-%m-%d %H:%M:%S")
+                            except: pass
 
-                        rules = target_event.rules or {}
-                        
-                        min_stake = rules.get("min_stake", 0)
-                        if amount < min_stake:
-                            logger.info(f"   [DEBUG_RULE] Bet {bet_id} SKIPPED Event {target_event.id}: Stake {amount} < Min {min_stake}")
-                            continue
+                        for target_event in user_target_events:
+                            joined_at = user_enrollments.get(target_event.id)
+                            p_start = max(target_event.start_date, joined_at or target_event.start_date)
+                            if bet_created_dt < p_start: continue
 
-                        min_combination = rules.get("min_combination") or rules.get("min_selection_count") or 1
-                        if sel_count < int(min_combination):
-                            logger.info(f"   [DEBUG_RULE] Bet {bet_id} SKIPPED Event {target_event.id}: Combo {sel_count} < Min {min_combination}")
-                            continue
-
-                        max_combination = rules.get("max_combination")
-                        if max_combination and sel_count > int(max_combination):
-                            logger.info(f"   [DEBUG_RULE] Bet {bet_id} SKIPPED Event {target_event.id}: Combo {sel_count} > Max {max_combination}")
-                            continue
+                            rules = target_event.rules or {}
+                            if amount < rules.get("min_stake", 0): continue
+                            min_sel = rules.get("min_combination") or rules.get("min_selection_count") or 1
+                            if sel_count < int(min_sel): continue
                             
-                        eligible_for_events.append(target_event)
-                        logger.info(f"   [WORKER_DIAGNOSTIC] Bet {bet_id} PASSED Basic Rules (Stake/Odds/Combo) for Event {target_event.id}")
+                            eligible_for_events.append(target_event)
 
-                    if not eligible_for_events: 
-                         logger.info(f"Bet {bet_id} not eligible for any active events (Stake/SelectCount)")
-                         continue
+                        if not eligible_for_events: continue
 
+                        # Details fetch (League check)
+                        selections = []
+                        details_fetched = False
+                        final_events = []
 
-
-                    # 3. Selections fetching (Lig/Sport Kontrolü)
-                    # Rules içinde 'allowed_league_ids' veya 'allowed_sport_ids' varsa detay çekmemiz şart.
-                    # Performance: Sadece gerekirse çekelim.
-                    
-                    details_fetched = False
-                    selections = []
-                    
-                    final_events = []
-                    
-                    for event in eligible_for_events:
-                        # Kural var, detay çekildi mi?
-                        # FORCE FETCH always for Frontend Details
-                        if not details_fetched:
+                        for event in eligible_for_events:
+                            rules = event.rules or {}
+                            allowed_leagues = rules.get("allowed_league_ids") or []
                             
-                            # YENİ OPTİMİZASYON: Kayıp kuponlar için çarpan 0 ise detayları çekmeyip API'yi ve ratelimiti rahatlat.
-                            # NOT: Bunu yaparsak bu kupon Frontend'de "Detay yok" olarak gözükecek ama veritabanında "Kayıp - 0 Puan" işlenecek.
-                            skip_fetching = False
-                            if mapped_state == "lost":
-                                loss_mult = getattr(event, 'loss_point_multiplier', 0.0)
-                                if float(loss_mult) == 0.0:
-                                    logger.info(f"   [OPT] Bet {bet_id} is LOST and Event {event.id} multiplier is 0. Skipping details fetch.")
-                                    skip_fetching = True
-
-                            if not skip_fetching:
+                            if not details_fetched and allowed_leagues:
                                 try:
-                                    await asyncio.sleep(4.0) # Throttle requests (4 seconds to avoid rate limits)
-                                    sel_data = await fetch_bet_selections(bet_id) # API çağrısı
+                                    await asyncio.sleep(4.0) # Throttling
+                                    sel_data = await fetch_bet_selections(bet_id)
                                     selections = sel_data.get("Selections", [])
                                     details_fetched = True
-                                    
-                                    # Immediately populate for frontend visibility
-                                    if selections:
-                                        bet_history["Selections"] = selections
-                                except Exception as e:
-                                    logger.error(f"Selections fetch error {bet_id}: {e}")
-                                    # Skip processing this bet to retry later
-                                    continue 
-                                    # If rules require allowed_leagues, verify later.
-                            else:
-                                # skipped fetching, so we must assume empty selections.
-                                pass
+                                except: continue
 
-                        rules = event.rules or {}
-                        allowed_leagues = rules.get("allowed_league_ids") or []
-                        # allowed_sports eklenebilir: rules.get("allowed_sport_ids", [])
-                        
-                        # Eğer kural yoksa direkt geçir (But we fetched details above!)
-                        if not allowed_leagues:
-                            logger.info(f"   [DEBUG_LEAGUE] No allowed leagues defined for Event {event.id}. Passing.")
-                            final_events.append(event)
-                            continue
-
-                        # Orijinal Lig Kuralları Kontrolü
-                        all_valid = True
-                        if not selections:
-                            # We didn't fetch details. Why?
-                            # 1. Could be the optimization (Lost bet AND multiplier 0.0) -> This should PASS because they earn 0 points anyway and user wanted it to be processed quickly.
-                            # 2. Could be an actual fetch error or missing data -> This should FAIL.
+                            all_valid = True
+                            if allowed_leagues:
+                                if not selections:
+                                    all_valid = (mapped_state == "lost" and float(getattr(event, 'loss_point_multiplier', 0)) == 0)
+                                else:
+                                    all_valid = all(str(s.get("CompetitionId")) in [str(lid) for lid in allowed_leagues] for s in selections)
                             
-                            is_optimizer_skip = False
-                            if mapped_state == "lost":
-                                loss_mult = getattr(event, 'loss_point_multiplier', 0.0)
-                                if float(loss_mult) == 0.0:
-                                    is_optimizer_skip = True
-                                    
-                            if is_optimizer_skip:
-                                logger.info(f"   [DEBUG_LEAGUE] Bet {bet_id} ALLOWED by Event {event.id}: Bypassing league rules because it's a 0 multiplier lost bet.")
-                                all_valid = True
-                            else:
-                                logger.info(f"   [DEBUG_LEAGUE] Bet {bet_id} REJECTED by Event {event.id}: League rule exists but bet has no selections data.")
-                                all_valid = False 
-                        else:
-                            for sel in selections:
-                                 # API: 'CompetitionId' (18291932)
-                                 comp_id = sel.get("CompetitionId")
-                                 # Ensure both are compared as strings for robustness
-                                 if str(comp_id) not in [str(lid) for lid in allowed_leagues]:
-                                     logger.info(f"   [DEBUG_LEAGUE] Bet {bet_id} REJECTED by Event {event.id}: League {comp_id} not in allowed list")
-                                     all_valid = False
-                                     break
-                        
-                        if all_valid:
-                            final_events.append(event)
-                    
-                    if not final_events: 
-                        logger.info(f"Bet {bet_id} filtered out after league validations.")
-                        continue
+                            if all_valid: final_events.append(event)
 
+                        if not final_events: continue
 
-                    
-                    # MERGE Selections into bet_history for Frontend Display
-                    if selections:
-                         bet_history["Selections"] = selections
-
-
-                    
-                    # 4. Save to DB
-                    for event in final_events:
-                        # --- Multi-Event Support Refactor ---
-                        # 1. Ensure Coupon Exists (Master Record)
-                        # 2. Ensure CouponEventResult Exists (Event Specific Record)
-                        
+                        # Save to DB
                         existing_coupon = db.query(Coupon).filter(Coupon.bet_id == bet_id).first()
-                        
-                        # Prepare Data
                         price = float(bet_history.get("Price", 1.0) or 1.0)
                         winning_amount = float(bet_history.get("WinAmount") or bet_history.get("Payout") or 0.0)
-                        
-                        # Use unified date from top of loop
-                        created_dt = bet_created_dt
 
                         if not existing_coupon:
-                            # Create Master Coupon
-                            # We set event_id to the first event we find, just as a primary link (optional)
-                            # But logic should rely on CouponEventResult
-                            if "Selections" not in bet_history and selections:
-                                 bet_history["Selections"] = selections
-                            
                             new_coupon = Coupon(
-                                client_id=user.client_id, 
-                                bet_id=bet_id,
-                                event_id=event.id, # Primary event (first one encountered)
-                                stake=amount,             
-                                odds=price,               
-                                combination_count=sel_count,
-                                state=mapped_state,       
-                                is_live=bool(bet_history.get("IsLive", False)),
-                                bet_data=bet_history,
-                                created_at=created_dt,
-                                winning=winning_amount,
-                                is_processed=True,
-                                processed_at=datetime.utcnow()
+                                client_id=user.client_id, bet_id=bet_id, event_id=final_events[0].id,
+                                stake=amount, odds=price, combination_count=sel_count, state=mapped_state,
+                                is_live=bool(bet_history.get("IsLive", False)), bet_data=bet_history,
+                                created_at=bet_created_dt, winning=winning_amount, is_processed=True, processed_at=datetime.utcnow()
                             )
                             db.add(new_coupon)
-                            db.flush() # Get ID
+                            db.flush()
                             existing_coupon = new_coupon
                             user_saved_count += 1
-                            logger.info(f"✅ Yeni Kupon Eklendi: {bet_id} | User: {user.username}")
                         else:
-                            # Update existing coupon state/winning if changed
-                            should_update = False
-                            
-                            # 1. State/Winning
                             if existing_coupon.state != mapped_state or existing_coupon.winning != winning_amount:
                                 existing_coupon.state = mapped_state
                                 existing_coupon.winning = winning_amount
-                                should_update = True
-                            
-                            # 2. Selections Backfill (Fix "No Details" issue)
-                            if selections:
-                                current_data = dict(existing_coupon.bet_data or {})
-                                # Check if Missing OR Empty
-                                if not current_data.get("Selections"):
-                                    logger.info(f"   [DEBUG_UPDATE] Backfilling Selections for Bet {bet_id}")
-                                    # Copy to ensure SQLAlchemy detects the JSON mutation
-                                    new_data = dict(bet_history)
-                                    new_data["Selections"] = selections
-                                    existing_coupon.bet_data = new_data
-                                    should_update = True
-                                    
-                            if should_update:
                                 existing_coupon.processed_at = datetime.utcnow()
-                        
-                        # --- Event Specific Scoring (CouponEventResult) ---
-                        from shared.models.coupon_event_result import CouponEventResult
-                        
-                        # Calculate Points for THIS event
-                        calc_points, calc_details = calculate_points_for_event(existing_coupon, event)
-                        
-                        # Check existance of result
-                        cer = db.query(CouponEventResult).filter(
-                            CouponEventResult.coupon_id == existing_coupon.id,
-                            CouponEventResult.event_id == event.id
-                        ).first()
-                        
-                        if not cer:
-                            logger.info(f"   [DEBUG_MULTI] Creating NEW Result for Event {event.id} | Bet {bet_id}")
-                            cer = CouponEventResult(
-                                coupon_id=existing_coupon.id,
-                                event_id=event.id,
-                                is_eligible=True,
-                                coupon_state=mapped_state,
-                                points_earned=calc_points,
-                                points_calculation=calc_details,
-                                evaluated_at=datetime.utcnow(),
-                                last_checked_at=datetime.utcnow()
-                            )
-                            db.add(cer)
-                            # user_saved_count += 1 # REMOVED: Don't double count. We count on Coupon creation.
-                            logger.info(f"   -> Event {event.id} ({event.name}) Puan: {calc_points}")
-                        else:
-                            # Update score if state changed
-                            logger.info(f"   [DEBUG_MULTI] Updating Result for Event {event.id} | Bet {bet_id}")
-                            cer.coupon_state = mapped_state
-                            cer.points_earned = calc_points
-                            cer.points_calculation=calc_details
-                            cer.evaluated_at = datetime.utcnow()
-                            cer.last_checked_at = datetime.utcnow()
 
+                        for event in final_events:
+                            calc_points, calc_details = calculate_points_for_event(existing_coupon, event)
+                            cer = db.query(CouponEventResult).filter(CouponEventResult.coupon_id == existing_coupon.id, CouponEventResult.event_id == event.id).first()
+                            if not cer:
+                                db.add(CouponEventResult(
+                                    coupon_id=existing_coupon.id, event_id=event.id, is_eligible=True,
+                                    coupon_state=mapped_state, points_earned=calc_points, points_calculation=calc_details,
+                                    evaluated_at=datetime.utcnow(), last_checked_at=datetime.utcnow()
+                                ))
+                            else:
+                                cer.coupon_state = mapped_state
+                                cer.points_earned = calc_points
+                                cer.points_calculation = calc_details
+                                cer.last_checked_at = datetime.utcnow()
 
-                        # Backwards compatibility: Update generic calculation on Coupon if it matches event_id
-                        # (Optional, maybe remove later)
-                        if existing_coupon.event_id == event.id:
-                            existing_coupon.calculation = calc_points
-
-                # Puanları güncelle (EventParticipant)
-                # Query Total points from CouponEventResult
-                # NOTE: This must be done BEFORE commit to ensure it is saved!
+                # Update Participant Totals
                 for event in user_target_events:
-                     total_user_points = db.query(func.sum(CouponEventResult.points_earned)).filter(
-                         CouponEventResult.event_id == event.id,
-                         CouponEventResult.coupon_id.in_(
-                             db.query(Coupon.id).filter(Coupon.client_id == user.client_id)
-                         ),
-                         # Ensure we only count active/valid results if needed
-                         CouponEventResult.is_eligible == True
-                     ).scalar() or 0.0
-                     
-                     enrollment_record = db.query(EventParticipant).filter(
-                         EventParticipant.event_id == event.id,
-                         EventParticipant.participant_id == user.id
-                     ).first()
-                     
-                     if enrollment_record:
-                         enrollment_record.total_points = total_user_points
-
-                db.commit() # Commit batch per user
-                         
-                # Update job progress after *each user*
-                if job_id:
-                    update_job_status("running", processed=user_processed_count, saved=user_saved_count)
-
-                if i < len(participants) - 1:
-                    await asyncio.sleep(0.05) # Yield to event loop
+                    total_points = db.query(func.sum(CouponEventResult.points_earned)).filter(
+                        CouponEventResult.event_id == event.id,
+                        CouponEventResult.coupon_id.in_(db.query(Coupon.id).filter(Coupon.client_id == user.client_id)),
+                        CouponEventResult.is_eligible == True
+                    ).scalar() or 0.0
                     
+                    enrollment = db.query(EventParticipant).filter(EventParticipant.event_id == event.id, EventParticipant.participant_id == user.id).first()
+                    if enrollment: enrollment.total_points = total_points
+
+                db.commit()
             except Exception as e:
-                logger.error(f"Error processing user {user.username}: {e}")
-                import traceback
-                traceback.print_exc()
+                logger.error(f"Error user {user.username}: {e}")
                 db.rollback()
-        
-        if job_id:
-             update_job_status("completed")
-             
+            finally:
+                if job_id:
+                    update_job_status("running", processed=1, saved=user_saved_count)
+                await asyncio.sleep(1.0) # UX delay for live updates
+
+        if job_id: update_job_status("completed")
     except Exception as e:
-        logger.error(f"Worker process failed: {e}")
+        logger.error(f"Worker failed: {e}")
         if job_id: update_job_status("failed", error=str(e))
     finally:
         db.close()
