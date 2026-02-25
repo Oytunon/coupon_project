@@ -346,10 +346,14 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
 
                         
                         # Seçimlerin HEPSİ izin verilen liglerde mi?
-                        # (Kombine kuponda tek maç bile yasaklı ligdne olsa kupon geçersiz sayılır - Kural tercihi)
+                        # Eğer kural yoksa (allowed_leagues boşsa) üstte zaten final_events'e eklendi ve continue denildi
+                        # Buraya gelindiyse allowed_leagues DOLU demektir.
                         all_valid = True
                         if not selections:
-                            all_valid = False # Detay boşsa geçersiz
+                            # Kural var ama bet detayında lig bilgisi (selections) gelmedi.
+                            # O zaman bu kupon kurala UYMUYOR sayılır.
+                            logger.info(f"   [DEBUG_LEAGUE] Bet {bet_id} REJECTED by Event {event.id}: League rule exists but bet has no selections data.")
+                            all_valid = False 
                         else:
                             for sel in selections:
                                  # API: 'CompetitionId' (18291932)
