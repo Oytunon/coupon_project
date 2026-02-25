@@ -9,6 +9,7 @@ class WorkerLog(Base):
     status = Column(String, default="pending") # pending, running, completed, failed
     processed_count = Column(Integer, default=0)
     saved_count = Column(Integer, default=0)
+    total_count = Column(Integer, default=0) # Total users to process
     error_message = Column(Text, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     completed_at = Column(DateTime, nullable=True)

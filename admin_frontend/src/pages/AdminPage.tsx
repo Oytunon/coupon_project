@@ -173,7 +173,7 @@ const formatDateTimeLocal = (dateString: string) => {
     if (!dateString) return "";
     // If it's already in the local format (e.g. from the input itself), return as-is
     if (dateString.length === 16 && dateString.includes('T') && !dateString.endsWith('Z')) return dateString;
-    
+
     // Fallback naive slicing (YYYY-MM-DDTHH:mm) - ignores JS timezone offsets entirely
     // We expect the DB string to come back exactly as it was saved (e.g. 2026-02-24T22:45:00)
     try {
@@ -542,9 +542,10 @@ export default function AdminPage() {
             const res = await runEventWorker(id)
             const jobId = res.job_id
 
-            toast({
+            const { id: toastId, update } = toast({
                 title: "Worker Başlatıldı",
-                description: "Tarama arka planda devam ediyor...",
+                description: "Tarama arka planda başlıyor...",
+                duration: Infinity // Keep it open until we finish or fail
             })
 
             const checkStatus = setInterval(async () => {
@@ -555,23 +556,35 @@ export default function AdminPage() {
                     if (job.status === 'completed' || job.status === 'failed') {
                         clearInterval(checkStatus)
                         if (job.status === 'completed') {
-                            toast({
+                            update({
+                                id: toastId,
                                 title: "İşlem Tamamlandı",
-                                description: `${job.processed} kupon incelendi, ${job.saved} adet yeni kupon kaydedildi.`,
+                                description: `${job.total || job.processed} kullanıcı incelendi, ${job.saved} adet yeni kupon kaydedildi.`,
                                 variant: "default",
                                 duration: 10000
                             })
                         } else {
-                            toast({
+                            update({
+                                id: toastId,
                                 title: "Worker Durduruldu",
                                 description: job.error || "Bilinmeyen bir hata oluştu.",
                                 variant: "destructive",
                                 duration: 5000
                             })
                         }
-                    } else {
-                        // Running... Opsiyonel: Toast güncelle
-                        // toast({ title: "Çalışıyor...", description: `${job.processed} işlendi...` })
+                    } else if (job.status === 'running') {
+                        const total = job.total || 0;
+                        const processed = job.processed || 0;
+                        const progressStr = total > 0 ? `(${processed}/${total})` : `(${processed} işlendi)`;
+                        const percent = total > 0 ? Math.round((processed / total) * 100) : 0;
+
+                        update({
+                            id: toastId,
+                            title: "Tarama Devam Ediyor...",
+                            description: `Kullanıcılar taranıyor ${progressStr} - %${percent} tamamlandı.`,
+                            variant: "default",
+                            duration: Infinity
+                        })
                     }
                 } catch (e) {
                     console.error("Status check failed", e)

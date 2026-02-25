@@ -184,6 +184,7 @@ async def get_worker_job_status(job_id: int, db: Session = Depends(get_db)):
         "status": job.status,
         "processed": job.processed_count,
         "saved": job.saved_count,
+        "total": job.total_count,
         "error": job.error_message,
         "completed_at": job.completed_at
     }

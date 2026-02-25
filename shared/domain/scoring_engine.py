@@ -73,8 +73,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
     from shared.models.event import Event # Local import to avoid circular dependencies if any
     try:
         # Job Status güncelleme yardımcı fonksiyonu
-        # Job Status güncelleme yardımcı fonksiyonu
-        def update_job_status(status: str, processed=0, saved=0, error=None):
+        def update_job_status(status: str, processed=0, saved=0, error=None, total=0):
             if not job_id: return
             log_db = SessionLocal()
             try:
@@ -83,6 +82,8 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     job.status = status
                     job.processed_count += processed
                     job.saved_count += saved
+                    if total > 0:
+                        job.total_count = total
                     if error: job.error_message = str(error)
                     if status in ["completed", "failed"]:
                         job.completed_at = datetime.utcnow()
@@ -150,6 +151,9 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
         event_names = [info["name"] for info in event_info_map.values()]
         logger.info(f"   [WORKER_DIAGNOSTIC] Targeting Events: {event_names}")
         logger.info(f"   [WORKER_DIAGNOSTIC] Total {len(participants)} participants to scan.")
+
+        if job_id:
+            update_job_status("running", total=len(participants))
 
         # Rate limit için listeyi sıralı gidelim
         for i, user in enumerate(participants):
