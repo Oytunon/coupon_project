@@ -201,8 +201,8 @@ async def fetch_bet_selections(bet_id: str, http_client: httpx.AsyncClient = Non
 async def fetch_bet_selections_batch(
     bet_ids: list, 
     http_client: httpx.AsyncClient = None,
-    chunk_size: int = 10,
-    chunk_delay: float = 0.4,
+    chunk_size: int = 8,
+    chunk_delay: float = 1.0,
     max_retries: int = 2,
     cooldown: int = 120
 ) -> Dict[str, Dict]:
