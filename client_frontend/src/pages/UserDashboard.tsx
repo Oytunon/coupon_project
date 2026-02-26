@@ -297,9 +297,10 @@ export default function UserDashboard() {
                     <>
                         {/* Enrolled Tournaments (Only show when activeCategory is 'all' and user has enrollments) */}
                         {activeCategory === 'all' && myEnrollments.length > 0 && (() => {
-                            const enrolledEvents = publicEvents.filter(e =>
-                                myEnrollments.some(enr => enr.event_id === e.id) && ['active', 'upcoming', 'paused'].includes(e.status)
-                            );
+                            const enrolledEvents = publicEvents.filter(e => {
+                                const isExpired = new Date() > parseDate(e.end_date)
+                                return myEnrollments.some(enr => enr.event_id === e.id) && ['active', 'upcoming', 'paused'].includes(e.status) && !isExpired
+                            });
                             if (enrolledEvents.length === 0) return null;
                             return (
                                 <div className="space-y-1.5 pb-1 border-b border-white/10 mb-1">
