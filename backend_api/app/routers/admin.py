@@ -53,6 +53,7 @@ async def get_user_coupons(
     event_id: Optional[int] = None,
     skip: int = 0,
     limit: int = 20,
+    search: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     from shared.domain.participants import get_user_coupon_history
@@ -60,7 +61,7 @@ async def get_user_coupons(
     from shared.models.coupon import Coupon
     from sqlalchemy import func
 
-    total, items = get_user_coupon_history(db, client_id, event_id, skip, limit)
+    total, items = get_user_coupon_history(db, client_id, event_id, skip, limit, search)
     
     # Calculate Total Points for this context (Global or Event-Specific)
     query = db.query(func.coalesce(func.sum(CouponEventResult.points_earned), 0.0)).join(

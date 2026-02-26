@@ -76,7 +76,8 @@ def get_user_coupon_history(
     client_id: int, 
     event_id: Optional[int] = None, 
     skip: int = 0, 
-    limit: int = 20
+    limit: int = 20,
+    search: Optional[str] = None
 ):
     from shared.models.coupon_event_result import CouponEventResult
     
@@ -85,9 +86,13 @@ def get_user_coupon_history(
         # Multi-Event Support: Filter by presence in CouponEventResult, not Master Coupon event_id
         query = query.join(CouponEventResult, CouponEventResult.coupon_id == Coupon.id)\
                      .filter(CouponEventResult.event_id == event_id)
+    
+    if search:
+        query = query.filter(Coupon.bet_id.ilike(f"%{search}%"))
         
     total = query.count()
     coupons = query.order_by(Coupon.inserted_at.desc()).offset(skip).limit(limit).all()
+
     
     # Post-processing: Inject specific event points into 'calculation' field for display
     if event_id and coupons:

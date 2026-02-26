@@ -60,9 +60,10 @@ const fetchParticipants = async (eventId?: number, skip = 0, limit = 20, search 
     return res.data
 }
 
-const fetchUserCoupons = async (clientId: number, eventId?: number, skip = 0, limit = 20) => {
+const fetchUserCoupons = async (clientId: number, eventId?: number, skip = 0, limit = 20, search = "") => {
     const params: any = { skip, limit }
     if (eventId) params.event_id = eventId
+    if (search) params.search = search
     const res = await apiClient.get(`/admin/participants/${clientId}/coupons`, { params })
     return res.data
 }
@@ -197,6 +198,8 @@ export default function AdminPage() {
     const [loadingCoupons, setLoadingCoupons] = useState(false)
     const [couponPage, setCouponPage] = useState(1)
     const [expandedCouponId, setExpandedCouponId] = useState<number | null>(null)
+    const [couponSearch, setCouponSearch] = useState("")
+    const [debouncedCouponSearch, setDebouncedCouponSearch] = useState("")
     const COUPON_LIMIT = 20
 
     const [stats, setStats] = useState<any>(null)
@@ -345,7 +348,15 @@ export default function AdminPage() {
         if (selectedParticipant) {
             handleSelectParticipant(selectedParticipant)
         }
-    }, [selectedEventId, couponPage])
+    }, [selectedEventId, couponPage, debouncedCouponSearch])
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedCouponSearch(couponSearch)
+            setCouponPage(1)
+        }, 500)
+        return () => clearTimeout(timer)
+    }, [couponSearch])
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -417,7 +428,7 @@ export default function AdminPage() {
         setLoadingCoupons(true)
         try {
             const skip = (couponPage - 1) * COUPON_LIMIT
-            const data = await fetchUserCoupons(p.client_id, selectedEventId || undefined, skip, COUPON_LIMIT)
+            const data = await fetchUserCoupons(p.client_id, selectedEventId || undefined, skip, COUPON_LIMIT, debouncedCouponSearch)
 
             if (data.items) {
                 setUserCoupons(data.items)
@@ -1930,6 +1941,18 @@ export default function AdminPage() {
                                 <CardDescription>Kullanıcının sisteme yüklediği tüm kuponlar.</CardDescription>
                             </CardHeader>
                             <CardContent>
+                                <div className="mb-4">
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <input
+                                            type="text"
+                                            placeholder="Bet ID ile ara..."
+                                            value={couponSearch}
+                                            onChange={(e) => setCouponSearch(e.target.value)}
+                                            className="w-full pl-10 pr-4 py-2 bg-black/20 border border-white/10 rounded-lg text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50"
+                                        />
+                                    </div>
+                                </div>
                                 {loadingCoupons ? (
                                     <div className="py-12 flex flex-col items-center justify-center text-muted-foreground">
                                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
