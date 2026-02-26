@@ -1154,7 +1154,9 @@ export default function AdminPage() {
                                                 <RefreshCw className="h-4 w-4" /> Kuponları Çek
                                             </Button>
 
-                                            <Button size="icon" variant="ghost" className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10"
+                                            <Button size="icon" variant="ghost"
+                                                className={`${event.reward_status === 'completed' || event.reward_status === 'processing' ? 'opacity-30 cursor-not-allowed' : 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10'}`}
+                                                disabled={event.reward_status === 'completed' || event.reward_status === 'processing'}
                                                 onClick={() => {
                                                     if (event.status !== 'ended') {
                                                         toast({
@@ -1166,7 +1168,7 @@ export default function AdminPage() {
                                                     }
                                                     distributeRewards(event.id).then(() => toast({ title: "Başarılı", description: "Ödül dağıtımı sıraya alındı." }));
                                                 }}
-                                                title="Ödülleri Dağıt"
+                                                title={event.reward_status === 'completed' ? "Ödüller zaten dağıtıldı" : event.reward_status === 'processing' ? "Dağıtım devam ediyor..." : "Ödülleri Dağıt"}
                                             >
                                                 <Gift className="h-4 w-4" />
                                             </Button>
