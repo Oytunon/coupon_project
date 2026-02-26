@@ -172,7 +172,6 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                 if bets:
                     # Phase 1: Collect eligible bets and determine which need selection detail
                     eligible_bets = []  # (bet_history, bet_id, mapped_state, amount, sel_count, eligible_events)
-                    needs_selections = set()  # bet_ids that need league checking
 
                     for bet_history in bets:
                         bet_id = str(bet_history.get("BetId") or bet_history.get("Id"))
@@ -240,32 +239,43 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
 
                         if not eligible_for_events: continue
 
-                        # Kaybeden çarpanı 0 ise kaybeden kuponları tamamen atla (DB'ye de kaydetme)
+                        # Kaybeden çarpanı 0 ise kaybeden kuponları atla (gereksiz API çağrısı yapma)
                         if mapped_state == "lost":
                             all_zero = all(float(getattr(ev, 'loss_point_multiplier', 0)) == 0 for ev in eligible_for_events)
                             if all_zero:
                                 continue
-                        
-                        # Check if any event needs league validation
-                        for event in eligible_for_events:
-                            allowed_leagues = (event.rules or {}).get("allowed_league_ids") or []
-                            if allowed_leagues:
-                                needs_selections.add(bet_id)
-                                break
-                        
+
                         eligible_bets.append((bet_history, bet_id, mapped_state, amount, sel_count, eligible_for_events, bet_created_dt))
 
-                    # Phase 2: Batch fetch selection details for bets that need league checking
+                    # Phase 2: Batch fetch selection details for ALL eligible bets
+                    # (Hem lig kontrolü hem de maç detaylarını kaydetmek için)
+                    all_bet_ids = [bid for _, bid, _, _, _, _, _ in eligible_bets]
+                    # Zaten detayı olan kuponları çıkar
+                    bet_ids_needing_fetch = []
+                    for bet_hist, bid, *_ in eligible_bets:
+                        if not bet_hist.get("Selections"):
+                            bet_ids_needing_fetch.append(bid)
+                    
                     selections_cache = {}
-                    if needs_selections:
-                        logger.info(f"User {user.username}: Batch fetching {len(needs_selections)} bet selections")
+                    if bet_ids_needing_fetch:
+                        logger.info(f"User {user.username}: Batch fetching {len(bet_ids_needing_fetch)} bet selections")
                         async with httpx.AsyncClient(timeout=30) as http_client:
                             selections_cache = await fetch_bet_selections_batch(
-                                list(needs_selections), http_client
+                                bet_ids_needing_fetch, http_client
                             )
 
                     # Phase 3: Process each bet with cached selections
                     for bet_history, bet_id, mapped_state, amount, sel_count, eligible_for_events, bet_created_dt in eligible_bets:
+                        # Merge selections into bet_history for persistence
+                        selections_for_bet = []
+                        if bet_history.get("Selections"):
+                            selections_for_bet = bet_history["Selections"]
+                        elif bet_id in selections_cache:
+                            sel_data = selections_cache.get(bet_id, {})
+                            selections_for_bet = sel_data.get("Selections", [])
+                            # bet_history'ye ekle → DB'ye kaydedilecek
+                            bet_history["Selections"] = selections_for_bet
+
                         final_events = []
 
                         for event in eligible_for_events:
@@ -274,17 +284,25 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             
                             all_valid = True
                             if allowed_leagues:
-                                sel_data = selections_cache.get(bet_id, {})
-                                selections = sel_data.get("Selections", [])
-                                if not selections:
+                                if not selections_for_bet:
                                     # Detay çekilemedi — kaybeden ve 0 puan ise kabul et, değilse atla (sonraki çalışmada tekrar denenecek)
                                     all_valid = (mapped_state == "lost" and float(getattr(event, 'loss_point_multiplier', 0)) == 0)
                                 else:
-                                    all_valid = all(str(s.get("CompetitionId")) in [str(lid) for lid in allowed_leagues] for s in selections)
+                                    all_valid = all(str(s.get("CompetitionId")) in [str(lid) for lid in allowed_leagues] for s in selections_for_bet)
                             
                             if all_valid: final_events.append(event)
 
-                        if not final_events: continue
+                        if not final_events:
+                            # final_events boş olsa bile, mevcut kupona selections ekle
+                            existing_coupon = db.query(Coupon).filter(Coupon.bet_id == bet_id).first()
+                            if existing_coupon and selections_for_bet and existing_coupon.bet_data:
+                                current_data = existing_coupon.bet_data or {}
+                                if not current_data.get("Selections"):
+                                    current_data["Selections"] = selections_for_bet
+                                    existing_coupon.bet_data = current_data
+                                    from sqlalchemy.orm.attributes import flag_modified
+                                    flag_modified(existing_coupon, "bet_data")
+                            continue
 
                         # Save to DB
                         existing_coupon = db.query(Coupon).filter(Coupon.bet_id == bet_id).first()
@@ -307,6 +325,14 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                                 existing_coupon.state = mapped_state
                                 existing_coupon.winning = winning_amount
                                 existing_coupon.processed_at = datetime.utcnow()
+                            # Mevcut kupona selections ekle (Detay yok → Detay var)
+                            if selections_for_bet and existing_coupon.bet_data:
+                                current_data = existing_coupon.bet_data or {}
+                                if not current_data.get("Selections"):
+                                    current_data["Selections"] = selections_for_bet
+                                    existing_coupon.bet_data = current_data
+                                    from sqlalchemy.orm.attributes import flag_modified
+                                    flag_modified(existing_coupon, "bet_data")
 
                         for event in final_events:
                             calc_points, calc_details = calculate_points_for_event(existing_coupon, event)
