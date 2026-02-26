@@ -1199,6 +1199,13 @@ export default function AdminPage() {
                                                 </div>
                                             </div>
                                             <div className="space-y-1">
+                                                <span className="text-xs text-muted-foreground uppercase font-bold text-[10px] tracking-wider">Görüntülenme Bitiş</span>
+                                                <div className="flex items-center gap-2 text-sm font-medium">
+                                                    <Clock className="h-3.5 w-3.5 text-amber-400" />
+                                                    {event.display_until ? new Date(event.display_until).toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : <span className="text-white/30 italic">Her Zaman</span>}
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1">
                                                 <span className="text-xs text-muted-foreground uppercase font-bold text-[10px] tracking-wider">Puan Çarpanı (Won/Loss)</span>
                                                 <div className="flex items-center gap-2 font-mono font-bold">
                                                     <span className="text-emerald-500">x{event.won_point_multiplier}</span>
