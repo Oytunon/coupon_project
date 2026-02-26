@@ -247,22 +247,28 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
 
                         eligible_bets.append((bet_history, bet_id, mapped_state, amount, sel_count, eligible_for_events, bet_created_dt))
 
-                    # Phase 2: Batch fetch selection details for ALL eligible bets
-                    # (Hem lig kontrolü hem de maç detaylarını kaydetmek için)
-                    all_bet_ids = [bid for _, bid, _, _, _, _, _ in eligible_bets]
-                    # Zaten detayı olan kuponları çıkar
+                    # Phase 2: Batch fetch selection details
+                    # Önce DB'deki mevcut kuponların selections verisini kontrol et
                     bet_ids_needing_fetch = []
+                    selections_cache = {}
+                    
                     for bet_hist, bid, *_ in eligible_bets:
-                        if not bet_hist.get("Selections"):
+                        existing = db.query(Coupon).filter(Coupon.bet_id == bid).first()
+                        if existing and existing.bet_data and existing.bet_data.get("Selections"):
+                            # DB'de zaten detay var, API'ye istek atma
+                            selections_cache[bid] = {"Selections": existing.bet_data["Selections"]}
+                        else:
                             bet_ids_needing_fetch.append(bid)
                     
-                    selections_cache = {}
                     if bet_ids_needing_fetch:
-                        logger.info(f"User {user.username}: Batch fetching {len(bet_ids_needing_fetch)} bet selections")
+                        logger.info(f"User {user.username}: Batch fetching {len(bet_ids_needing_fetch)} bet selections (skipped {len(eligible_bets) - len(bet_ids_needing_fetch)} cached)")
                         async with httpx.AsyncClient(timeout=30) as http_client:
-                            selections_cache = await fetch_bet_selections_batch(
+                            fetched = await fetch_bet_selections_batch(
                                 bet_ids_needing_fetch, http_client
                             )
+                            selections_cache.update(fetched)
+                    else:
+                        logger.info(f"User {user.username}: All {len(eligible_bets)} selections already cached, no API calls needed")
 
                     # Phase 3: Process each bet with cached selections
                     for bet_history, bet_id, mapped_state, amount, sel_count, eligible_for_events, bet_created_dt in eligible_bets:
