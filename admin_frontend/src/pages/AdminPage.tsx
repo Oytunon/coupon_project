@@ -294,6 +294,8 @@ export default function AdminPage() {
 
 
 
+    const [eventFilter, setEventFilter] = useState<'active' | 'past' | 'archived'>('active')
+
     const [showAddEvent, setShowAddEvent] = useState(false)
     const [newEvent, setNewEvent] = useState({
         name: "",
@@ -301,6 +303,7 @@ export default function AdminPage() {
         description: "",
         start_date: "",
         end_date: "",
+        display_until: "",
         won_point_multiplier: 1.0,
         loss_point_multiplier: 0.0,
         image_url: "",
@@ -464,7 +467,8 @@ export default function AdminPage() {
                 ...newEvent,
                 slug: newEvent.slug || null,
                 start_date: newEvent.start_date.length === 16 ? newEvent.start_date + ":00" : newEvent.start_date,
-                end_date: newEvent.end_date.length === 16 ? newEvent.end_date + ":00" : newEvent.end_date
+                end_date: newEvent.end_date.length === 16 ? newEvent.end_date + ":00" : newEvent.end_date,
+                display_until: newEvent.display_until ? (newEvent.display_until.length === 16 ? newEvent.display_until + ":00" : newEvent.display_until) : null
             }
             const createdEvent = await createEvent(payload)
 
@@ -631,6 +635,7 @@ export default function AdminPage() {
             description: event.description || "",
             start_date: formatDateTimeLocal(event.start_date),
             end_date: formatDateTimeLocal(event.end_date),
+            display_until: event.display_until ? formatDateTimeLocal(event.display_until) : "",
             rules: {
                 min_stake: rules.min_stake ?? 100,
                 min_odd: rules.min_odd ?? 1.5,
@@ -723,6 +728,7 @@ export default function AdminPage() {
                 description: editingEvent.description || "",
                 start_date: editingEvent.start_date.length === 16 ? editingEvent.start_date + ":00" : editingEvent.start_date,
                 end_date: editingEvent.end_date.length === 16 ? editingEvent.end_date + ":00" : editingEvent.end_date,
+                display_until: editingEvent.display_until ? (editingEvent.display_until.length === 16 ? editingEvent.display_until + ":00" : editingEvent.display_until) : null,
                 won_point_multiplier: Number(editingEvent.won_point_multiplier),
                 loss_point_multiplier: Number(editingEvent.loss_point_multiplier),
                 rules: {
@@ -1057,7 +1063,18 @@ export default function AdminPage() {
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        <div className="flex justify-end">
+                        <div className="flex items-center justify-between">
+                            <div className="flex gap-1 bg-black/30 p-1 rounded-lg border border-white/5">
+                                <button onClick={() => setEventFilter('active')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${eventFilter === 'active' ? 'bg-green-500/20 text-green-400 shadow-sm' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}>
+                                    Aktif <span className="ml-1.5 text-xs opacity-70">({events.filter(e => ['draft', 'active', 'paused'].includes(e.status)).length})</span>
+                                </button>
+                                <button onClick={() => setEventFilter('past')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${eventFilter === 'past' ? 'bg-orange-500/20 text-orange-400 shadow-sm' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}>
+                                    Geçmiş <span className="ml-1.5 text-xs opacity-70">({events.filter(e => e.status === 'ended').length})</span>
+                                </button>
+                                <button onClick={() => setEventFilter('archived')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${eventFilter === 'archived' ? 'bg-gray-500/20 text-gray-400 shadow-sm' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}>
+                                    Arşiv <span className="ml-1.5 text-xs opacity-70">({events.filter(e => e.status === 'archived').length})</span>
+                                </button>
+                            </div>
                             <Button onClick={() => { setLeagueIdsInput(""); setShowAddEvent(true); }} className="gap-2 bg-primary hover:bg-primary/90 font-bold">
                                 <Plus className="h-4 w-4" /> Yeni Kampanya
                             </Button>
@@ -1065,7 +1082,12 @@ export default function AdminPage() {
 
                         {/* Event List */}
                         <div className="grid grid-cols-1 gap-6">
-                            {events.map(event => (
+                            {events.filter(event => {
+                                if (eventFilter === 'active') return ['draft', 'active', 'paused'].includes(event.status)
+                                if (eventFilter === 'past') return event.status === 'ended'
+                                if (eventFilter === 'archived') return event.status === 'archived'
+                                return true
+                            }).map(event => (
                                 <Card key={event.id} className="bg-card/40 border-white/5 backdrop-blur-xl hover:border-primary/20 transition-all">
                                     <CardHeader className="flex flex-row items-center gap-4 space-y-0">
                                         <div className="h-16 w-24 bg-black/40 rounded flex items-center justify-center overflow-hidden border border-white/5 shrink-0 shadow-inner">
@@ -1222,6 +1244,14 @@ export default function AdminPage() {
                                                             <label className="text-xs font-bold text-muted-foreground">Bitiş</label>
                                                             <Input type="datetime-local" value={formatDateTimeLocal(newEvent.end_date)} onChange={e => setNewEvent({ ...newEvent, end_date: e.target.value })} required className="bg-black/20" />
                                                         </div>
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-bold text-muted-foreground flex items-center gap-2">
+                                                            <Timer className="h-3 w-3" /> Görüntülenme Bitiş Tarihi
+                                                        </label>
+                                                        <Input type="datetime-local" value={formatDateTimeLocal(newEvent.display_until)} onChange={e => setNewEvent({ ...newEvent, display_until: e.target.value })} className="bg-black/20" />
+                                                        <p className="text-[10px] text-muted-foreground italic">Kampanya bittikten sonra client'te ne zamana kadar görünecek. Boş bırakılırsa her zaman görünür.</p>
                                                     </div>
 
                                                     <div className="space-y-2">
@@ -1430,6 +1460,14 @@ export default function AdminPage() {
                                                             <label className="text-xs font-bold text-muted-foreground">Bitiş</label>
                                                             <Input type="datetime-local" value={formatDateTimeLocal(editingEvent.end_date)} onChange={e => setEditingEvent({ ...editingEvent, end_date: e.target.value })} required className="bg-black/20" />
                                                         </div>
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-bold text-muted-foreground flex items-center gap-2">
+                                                            <Timer className="h-3 w-3" /> Görüntülenme Bitiş Tarihi
+                                                        </label>
+                                                        <Input type="datetime-local" value={formatDateTimeLocal(editingEvent.display_until || "")} onChange={e => setEditingEvent({ ...editingEvent, display_until: e.target.value })} className="bg-black/20" />
+                                                        <p className="text-[10px] text-muted-foreground italic">Kampanya bittikten sonra client'te ne zamana kadar görünecek. Boş bırakılırsa her zaman görünür.</p>
                                                     </div>
 
                                                     <div className="space-y-2">

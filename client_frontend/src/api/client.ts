@@ -16,6 +16,7 @@ export type PublicEvent = {
     status: "active" | "ended" | "paused"
     start_date: string
     end_date: string
+    display_until?: string
     participant_count: number
     image_url?: string
     rules?: {

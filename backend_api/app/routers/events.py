@@ -56,6 +56,7 @@ class EventCreate(BaseModel):
     description: Optional[str] = None
     start_date: datetime
     end_date: datetime
+    display_until: Optional[datetime] = None
     won_point_multiplier: float = 1.0
     loss_point_multiplier: float = 0.0
     image_url: Optional[str] = None
@@ -69,6 +70,7 @@ class EventUpdate(BaseModel):
     description: Optional[str] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    display_until: Optional[datetime] = None
     won_point_multiplier: Optional[float] = None
     loss_point_multiplier: Optional[float] = None
     image_url: Optional[str] = None
@@ -87,6 +89,7 @@ class EventResponse(BaseModel):
     status: str
     start_date: datetime
     end_date: datetime
+    display_until: Optional[datetime] = None
     won_point_multiplier: float
     loss_point_multiplier: float
     image_url: Optional[str]
@@ -154,6 +157,7 @@ async def create_event(
             description=event_data.description,
             start_date=event_data.start_date,
             end_date=event_data.end_date,
+            display_until=event_data.display_until,
             won_point_multiplier=event_data.won_point_multiplier,
             loss_point_multiplier=event_data.loss_point_multiplier,
             image_url=event_data.image_url,

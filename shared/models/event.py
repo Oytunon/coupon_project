@@ -23,6 +23,7 @@ class Event(Base):
     # Tarih Aralığı
     start_date = Column(DateTime, nullable=False)
     end_date = Column(DateTime, nullable=False)
+    display_until = Column(DateTime, nullable=True)  # Client frontend'de ne zamana kadar görünecek
 
     # Puan Çarpanları
     won_point_multiplier = Column(Float, nullable=False, default=1.0)

@@ -18,6 +18,7 @@ class PublicEventResponse(BaseModel):
     status: str
     start_date: datetime
     end_date: datetime
+    display_until: Optional[datetime] = None
     participant_count: int
     image_url: Optional[str] = None # Placeholder for future use
     rules: dict = {}
@@ -39,8 +40,13 @@ async def get_public_events(
         Event.end_date.desc()
     ).all()
 
+    now = datetime.now()
     results = []
     for event in events:
+        # Ended events with expired display_until should be hidden
+        if event.status == "ended" and event.display_until and now > event.display_until:
+            continue
+
         p_count = db.query(func.count(EventParticipant.id)).filter(
             EventParticipant.event_id == event.id
         ).scalar()
@@ -52,6 +58,7 @@ async def get_public_events(
             status=event.status,
             start_date=event.start_date,
             end_date=event.end_date,
+            display_until=event.display_until,
             participant_count=p_count or 0,
             image_url=event.image_url,
             rules=event.rules or {}

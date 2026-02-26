@@ -172,7 +172,13 @@ export default function UserDashboard() {
         return false
     })
 
-    const pastEvents = publicEvents.filter(e => e.status === 'ended' || (e.status === 'active' && new Date() > parseDate(e.end_date)))
+    const pastEvents = publicEvents.filter(e => {
+        const isPast = e.status === 'ended' || (e.status === 'active' && new Date() > parseDate(e.end_date))
+        if (!isPast) return false
+        // Hide if display_until is set and expired
+        if (e.display_until && new Date() > parseDate(e.display_until)) return false
+        return true
+    })
 
     if (targetEventId) {
         const selectedEvent = publicEvents.find(e => e.id === targetEventId)

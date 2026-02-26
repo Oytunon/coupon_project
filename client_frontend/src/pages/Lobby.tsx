@@ -52,7 +52,13 @@ export default function Lobby() {
 
     // Only show past events if category is finished
     const showPastEvents = activeCategory === 'finished'
-    const pastEvents = isEventsArray && showPastEvents ? events.filter(e => e.status === 'ended' || (e.status === 'active' && new Date() > new Date(e.end_date))) : []
+    const pastEvents = isEventsArray && showPastEvents ? events.filter(e => {
+        const isPast = e.status === 'ended' || (e.status === 'active' && new Date() > new Date(e.end_date))
+        if (!isPast) return false
+        // Hide if display_until is set and expired
+        if (e.display_until && new Date() > new Date(e.display_until)) return false
+        return true
+    }) : []
 
     const handleJoin = (eventId: number) => {
         let url = `/event/${eventId}`
