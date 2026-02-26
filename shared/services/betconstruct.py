@@ -201,13 +201,15 @@ async def fetch_bet_selections(bet_id: str, http_client: httpx.AsyncClient = Non
 async def fetch_bet_selections_batch(
     bet_ids: list, 
     http_client: httpx.AsyncClient = None,
-    max_concurrent: int = 5,
-    max_retries: int = 3,
-    cooldown_base: int = 120
+    chunk_size: int = 10,
+    chunk_delay: float = 0.4,
+    max_retries: int = 2,
+    cooldown: int = 120
 ) -> Dict[str, Dict]:
     """
-    Birden fazla bet_id için paralel selection detayı çeker.
-    Max 5 eşzamanlı istek, rate limit'te 2dk cooldown + retry.
+    Bet selection detaylarını chunk'lar halinde paralel çeker.
+    10 istek paralel at → 0.4s bekle → 10 daha at.
+    Rate limit olursa 2dk cooldown + retry.
     
     Returns: {bet_id: {Selections: [...]}, ...}
     """
@@ -215,31 +217,35 @@ async def fetch_bet_selections_batch(
         return {}
     
     results = {}
-    semaphore = asyncio.Semaphore(max_concurrent)
     
-    async def fetch_one(bid: str, retry_count: int = 0):
-        async with semaphore:
-            # Rate limit varsa bekle
-            await _wait_if_rate_limited()
-            
+    async def fetch_one(bid: str):
+        for attempt in range(max_retries + 1):
             try:
+                await _wait_if_rate_limited()
                 data = await fetch_bet_selections(bid, http_client)
                 results[bid] = data
+                return
             except httpx.HTTPStatusError as e:
-                if retry_count < max_retries:
-                    logger.warning(f"Rate limited on {bid}! Cooldown {cooldown_base}s (retry {retry_count + 1}/{max_retries})")
+                if attempt < max_retries:
+                    logger.warning(f"Rate limited on {bid}, waiting {cooldown}s (retry {attempt + 1}/{max_retries})")
                     await _wait_if_rate_limited()
-                    await fetch_one(bid, retry_count + 1)
+                    continue
                 else:
-                    logger.error(f"Failed to fetch selections for {bid} after {retry_count} retries")
+                    logger.error(f"Failed to fetch selections for {bid} after {max_retries} retries")
                     results[bid] = {}
             except Exception as e:
-                logger.error(f"Error batch fetching {bid}: {e}")
+                logger.error(f"Error fetching selections for {bid}: {e}")
                 results[bid] = {}
+                return
     
-    # Tüm istekleri paralel başlat
-    tasks = [fetch_one(bid) for bid in bet_ids]
-    await asyncio.gather(*tasks)
+    # Chunk'lar halinde paralel çek
+    for i in range(0, len(bet_ids), chunk_size):
+        chunk = bet_ids[i:i + chunk_size]
+        await asyncio.gather(*[fetch_one(bid) for bid in chunk])
+        
+        # Son chunk değilse bekle
+        if i + chunk_size < len(bet_ids):
+            await asyncio.sleep(chunk_delay)
     
     logger.info(f"Batch fetch complete: {len(results)}/{len(bet_ids)} selections retrieved")
     return results
