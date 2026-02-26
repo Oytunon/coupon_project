@@ -239,6 +239,12 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             eligible_for_events.append(target_event)
 
                         if not eligible_for_events: continue
+
+                        # Kaybeden çarpanı 0 ise kaybeden kuponları tamamen atla (DB'ye de kaydetme)
+                        if mapped_state == "lost":
+                            all_zero = all(float(getattr(ev, 'loss_point_multiplier', 0)) == 0 for ev in eligible_for_events)
+                            if all_zero:
+                                continue
                         
                         # Check if any event needs league validation
                         for event in eligible_for_events:
