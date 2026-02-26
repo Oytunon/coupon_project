@@ -287,9 +287,20 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         for event in eligible_for_events:
                             rules = event.rules or {}
                             allowed_leagues = rules.get("allowed_league_ids") or []
+                            min_odd = float(rules.get("min_odd", 0) or 0)
                             
                             all_valid = True
-                            if allowed_leagues:
+
+                            # min_odd kontrolü: Kombine kuponlarda her seçimin oranı min_odd'dan büyük olmalı
+                            if min_odd > 0 and selections_for_bet:
+                                for sel in selections_for_bet:
+                                    sel_price = float(sel.get("Price", 0) or 0)
+                                    if sel_price < min_odd:
+                                        logger.info(f"Bet {bet_id} excluded from event {event.id}: selection odds {sel_price} < min_odd {min_odd}")
+                                        all_valid = False
+                                        break
+
+                            if allowed_leagues and all_valid:
                                 if not selections_for_bet:
                                     # Detay çekilemedi — kaybeden ve 0 puan ise kabul et, değilse atla (sonraki çalışmada tekrar denenecek)
                                     all_valid = (mapped_state == "lost" and float(getattr(event, 'loss_point_multiplier', 0)) == 0)
@@ -300,60 +311,70 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
 
                         if not final_events:
                             # final_events boş olsa bile, mevcut kupona selections ekle
-                            existing_coupon = db.query(Coupon).filter(Coupon.bet_id == bet_id).first()
-                            if existing_coupon and selections_for_bet and existing_coupon.bet_data:
-                                current_data = existing_coupon.bet_data or {}
-                                if not current_data.get("Selections"):
-                                    current_data["Selections"] = selections_for_bet
-                                    existing_coupon.bet_data = current_data
-                                    from sqlalchemy.orm.attributes import flag_modified
-                                    flag_modified(existing_coupon, "bet_data")
+                            try:
+                                existing_coupon = db.query(Coupon).filter(Coupon.bet_id == bet_id).first()
+                                if existing_coupon and selections_for_bet and existing_coupon.bet_data:
+                                    current_data = existing_coupon.bet_data or {}
+                                    if not current_data.get("Selections"):
+                                        current_data["Selections"] = selections_for_bet
+                                        existing_coupon.bet_data = current_data
+                                        from sqlalchemy.orm.attributes import flag_modified
+                                        flag_modified(existing_coupon, "bet_data")
+                            except Exception as sel_err:
+                                logger.warning(f"Bet {bet_id}: selections update failed: {sel_err}")
                             continue
 
-                        # Save to DB
-                        existing_coupon = db.query(Coupon).filter(Coupon.bet_id == bet_id).first()
-                        price = float(bet_history.get("Price", 1.0) or 1.0)
-                        winning_amount = float(bet_history.get("WinAmount") or bet_history.get("Payout") or 0.0)
+                        # Save to DB — her kupon bağımsız olarak kaydedilir
+                        try:
+                            existing_coupon = db.query(Coupon).filter(Coupon.bet_id == bet_id).first()
+                            price = float(bet_history.get("Price", 1.0) or 1.0)
+                            winning_amount = float(bet_history.get("WinAmount") or bet_history.get("Payout") or 0.0)
 
-                        if not existing_coupon:
-                            new_coupon = Coupon(
-                                client_id=user.client_id, bet_id=bet_id, event_id=final_events[0].id,
-                                stake=amount, odds=price, combination_count=sel_count, state=mapped_state,
-                                is_live=bool(bet_history.get("IsLive", False)), bet_data=bet_history,
-                                created_at=bet_created_dt, winning=winning_amount, is_processed=True, processed_at=datetime.utcnow()
-                            )
-                            db.add(new_coupon)
-                            db.flush()
-                            existing_coupon = new_coupon
-                            user_saved_count += 1
-                        else:
-                            if existing_coupon.state != mapped_state or existing_coupon.winning != winning_amount:
-                                existing_coupon.state = mapped_state
-                                existing_coupon.winning = winning_amount
-                                existing_coupon.processed_at = datetime.utcnow()
-                            # Mevcut kupona selections ekle (Detay yok → Detay var)
-                            if selections_for_bet and existing_coupon.bet_data:
-                                current_data = existing_coupon.bet_data or {}
-                                if not current_data.get("Selections"):
-                                    current_data["Selections"] = selections_for_bet
-                                    existing_coupon.bet_data = current_data
-                                    from sqlalchemy.orm.attributes import flag_modified
-                                    flag_modified(existing_coupon, "bet_data")
-
-                        for event in final_events:
-                            calc_points, calc_details = calculate_points_for_event(existing_coupon, event)
-                            cer = db.query(CouponEventResult).filter(CouponEventResult.coupon_id == existing_coupon.id, CouponEventResult.event_id == event.id).first()
-                            if not cer:
-                                db.add(CouponEventResult(
-                                    coupon_id=existing_coupon.id, event_id=event.id, is_eligible=True,
-                                    coupon_state=mapped_state, points_earned=calc_points, points_calculation=calc_details,
-                                    evaluated_at=datetime.utcnow(), last_checked_at=datetime.utcnow()
-                                ))
+                            if not existing_coupon:
+                                new_coupon = Coupon(
+                                    client_id=user.client_id, bet_id=bet_id, event_id=final_events[0].id,
+                                    stake=amount, odds=price, combination_count=sel_count, state=mapped_state,
+                                    is_live=bool(bet_history.get("IsLive", False)), bet_data=bet_history,
+                                    created_at=bet_created_dt, winning=winning_amount, is_processed=True, processed_at=datetime.utcnow()
+                                )
+                                db.add(new_coupon)
+                                db.flush()
+                                existing_coupon = new_coupon
+                                user_saved_count += 1
                             else:
-                                cer.coupon_state = mapped_state
-                                cer.points_earned = calc_points
-                                cer.points_calculation = calc_details
-                                cer.last_checked_at = datetime.utcnow()
+                                if existing_coupon.state != mapped_state or existing_coupon.winning != winning_amount:
+                                    existing_coupon.state = mapped_state
+                                    existing_coupon.winning = winning_amount
+                                    existing_coupon.processed_at = datetime.utcnow()
+                                # Mevcut kupona selections ekle (Detay yok → Detay var)
+                                if selections_for_bet and existing_coupon.bet_data:
+                                    current_data = existing_coupon.bet_data or {}
+                                    if not current_data.get("Selections"):
+                                        current_data["Selections"] = selections_for_bet
+                                        existing_coupon.bet_data = current_data
+                                        from sqlalchemy.orm.attributes import flag_modified
+                                        flag_modified(existing_coupon, "bet_data")
+
+                            for event in final_events:
+                                calc_points, calc_details = calculate_points_for_event(existing_coupon, event)
+                                cer = db.query(CouponEventResult).filter(CouponEventResult.coupon_id == existing_coupon.id, CouponEventResult.event_id == event.id).first()
+                                if not cer:
+                                    db.add(CouponEventResult(
+                                        coupon_id=existing_coupon.id, event_id=event.id, is_eligible=True,
+                                        coupon_state=mapped_state, points_earned=calc_points, points_calculation=calc_details,
+                                        evaluated_at=datetime.utcnow(), last_checked_at=datetime.utcnow()
+                                    ))
+                                else:
+                                    cer.coupon_state = mapped_state
+                                    cer.points_earned = calc_points
+                                    cer.points_calculation = calc_details
+                                    cer.last_checked_at = datetime.utcnow()
+                        except Exception as bet_err:
+                            logger.error(f"Bet {bet_id} save failed: {bet_err}")
+                            db.rollback()
+                            continue
+
+                    logger.info(f"User {user.username}: {len(bets)} bets fetched, {len(eligible_bets)} eligible, {user_saved_count} new saved")
 
                 # Update Participant Totals
                 for event in user_target_events:
