@@ -1,4 +1,5 @@
 import asyncio
+import httpx
 import logging
 from datetime import datetime, timedelta
 from typing import Optional, List, Tuple
@@ -9,7 +10,7 @@ from shared.database import SessionLocal
 from shared.models.coupon import Coupon
 from shared.models.participant import Participant
 from shared.models.enrollment import EventParticipant
-from shared.services.betconstruct import fetch_bet_history, fetch_bet_selections
+from shared.services.betconstruct import fetch_bet_history, fetch_bet_selections, fetch_bet_selections_batch
 from shared.models.worker_log import WorkerLog
 from shared.models.event import Event
 from shared.models.coupon_event_result import CouponEventResult
@@ -169,6 +170,10 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     bets = bet_history_data
                 
                 if bets:
+                    # Phase 1: Collect eligible bets and determine which need selection detail
+                    eligible_bets = []  # (bet_history, bet_id, mapped_state, amount, sel_count, eligible_events)
+                    needs_selections = set()  # bet_ids that need league checking
+
                     for bet_history in bets:
                         bet_id = str(bet_history.get("BetId") or bet_history.get("Id"))
                         if not bet_id: continue
@@ -193,20 +198,14 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         type_val = bet_history.get("Type", 1)
                         type_name = str(bet_history.get("TypeName", "")).lower()
                         
-                        # 1: Single, 2: Multiple in BetConstruct
                         allowed_int_types = [1, 2]
                         allowed_str_types = ["single", "multiple"]
                         
-                        # Check integer IDs first
                         if isinstance(type_val, int) and type_val not in allowed_int_types:
                             continue
-                            
-                        # If type is string (sometimes happens), check against allowed strings
                         if isinstance(type_val, str):
                             if type_val.lower() not in allowed_str_types and type_val not in ["1", "2"]:
                                 continue
-                                
-                        # Always check TypeName if it exists to be extra safe against 'BetBuilder', 'System', etc.
                         if type_name and type_name not in allowed_str_types:
                             continue
 
@@ -240,27 +239,39 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             eligible_for_events.append(target_event)
 
                         if not eligible_for_events: continue
+                        
+                        # Check if any event needs league validation
+                        for event in eligible_for_events:
+                            allowed_leagues = (event.rules or {}).get("allowed_league_ids") or []
+                            if allowed_leagues:
+                                needs_selections.add(bet_id)
+                                break
+                        
+                        eligible_bets.append((bet_history, bet_id, mapped_state, amount, sel_count, eligible_for_events, bet_created_dt))
 
-                        # Details fetch (League check)
-                        selections = []
-                        details_fetched = False
+                    # Phase 2: Batch fetch selection details for bets that need league checking
+                    selections_cache = {}
+                    if needs_selections:
+                        logger.info(f"User {user.username}: Batch fetching {len(needs_selections)} bet selections")
+                        async with httpx.AsyncClient(timeout=30) as http_client:
+                            selections_cache = await fetch_bet_selections_batch(
+                                list(needs_selections), http_client
+                            )
+
+                    # Phase 3: Process each bet with cached selections
+                    for bet_history, bet_id, mapped_state, amount, sel_count, eligible_for_events, bet_created_dt in eligible_bets:
                         final_events = []
 
                         for event in eligible_for_events:
                             rules = event.rules or {}
                             allowed_leagues = rules.get("allowed_league_ids") or []
                             
-                            if not details_fetched and allowed_leagues:
-                                try:
-                                    await asyncio.sleep(4.0) # Throttling
-                                    sel_data = await fetch_bet_selections(bet_id)
-                                    selections = sel_data.get("Selections", [])
-                                    details_fetched = True
-                                except: continue
-
                             all_valid = True
                             if allowed_leagues:
+                                sel_data = selections_cache.get(bet_id, {})
+                                selections = sel_data.get("Selections", [])
                                 if not selections:
+                                    # Detay çekilemedi — kaybeden ve 0 puan ise kabul et, değilse atla (sonraki çalışmada tekrar denenecek)
                                     all_valid = (mapped_state == "lost" and float(getattr(event, 'loss_point_multiplier', 0)) == 0)
                                 else:
                                     all_valid = all(str(s.get("CompetitionId")) in [str(lid) for lid in allowed_leagues] for s in selections)
@@ -324,7 +335,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
             finally:
                 if job_id:
                     update_job_status("running", processed=1, saved=user_saved_count)
-                await asyncio.sleep(1.0) # UX delay for live updates
+                await asyncio.sleep(4.0)  # Kullanıcılar arası delay
 
         if job_id: update_job_status("completed")
     except Exception as e:
