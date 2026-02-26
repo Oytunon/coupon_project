@@ -315,6 +315,7 @@ export default function AdminPage() {
             allowed_league_ids: [] as number[],
             scoring_formula: "stake_times_odds",
             min_deposit: 0,
+            prize_pool: 0,
             rewards: [] as any[]
         }
     })
@@ -1196,6 +1197,23 @@ export default function AdminPage() {
                                                     {event.rules.min_deposit ?? 0} TL+
                                                 </div>
                                             </div>
+                                            <div className="space-y-1">
+                                                <span className="text-xs text-muted-foreground uppercase font-bold text-[10px] tracking-wider">Ödül Havuzu</span>
+                                                <div className="text-sm font-bold text-emerald-500 flex items-center gap-1">
+                                                    <Gift className="h-3.5 w-3.5" />
+                                                    {(event.rules.prize_pool || 0).toLocaleString()} TL
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <span className="text-xs text-muted-foreground uppercase font-bold text-[10px] tracking-wider">Dağıtım Durumu</span>
+                                                <div className="pt-1">
+                                                    {event.reward_status === 'completed' && <Badge className="bg-emerald-500/20 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/30">Dağıtıldı</Badge>}
+                                                    {event.reward_status === 'processing' && <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/20 animate-pulse">Dağıtılıyor...</Badge>}
+                                                    {event.reward_status === 'pending' && <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/20">Sırada</Badge>}
+                                                    {event.reward_status === 'failed' && <Badge className="bg-red-500/20 text-red-500 border-red-500/20">Hata!</Badge>}
+                                                    {(event.reward_status === 'none' || !event.reward_status) && <Badge variant="outline" className="text-white/20 border-white/5 font-normal">Dağıtılmadı</Badge>}
+                                                </div>
+                                            </div>
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -1359,6 +1377,25 @@ export default function AdminPage() {
                                                         <div className="space-y-2">
                                                             <label className="text-xs font-bold text-primary">Max Kombine</label>
                                                             <Input type="number" placeholder="Sınırsız" value={newEvent.rules.max_combination || ""} onChange={e => setNewEvent({ ...newEvent, rules: { ...newEvent.rules, max_combination: e.target.value ? parseInt(e.target.value) : null } })} className="bg-black/20 border-primary/20" />
+                                                        </div>
+                                                        <div className="space-y-3 bg-emerald-500/5 p-3 rounded-lg border border-emerald-500/10">
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <label className="text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1">
+                                                                    <Gift className="h-3.3 w-3.3" /> Ödül Havuzu (TL)
+                                                                </label>
+                                                                <span className="text-xs font-bold text-emerald-400">{(newEvent.rules.prize_pool || 0).toLocaleString()} TL</span>
+                                                            </div>
+                                                            <Input
+                                                                type="number"
+                                                                min="0"
+                                                                step="1000"
+                                                                value={newEvent.rules.prize_pool}
+                                                                onChange={e => {
+                                                                    const val = parseInt(e.target.value)
+                                                                    setNewEvent({ ...newEvent, rules: { ...newEvent.rules, prize_pool: isNaN(val) ? 0 : val } })
+                                                                }}
+                                                                className="bg-black/20 border-emerald-500/20 text-emerald-500"
+                                                            />
                                                         </div>
                                                         <div className="space-y-3 bg-amber-500/5 p-3 rounded-lg border border-amber-500/10">
                                                             <div className="flex justify-between items-center mb-1">
@@ -1573,6 +1610,25 @@ export default function AdminPage() {
                                                         <div className="space-y-2">
                                                             <label className="text-xs font-bold text-primary">Max Kombine</label>
                                                             <Input type="number" placeholder="Sınırsız" value={editingEvent.rules.max_combination || ""} onChange={e => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, max_combination: e.target.value ? parseInt(e.target.value) : null } })} className="bg-black/20 border-primary/20" />
+                                                        </div>
+                                                        <div className="space-y-3 bg-emerald-500/5 p-3 rounded-lg border border-emerald-500/10">
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <label className="text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1">
+                                                                    <Gift className="h-3.3 w-3.3" /> Ödül Havuzu (TL)
+                                                                </label>
+                                                                <span className="text-xs font-bold text-emerald-400">{(editingEvent.rules.prize_pool || 0).toLocaleString()} TL</span>
+                                                            </div>
+                                                            <Input
+                                                                type="number"
+                                                                min="0"
+                                                                step="1000"
+                                                                value={editingEvent.rules.prize_pool}
+                                                                onChange={e => {
+                                                                    const val = parseInt(e.target.value)
+                                                                    setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, prize_pool: isNaN(val) ? 0 : val } })
+                                                                }}
+                                                                className="bg-black/20 border-emerald-500/20 text-emerald-500"
+                                                            />
                                                         </div>
                                                         <div className="space-y-3 bg-amber-500/5 p-3 rounded-lg border border-amber-500/10">
                                                             <div className="flex justify-between items-center mb-1">

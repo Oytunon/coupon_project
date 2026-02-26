@@ -47,6 +47,7 @@ class EventRules(BaseModel):
     combo_bonus_enabled: bool = False
     combo_bonus_multiplier: float = 0.1
     min_deposit: int = 1000
+    prize_pool: float = 0.0
     rewards: List[RewardRule] = []
 
 
@@ -94,6 +95,7 @@ class EventResponse(BaseModel):
     loss_point_multiplier: float
     image_url: Optional[str]
     rules: dict
+    reward_status: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     
@@ -188,8 +190,20 @@ async def list_events(
     query = db.query(Event)
     if status:
         query = query.filter(Event.status == status)
+        
+    events = query.order_by(Event.created_at.desc()).all()
     
-    return query.order_by(Event.created_at.desc()).all()
+    # Her event için son ödül dağıtım durumunu çek
+    from shared.models.reward_job import RewardJob
+    
+    for event in events:
+        last_job = db.query(RewardJob).filter(RewardJob.event_id == event.id).order_by(RewardJob.created_at.desc()).first()
+        if last_job:
+            event.reward_status = last_job.status
+        else:
+            event.reward_status = "none" # Dağıtım başlatılmadı
+            
+    return events
 
 
 @router.get("/{event_id}", response_model=EventResponse)
@@ -202,6 +216,11 @@ async def get_event(
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
         raise HTTPException(404, "Event not found")
+        
+    from shared.models.reward_job import RewardJob
+    last_job = db.query(RewardJob).filter(RewardJob.event_id == event.id).order_by(RewardJob.created_at.desc()).first()
+    event.reward_status = last_job.status if last_job else "none"
+    
     return event
 
 
