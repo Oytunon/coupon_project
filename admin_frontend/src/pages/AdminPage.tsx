@@ -331,6 +331,7 @@ export default function AdminPage() {
     const [editingEvent, setEditingEvent] = useState<any>(null)
     const [showHistoryModal, setShowHistoryModal] = useState(false)
     const [historyEvent, setHistoryEvent] = useState<any>(null)
+    const [rewardPoolEvent, setRewardPoolEvent] = useState<any>(null)
 
     const [viewEventId, setViewEventId] = useState<number | null>(null)
     const [eventStats, setEventStats] = useState<any>(null)
@@ -1210,7 +1211,21 @@ export default function AdminPage() {
                                             </div>
 
                                             <div className="space-y-1">
-                                                <span className="text-xs text-muted-foreground uppercase font-bold text-[10px] tracking-wider">Dağıtım Durumu</span>
+                                                <span className="text-xs text-muted-foreground uppercase font-bold text-[10px] tracking-wider">Ödül Havuzu</span>
+                                                <div
+                                                    className="text-sm font-bold text-emerald-500 flex items-center gap-1 cursor-pointer hover:underline"
+                                                    onClick={() => setRewardPoolEvent(event)}
+                                                >
+                                                    <Gift className="h-3.5 w-3.5" />
+                                                    {(event.rules.rewards || []).length > 0 ? (
+                                                        <span>{(event.rules.rewards || []).length} Ödül Tanımlı</span>
+                                                    ) : (
+                                                        <span className="text-white/20 italic font-normal">Tanımlanmadı</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <span className="text-xs text-muted-foreground uppercase font-bold text-[10px] tracking-wider">Ödül Dağıtım Durumu</span>
                                                 <div className="pt-1">
                                                     {event.reward_status === 'completed' && <Badge className="bg-emerald-500/20 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/30">Dağıtıldı</Badge>}
                                                     {event.reward_status === 'processing' && <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/20 animate-pulse">Dağıtılıyor...</Badge>}
@@ -1224,6 +1239,58 @@ export default function AdminPage() {
                                 </Card>
                             ))}
                         </div>
+
+                        {/* Reward Pool Popup */}
+                        {rewardPoolEvent && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setRewardPoolEvent(null)}>
+                                <Card className="bg-card border-white/5 w-full max-w-lg shadow-2xl" onClick={e => e.stopPropagation()}>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Gift className="h-5 w-5 text-emerald-500" />
+                                            Ödül Havuzu — {rewardPoolEvent.name}
+                                        </CardTitle>
+                                        <CardDescription>Bu kampanya için tanımlanmış ödüller.</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {(rewardPoolEvent.rules?.rewards || []).length === 0 ? (
+                                            <div className="text-center py-8 bg-white/5 rounded-lg border border-dashed border-white/10 text-muted-foreground text-sm">
+                                                Henüz ödül tanımlanmamış.
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                {(rewardPoolEvent.rules.rewards || []).map((rule: any, idx: number) => (
+                                                    <div key={idx} className="flex items-center gap-4 p-3 bg-white/5 rounded-lg border border-white/5">
+                                                        <Badge variant="outline" className="h-8 w-8 rounded-full flex items-center justify-center border-primary/50 bg-primary/10 text-primary font-bold shrink-0">
+                                                            {idx + 1}
+                                                        </Badge>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="font-bold flex items-center gap-2 flex-wrap">
+                                                                <span className="text-emerald-400">{rule.amount} {rule.currency || 'TRY'}</span>
+                                                                <Badge variant="secondary" className="text-[10px] uppercase">
+                                                                    {rule.reward_type === 'cash' ? 'Nakit' : rule.reward_type === 'spin' ? 'Free Spin' : rule.reward_type === 'freebet' ? 'Freebet' : 'Bonus'}
+                                                                    {rule.partner_bonus_id && ` (ID: ${rule.partner_bonus_id})`}
+                                                                </Badge>
+                                                            </div>
+                                                            <div className="text-xs text-muted-foreground mt-0.5">
+                                                                {rule.criteria_type === 'rank' && `İlk ${rule.criteria_value} kişiye verilir`}
+                                                                {rule.criteria_type === 'rank_exact' && `Sadece ${rule.criteria_value}. sıraya verilir`}
+                                                                {rule.criteria_type === 'min_points' && `${rule.criteria_value}+ puan yapanlara verilir`}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                    <div className="p-4 border-t border-white/5 flex justify-end gap-2">
+                                        <Button variant="outline" size="sm" onClick={() => { openEditModal(rewardPoolEvent); setModalTab("rewards"); setRewardPoolEvent(null); }}>
+                                            Ödülleri Düzenle
+                                        </Button>
+                                        <Button variant="ghost" size="sm" onClick={() => setRewardPoolEvent(null)}>Kapat</Button>
+                                    </div>
+                                </Card>
+                            </div>
+                        )}
 
                         {/* Create Event Modal */}
                         {showAddEvent && (
