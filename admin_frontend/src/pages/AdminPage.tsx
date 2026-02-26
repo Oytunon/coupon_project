@@ -1245,6 +1245,13 @@ export default function AdminPage() {
                                                     {(event.reward_status === 'none' || !event.reward_status) && <Badge variant="outline" className="text-white/20 border-white/5 font-normal">Dağıtılmadı</Badge>}
                                                 </div>
                                             </div>
+                                            <div className="space-y-1">
+                                                <span className="text-xs text-muted-foreground uppercase font-bold text-[10px] tracking-wider">Son Kupon Çekilme</span>
+                                                <div className="flex items-center gap-2 text-sm font-medium">
+                                                    <RefreshCw className="h-3.5 w-3.5 text-blue-400" />
+                                                    {event.last_worker_run ? new Date(event.last_worker_run).toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : <span className="text-white/30 italic">Henüz çekilmedi</span>}
+                                                </div>
+                                            </div>
                                         </div>
                                     </CardContent>
                                 </Card>

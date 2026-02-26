@@ -96,6 +96,7 @@ class EventResponse(BaseModel):
     image_url: Optional[str]
     rules: dict
     reward_status: Optional[str] = None
+    last_worker_run: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
     
@@ -213,6 +214,31 @@ async def list_events(
     
     for event in events:
         event.reward_status = job_statuses.get(event.id, "none")
+    
+    # Her event için son worker çalışma tarihini bul
+    from shared.models.worker_log import WorkerLog
+    
+    worker_subquery = db.query(
+        WorkerLog.event_id,
+        func.max(WorkerLog.completed_at).label('last_run')
+    ).filter(
+        WorkerLog.status == "completed",
+        WorkerLog.event_id.isnot(None)
+    ).group_by(WorkerLog.event_id).subquery()
+    
+    last_worker_runs = {
+        row.event_id: row.last_run
+        for row in db.query(worker_subquery.c.event_id, worker_subquery.c.last_run).all()
+    }
+    
+    # event_id=None olan (cron) en son tamamlanan job
+    cron_last_run = db.query(func.max(WorkerLog.completed_at)).filter(
+        WorkerLog.status == "completed",
+        WorkerLog.event_id.is_(None)
+    ).scalar()
+    
+    for event in events:
+        event.last_worker_run = last_worker_runs.get(event.id) or cron_last_run
             
     return events
 
