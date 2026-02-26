@@ -193,15 +193,26 @@ async def list_events(
         
     events = query.order_by(Event.created_at.desc()).all()
     
-    # Her event için son ödül dağıtım durumunu çek
+    # Her event için son ödül dağıtım durumunu toplu çek (Subquery optimization)
     from shared.models.reward_job import RewardJob
+    from sqlalchemy import select, func
+    
+    # Her event için en son job id'sini bul
+    subquery = db.query(
+        RewardJob.event_id,
+        func.max(RewardJob.id).label('max_job_id')
+    ).group_by(RewardJob.event_id).subquery()
+    
+    # Bu id'lere karşılık gelen status'ları çek
+    job_statuses = {
+        row.event_id: row.status 
+        for row in db.query(RewardJob.event_id, RewardJob.status)
+        .join(subquery, RewardJob.id == subquery.c.max_job_id)
+        .all()
+    }
     
     for event in events:
-        last_job = db.query(RewardJob).filter(RewardJob.event_id == event.id).order_by(RewardJob.created_at.desc()).first()
-        if last_job:
-            event.reward_status = last_job.status
-        else:
-            event.reward_status = "none" # Dağıtım başlatılmadı
+        event.reward_status = job_statuses.get(event.id, "none")
             
     return events
 

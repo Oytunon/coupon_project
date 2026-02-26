@@ -45,6 +45,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { apiClient } from "../api/client"
 import { LeagueSelector } from "@/components/LeagueSelector"
 import { EventRewardSettings } from "@/components/EventRewardSettings"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 const fetchAdminStats = async () => {
     const res = await apiClient.get('/admin/stats')
@@ -1199,9 +1200,23 @@ export default function AdminPage() {
                                             </div>
                                             <div className="space-y-1">
                                                 <span className="text-xs text-muted-foreground uppercase font-bold text-[10px] tracking-wider">Ödül Havuzu</span>
-                                                <div className="text-sm font-bold text-emerald-500 flex items-center gap-1">
+                                                <div
+                                                    className="text-sm font-bold text-emerald-500 flex items-center gap-1 cursor-pointer hover:underline"
+                                                    onClick={() => {
+                                                        openEditModal(event);
+                                                        setModalTab("rewards");
+                                                    }}
+                                                >
                                                     <Gift className="h-3.5 w-3.5" />
-                                                    {(event.rules.prize_pool || 0).toLocaleString()} TL
+                                                    {event.rules.prize_pool || (event.rules.rewards || []).reduce((acc: number, r: any) => acc + (r.amount || 0), 0) > 0 ? (
+                                                        <span>
+                                                            {event.rules.prize_pool ?
+                                                                event.rules.prize_pool.toLocaleString() :
+                                                                (event.rules.rewards || []).reduce((acc: number, r: any) => acc + (r.amount || 0), 0).toLocaleString()} TL
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-white/20 italic font-normal">Tanımlanmadı</span>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="space-y-1">
@@ -1663,9 +1678,18 @@ export default function AdminPage() {
 
                                             {/* TAB 3: REWARDS */}
                                             {modalTab === 'rewards' && (
-                                                <div className="animate-in fade-in slide-in-from-right-4">
+                                                <div className="animate-in fade-in slide-in-from-right-4 space-y-4">
+                                                    {(!editingEvent.rules.rewards || editingEvent.rules.rewards.length === 0) && (
+                                                        <Alert className="bg-amber-500/10 border-amber-500/20 text-amber-500">
+                                                            <AlertCircle className="h-4 w-4" />
+                                                            <AlertTitle className="text-xs font-bold uppercase">Ödüller Tanımlanmamış</AlertTitle>
+                                                            <AlertDescription className="text-xs">
+                                                                Bu kampanya için henüz ödül kuralı eklenmemiş. Ödül dağıtımı yapabilmek için kural eklemelisiniz.
+                                                            </AlertDescription>
+                                                        </Alert>
+                                                    )}
                                                     <EventRewardSettings
-                                                        rewards={editingEvent.rules.rewards}
+                                                        rewards={editingEvent.rules.rewards || []}
                                                         onChange={(rewards) => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, rewards } })}
                                                     />
                                                 </div>
