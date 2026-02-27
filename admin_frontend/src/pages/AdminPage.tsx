@@ -80,7 +80,7 @@ const createAdminUser = async (userData: any) => {
 }
 
 const deleteAdminUser = async (userId: number) => {
-    const res = await apiClient.delete(`/api/admin/users/${userId}`)
+    const res = await apiClient.delete(`/admin/users/${userId}`)
     return res.data
 }
 
