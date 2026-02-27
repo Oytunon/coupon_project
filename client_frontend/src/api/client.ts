@@ -26,6 +26,7 @@ export type PublicEvent = {
         min_deposit?: number
         [key: string]: any
     }
+    content_rules?: { title: string; content: string; icon: string }[]
 }
 
 

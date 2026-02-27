@@ -46,6 +46,10 @@ class Event(Base):
         "min_deposit": 1000  # Default 1000 TL
     })
 
+    # Client-facing content rules (FAQ style)
+    # Structure: [{"title": "...", "content": "...", "icon": "..."}]
+    content_rules = Column(JSONB, nullable=False, default=[])
+
     # Admin Info
     created_by = Column(Integer, ForeignKey("admin_users.id"), nullable=True)
 

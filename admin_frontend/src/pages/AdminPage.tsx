@@ -34,7 +34,8 @@ import {
     Gift,
     ImagePlus,
     Timer,
-    Info
+    Info,
+    X
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -187,6 +188,91 @@ const formatDateTimeLocal = (dateString: string) => {
     }
 }
 
+const ContentRuleEditor = ({ rules, onChange }: { rules: { title: string; content: string; icon: string }[], onChange: (rules: { title: string; content: string; icon: string }[]) => void }) => {
+    const icons = ["UserPlus", "TrendingUp", "Ticket", "Award", "FileText", "AlertCircle", "Info", "Search", "Calendar", "Clock", "Gift", "ScrollText"];
+
+    const addRule = () => {
+        onChange([...rules, { title: "", content: "", icon: "Info" }]);
+    };
+
+    const removeRule = (index: number) => {
+        onChange(rules.filter((_, i) => i !== index));
+    };
+
+    const updateRule = (index: number, field: string, value: string) => {
+        const newRules = [...rules];
+        newRules[index] = { ...newRules[index], [field]: value };
+        onChange(newRules);
+    };
+
+    return (
+        <div className="space-y-4">
+            <div className="flex justify-between items-center">
+                <label className="text-xs font-bold text-muted-foreground uppercase">Kullanıcı Kuralları (FAQ)</label>
+                <Button type="button" size="sm" onClick={addRule} className="gap-2">
+                    <Plus className="h-4 w-4" /> Kural Ekle
+                </Button>
+            </div>
+
+            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                {rules.length === 0 && (
+                    <div className="text-center p-8 bg-black/20 rounded-lg border border-dashed border-white/10">
+                        <p className="text-muted-foreground text-sm italic">Henüz kural eklenmemiş. "Kural Ekle" butonu ile başlayın.</p>
+                    </div>
+                )}
+
+                {rules.map((rule, idx) => (
+                    <div key={idx} className="p-4 bg-white/5 rounded-lg border border-white/10 space-y-4 relative group">
+                        <button
+                            type="button"
+                            onClick={() => removeRule(idx)}
+                            className="absolute -top-2 -right-2 h-6 w-6 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        >
+                            <X className="h-3 w-3 text-white" />
+                        </button>
+
+                        <div className="grid grid-cols-12 gap-4">
+                            <div className="col-span-8 space-y-2">
+                                <label className="text-[10px] font-bold text-muted-foreground uppercase">Başlık</label>
+                                <Input
+                                    value={rule.title}
+                                    onChange={e => updateRule(idx, "title", e.target.value)}
+                                    placeholder="Örn: Nasıl Katılırım?"
+                                    className="bg-black/20"
+                                />
+                            </div>
+                            <div className="col-span-4 space-y-2">
+                                <label className="text-[10px] font-bold text-muted-foreground uppercase">İkon</label>
+                                <Select value={rule.icon} onValueChange={val => updateRule(idx, "icon", val)}>
+                                    <SelectTrigger className="bg-black/20 border-white/10">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {icons.map(icon => (
+                                            <SelectItem key={icon} value={icon}>{icon}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase">İçerik</label>
+                            <textarea
+                                value={rule.content}
+                                onChange={e => updateRule(idx, "content", e.target.value)}
+                                placeholder="Kural detaylarını buraya yazın..."
+                                className="flex min-h-[60px] w-full rounded-md border border-input bg-black/20 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+
 export default function AdminPage() {
 
     const { toast } = useToast()
@@ -320,10 +406,11 @@ export default function AdminPage() {
             scoring_formula: "stake_times_odds",
             min_deposit: 0,
             rewards: [] as any[]
-        }
+        },
+        content_rules: [] as { title: string; content: string; icon: string }[]
     })
     const [leagueIdsInput, setLeagueIdsInput] = useState("")
-    const [modalTab, setModalTab] = useState<"general" | "rules" | "rewards">("general")
+    const [modalTab, setModalTab] = useState<"general" | "rules" | "rewards" | "content_rules">("general")
     const [rewardHistory, setRewardHistory] = useState<any[]>([])
     const [loadingRewards, setLoadingRewards] = useState(false)
 
@@ -1318,9 +1405,10 @@ export default function AdminPage() {
                                         <CardTitle>Yeni Kampanya Oluştur</CardTitle>
                                         <CardDescription>Kampanya kuralları ve ödülleri belirleyin.</CardDescription>
                                         <div className="flex gap-2 mt-4 border-b border-white/10">
-                                            <button onClick={() => setModalTab("general")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'general' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Genel Ayarlar</button>
-                                            <button onClick={() => setModalTab("rules")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'rules' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Kurallar</button>
-                                            <button onClick={() => setModalTab("rewards")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'rewards' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Ödüller</button>
+                                            <button type="button" onClick={() => setModalTab("general")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'general' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Genel Ayarlar</button>
+                                            <button type="button" onClick={() => setModalTab("rules")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'rules' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Kurallar</button>
+                                            <button type="button" onClick={() => setModalTab("content_rules")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'content_rules' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Kullanıcı Kuralları</button>
+                                            <button type="button" onClick={() => setModalTab("rewards")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'rewards' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Ödüller</button>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="overflow-y-auto custom-scrollbar pr-2 mt-4">
@@ -1510,6 +1598,16 @@ export default function AdminPage() {
                                                 </div>
                                             )}
 
+                                            {/* TAB 4: CONTENT RULES */}
+                                            {modalTab === 'content_rules' && (
+                                                <div className="animate-in fade-in slide-in-from-right-4">
+                                                    <ContentRuleEditor
+                                                        rules={newEvent.content_rules}
+                                                        onChange={(content_rules) => setNewEvent({ ...newEvent, content_rules })}
+                                                    />
+                                                </div>
+                                            )}
+
                                             <div className="flex justify-end gap-2 pt-4 border-t border-white/5">
                                                 <Button type="button" variant="ghost" onClick={() => setShowAddEvent(false)}>İptal</Button>
                                                 <Button type="submit" disabled={saving === "create_event"} className="bg-primary hover:bg-primary/90">
@@ -1530,9 +1628,10 @@ export default function AdminPage() {
                                         <CardTitle>Kampanyayı Düzenle</CardTitle>
                                         <CardDescription>Kampanya kurallarını güncelle.</CardDescription>
                                         <div className="flex gap-2 mt-4 border-b border-white/10">
-                                            <button onClick={() => setModalTab("general")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'general' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Genel Ayarlar</button>
-                                            <button onClick={() => setModalTab("rules")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'rules' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Kurallar</button>
-                                            <button onClick={() => setModalTab("rewards")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'rewards' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Ödüller</button>
+                                            <button type="button" onClick={() => setModalTab("general")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'general' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Genel Ayarlar</button>
+                                            <button type="button" onClick={() => setModalTab("rules")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'rules' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Kurallar</button>
+                                            <button type="button" onClick={() => setModalTab("content_rules")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'content_rules' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Kullanıcı Kuralları</button>
+                                            <button type="button" onClick={() => setModalTab("rewards")} className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${modalTab === 'rewards' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-white'}`}>Ödüller</button>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="max-h-[70vh] overflow-y-auto custom-scrollbar pr-2 mt-4">

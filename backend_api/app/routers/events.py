@@ -26,6 +26,12 @@ router = APIRouter(prefix="/api/admin/events", tags=["admin-events"])
 # === Pydantic Schemas ===
 
 
+class ContentRule(BaseModel):
+    title: str
+    content: str
+    icon: str = "Info"
+
+
 class RewardRule(BaseModel):
     reward_type: str  # 'cash', 'bonus', 'freebet', 'spin'
     amount: float
@@ -62,6 +68,7 @@ class EventCreate(BaseModel):
     loss_point_multiplier: float = 0.0
     image_url: Optional[str] = None
     rules: EventRules
+    content_rules: List[ContentRule] = []
 
 
 class EventUpdate(BaseModel):
@@ -76,6 +83,7 @@ class EventUpdate(BaseModel):
     loss_point_multiplier: Optional[float] = None
     image_url: Optional[str] = None
     rules: Optional[EventRules] = None
+    content_rules: Optional[List[ContentRule]] = None
 
 
 class EventStatusUpdate(BaseModel):
@@ -95,6 +103,7 @@ class EventResponse(BaseModel):
     loss_point_multiplier: float
     image_url: Optional[str]
     rules: dict
+    content_rules: List[ContentRule] = []
     reward_status: Optional[str] = None
     last_worker_run: Optional[datetime] = None
     created_at: datetime
@@ -291,7 +300,7 @@ async def update_event(
 
     # 2. Update simple fields
     for field, value in data_dict.items():
-        if field != "rules":
+        if field not in ["rules", "content_rules"]:
             logger.info(f"Updating {field}: {getattr(event, field)} -> {value}")
             setattr(event, field, value)
 

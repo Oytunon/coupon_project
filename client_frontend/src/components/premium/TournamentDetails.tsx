@@ -1113,47 +1113,64 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                             </div>
 
                             <div className="space-y-4">
-                                {[
-                                    { id: 1, title: 'Nasıl Katılırım?', icon: UserPlus, content: 'Turnuvaya katılmak için "HEMEN KATIL" butonuna tıklamanız yeterlidir. Katılım ücretsizdir ve anında başlayabilirsiniz. Turnuva süresince oynadığınız tüm kuponlar otomatik olarak puan kazandırır.' },
-                                    { id: 2, title: 'Puan Nasıl Kazanılır?', icon: TrendingUp, content: 'Puanlarınız kuponlarınızın oranına ve tutarına göre hesaplanır. Yüksek oranlı ve tutarlı kuponlar daha fazla puan kazandırır.' },
-                                    { id: 3, title: 'Kupon Kuralları', icon: Ticket, content: 'Sadece futbol ve basketbol maçları geçerlidir. Minimum oran 1.50 olmalıdır.' },
-                                    { id: 4, title: 'Ödül Dağıtımı', icon: Award, content: 'Ödüller turnuva bitiminden 48 saat sonra hesabınıza otomatik olarak yatırılır. Şartları sağlayan kullanıcılar ödül havuzundan pay alır.' },
-                                    { id: 5, title: 'Genel Şartlar', icon: FileText, content: 'Turnuvaya katılan herkes genel kuralları kabul etmiş sayılır. Hile girişimi tespit edilen kullanıcılar diskalifiye edilir.' }
-                                ].map((rule) => (
-                                    <div key={rule.id} className={`bg-gradient-to-br from-gray-900 to-black border-2 rounded-xl overflow-hidden transition-all ${activeRule === rule.id ? 'border-[#D9B648]' : 'border-[#D9B648]/20'}`}>
-                                        <button
-                                            onClick={() => setActiveRule(activeRule === rule.id ? null : rule.id)}
-                                            className="w-full flex items-center justify-between p-4 md:p-5 hover:bg-black/30 transition-all text-left group"
-                                        >
-                                            <div className="flex items-center gap-3 md:gap-4 flex-1">
-                                                <div className="relative">
-                                                    <div className={`absolute inset-0 bg-[#D9B648] blur-lg opacity-20 ${activeRule === rule.id ? 'opacity-40' : ''}`}></div>
-                                                    <div className="relative w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-[#D9B648] to-[#F7EBA5] rounded-xl flex items-center justify-center shadow-lg">
-                                                        <rule.icon className="md:w-6 md:h-6 text-black" />
-                                                    </div>
-                                                </div>
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <span className="text-[#D9B648] font-black text-lg md:text-xl">{rule.id}.</span>
-                                                        <h3 className="font-bold text-sm md:text-base text-[#F7EBA5]">{rule.title}</h3>
-                                                    </div>
-                                                    {activeRule !== rule.id && (
-                                                        <p className="text-gray-500 text-xs md:text-sm line-clamp-1">Detayları görüntülemek için tıklayın</p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <ChevronDown className={`md:w-6 md:h-6 text-[#D9B648] transition-transform flex-shrink-0 ml-2 ${activeRule === rule.id ? 'rotate-180' : ''}`} />
-                                        </button>
+                                {(() => {
+                                    const iconMap: Record<string, any> = {
+                                        UserPlus, TrendingUp, Ticket, Award, FileText, AlertCircle, Info, Search, Calendar, Clock, Gift, ScrollText
+                                    };
 
-                                        {activeRule === rule.id && (
-                                            <div className="px-4 md:px-5 pb-4 md:pb-5 animate-in slide-in-from-top-2">
-                                                <div className="bg-black/50 rounded-lg p-4 md:p-5 border-l-4 border-[#D9B648]">
-                                                    <p className="text-gray-300 leading-relaxed text-xs md:text-sm">{rule.content}</p>
+                                    const fallbackRules = [
+                                        { id: 1, title: 'Nasıl Katılırım?', icon: UserPlus, content: 'Turnuvaya katılmak için "HEMEN KATIL" butonuna tıklamanız yeterlidir. Katılım ücretsizdir ve anında başlayabilirsiniz. Turnuva süresince oynadığınız tüm kuponlar otomatik olarak puan kazandırır.' },
+                                        { id: 2, title: 'Puan Nasıl Kazanılır?', icon: TrendingUp, content: 'Puanlarınız kuponlarınızın oranına ve tutarına göre hesaplanır. Yüksek oranlı ve tutarlı kuponlar daha fazla puan kazandırır.' },
+                                        { id: 3, title: 'Kupon Kuralları', icon: Ticket, content: 'Sadece futbol ve basketbol maçları geçerlidir. Minimum oran 1.50 olmalıdır.' },
+                                        { id: 4, title: 'Ödül Dağıtımı', icon: Award, content: 'Ödüller turnuva bitiminden 48 saat sonra hesabınıza otomatik olarak yatırılır. Şartları sağlayan kullanıcılar ödül havuzundan pay alır.' },
+                                        { id: 5, title: 'Genel Şartlar', icon: FileText, content: 'Turnuvaya katılan herkes genel kuralları kabul etmiş sayılır. Hile girişimi tespit edilen kullanıcılar diskalifiye edilir.' }
+                                    ];
+
+                                    const displayRules = (event.content_rules && event.content_rules.length > 0)
+                                        ? event.content_rules.map((r: any, idx: number) => ({
+                                            id: idx + 1,
+                                            title: r.title,
+                                            content: r.content,
+                                            icon: iconMap[r.icon] || Info
+                                        }))
+                                        : fallbackRules;
+
+                                    return displayRules.map((rule: any) => (
+                                        <div key={rule.id} className={`bg-gradient-to-br from-gray-900 to-black border-2 rounded-xl overflow-hidden transition-all ${activeRule === rule.id ? 'border-[#D9B648]' : 'border-[#D9B648]/20'}`}>
+                                            <button
+                                                onClick={() => setActiveRule(activeRule === rule.id ? null : rule.id)}
+                                                className="w-full flex items-center justify-between p-4 md:p-5 hover:bg-black/30 transition-all text-left group"
+                                            >
+                                                <div className="flex items-center gap-3 md:gap-4 flex-1">
+                                                    <div className="relative">
+                                                        <div className={`absolute inset-0 bg-[#D9B648] blur-lg opacity-20 ${activeRule === rule.id ? 'opacity-40' : ''}`}></div>
+                                                        <div className="relative w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-[#D9B648] to-[#F7EBA5] rounded-xl flex items-center justify-center shadow-lg">
+                                                            <rule.icon className="md:w-6 md:h-6 text-black" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className="text-[#D9B648] font-black text-lg md:text-xl">{rule.id}.</span>
+                                                            <h3 className="font-bold text-sm md:text-base text-[#F7EBA5]">{rule.title}</h3>
+                                                        </div>
+                                                        {activeRule !== rule.id && (
+                                                            <p className="text-gray-500 text-xs md:text-sm line-clamp-1">Detayları görüntülemek için tıklayın</p>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
+                                                <ChevronDown className={`md:w-6 md:h-6 text-[#D9B648] transition-transform flex-shrink-0 ml-2 ${activeRule === rule.id ? 'rotate-180' : ''}`} />
+                                            </button>
+
+                                            {activeRule === rule.id && (
+                                                <div className="px-4 md:px-5 pb-4 md:pb-5 animate-in slide-in-from-top-2">
+                                                    <div className="bg-black/50 rounded-lg p-4 md:p-5 border-l-4 border-[#D9B648]">
+                                                        <p className="text-gray-300 leading-relaxed text-xs md:text-sm">{rule.content}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ));
+                                })()}
                             </div>
                             <div className="mt-6 bg-black border-2 border-[#D9B648]/30 rounded-xl p-4 md:p-5">
                                 <div className="flex items-start gap-3">
