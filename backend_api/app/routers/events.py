@@ -163,6 +163,16 @@ async def create_event(
              base_slug = slugify(event_data.name)
              slug_to_use = f"{base_slug}-{uuid.uuid4().hex[:6]}"
 
+        processed_content_rules = []
+        if event_data.content_rules:
+            for rule in event_data.content_rules:
+                if hasattr(rule, "model_dump"):
+                    processed_content_rules.append(rule.model_dump())
+                elif hasattr(rule, "dict"):
+                    processed_content_rules.append(rule.dict())
+                else:
+                    processed_content_rules.append(rule)
+
         event = Event(
             name=event_data.name,
             slug=slug_to_use,
@@ -174,6 +184,7 @@ async def create_event(
             loss_point_multiplier=event_data.loss_point_multiplier,
             image_url=event_data.image_url,
             rules=event_data.rules.dict(),
+            content_rules=processed_content_rules,
             created_by=current_admin.id,
             status="draft" 
         )

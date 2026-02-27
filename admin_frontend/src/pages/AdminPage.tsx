@@ -568,7 +568,8 @@ export default function AdminPage() {
                 slug: newEvent.slug || null,
                 start_date: newEvent.start_date.length === 16 ? newEvent.start_date + ":00" : newEvent.start_date,
                 end_date: newEvent.end_date.length === 16 ? newEvent.end_date + ":00" : newEvent.end_date,
-                display_until: newEvent.display_until ? (newEvent.display_until.length === 16 ? newEvent.display_until + ":00" : newEvent.display_until) : null
+                display_until: newEvent.display_until ? (newEvent.display_until.length === 16 ? newEvent.display_until + ":00" : newEvent.display_until) : null,
+                content_rules: newEvent.content_rules || []
             }
             const createdEvent = await createEvent(payload)
 
