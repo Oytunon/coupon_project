@@ -35,8 +35,8 @@ async def _wait_if_rate_limited():
             await asyncio.sleep(wait_seconds)
 
 
-async def _set_rate_limit_cooldown(seconds: int = 120):
-    """Rate limit cooldown ayarla (varsayılan 2 dakika — API'nin söylediği süre)."""
+async def _set_rate_limit_cooldown(seconds: int = 60):
+    """Rate limit cooldown ayarla (varsayılan 1 dakika)."""
     global _rate_limit_until
     _rate_limit_until = datetime.utcnow() + timedelta(seconds=seconds)
     logger.warning(f"🚫 Rate limited! {seconds}s cooldown başlatıldı.")
@@ -52,7 +52,7 @@ def get_headers():
     return headers
 
 
-async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_retries: int = 2) -> Dict[str, Any]:
+async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_retries: int = 4) -> Dict[str, Any]:
     """Betconstruct'tan bahis geçmişini çeker.
     Sayfalama (Pagination) kullanarak tüm kuponları eksiksiz alır.
     Rate limit durumunda cooldown + retry."""
@@ -102,7 +102,7 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_
                     
                     # Rate limit kontrolü
                     if _is_rate_limited_response(r):
-                        await _set_rate_limit_cooldown(120)
+                        await _set_rate_limit_cooldown(60)
                         if attempt < max_retries:
                             logger.warning(f"Bet history rate limited for {client_id}, retry {attempt + 1}/{max_retries}")
                             await _wait_if_rate_limited()
@@ -146,7 +146,7 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_
             
         except Exception as e:
             if "request lim" in str(e).lower() and attempt < max_retries:
-                await _set_rate_limit_cooldown(120)
+                await _set_rate_limit_cooldown(60)
                 await _wait_if_rate_limited()
                 continue
             logger.error(f"Error fetching bet history for {client_id}: {e}")
@@ -173,7 +173,7 @@ async def fetch_bet_selections(bet_id: str, http_client: httpx.AsyncClient = Non
         
         # Rate limit kontrolü
         if _is_rate_limited_response(r):
-            await _set_rate_limit_cooldown(120)
+            await _set_rate_limit_cooldown(60)
             raise httpx.HTTPStatusError(
                 "Rate limited", request=r.request, response=r
             )
@@ -203,13 +203,13 @@ async def fetch_bet_selections_batch(
     http_client: httpx.AsyncClient = None,
     chunk_size: int = 8,
     chunk_delay: float = 1.0,
-    max_retries: int = 2,
-    cooldown: int = 120
+    max_retries: int = 4,
+    cooldown: int = 60
 ) -> Dict[str, Dict]:
     """
     Bet selection detaylarını chunk'lar halinde paralel çeker.
     10 istek paralel at → 0.4s bekle → 10 daha at.
-    Rate limit olursa 2dk cooldown + retry.
+    Rate limit olursa 1dk cooldown + retry.
     
     Returns: {bet_id: {Selections: [...]}, ...}
     """
