@@ -16,13 +16,21 @@ def start_scheduler():
         asyncio.set_event_loop(loop)
     
     scheduler = AsyncIOScheduler(event_loop=loop)
-    from shared.domain.cleanup import cleanup_expired_magic_tokens
+    from shared.domain.cleanup import cleanup_expired_magic_tokens, auto_expire_events
     
     # Her 4 saatte bir kuponları işle (00:00, 04:00, 08:00, ...)
     scheduler.add_job(
         process_coupons,
         trigger=CronTrigger(hour='*/4', minute=0),
         id='process_coupons',
+        replace_existing=True
+    )
+
+    # Her 15 dakikada bir süresi dolan active eventleri temizle
+    scheduler.add_job(
+        auto_expire_events,
+        trigger=CronTrigger(minute='*/15'),
+        id='auto_expire_events',
         replace_existing=True
     )
 
