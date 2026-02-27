@@ -165,11 +165,20 @@ async def create_admin_user(user_in: AdminUserCreate, db: Session = Depends(get_
     return new_user
 
 @router.delete("/users/{user_id}")
-async def delete_admin_user(user_id: int, db: Session = Depends(get_db), _: AdminUser = Depends(get_require_full_admin)):
+async def delete_admin_user(user_id: int, db: Session = Depends(get_db), current_user: AdminUser = Depends(get_require_full_admin)):
+    if current_user.id == user_id:
+        raise HTTPException(status_code=400, detail="Kendinizi silemezsiniz.")
+
     user = db.query(AdminUser).filter(AdminUser.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
     
+    from shared.models.magic_token import MagicToken
+    
+    # Cascade deletions and nullifications
+    db.query(Event).filter(Event.created_by == user_id).update({"created_by": None}, synchronize_session=False)
+    db.query(MagicToken).filter(MagicToken.user_id == user_id).delete(synchronize_session=False)
+
     db.delete(user)
     db.commit()
     return {"status": "success"}
