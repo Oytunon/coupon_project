@@ -840,7 +840,8 @@ export default function AdminPage() {
                     max_combination: editingEvent.rules.max_combination ? Number(editingEvent.rules.max_combination) : null,
                     min_deposit: isNaN(editingEvent.rules.min_deposit) ? 0 : Number(editingEvent.rules.min_deposit),
                     scoring_formula: editingEvent.rules.scoring_formula
-                }
+                },
+                content_rules: editingEvent.content_rules || []
             }
             console.log("Sending payload:", payload)
             await updateEvent(editingEvent.id, payload)

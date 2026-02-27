@@ -318,8 +318,25 @@ async def update_event(
         event.rules = merged_rules
         # Explicitly mark rules as modified for SQLAlchemy
         flag_modified(event, "rules")
+
+    # 4. Update content_rules (Full replace)
+    if "content_rules" in data_dict:
+        new_content_rules = data_dict["content_rules"]
+        # Convert Pydantic models to dicts if necessary
+        processed_rules = []
+        for rule in new_content_rules:
+            if hasattr(rule, "model_dump"):
+                processed_rules.append(rule.model_dump())
+            elif hasattr(rule, "dict"):
+                processed_rules.append(rule.dict())
+            else:
+                processed_rules.append(rule)
+        
+        logger.info(f"Content Rules update: {event.content_rules} -> {processed_rules}")
+        event.content_rules = processed_rules
+        flag_modified(event, "content_rules")
     
-    # 4. Final validation
+    # 5. Final validation
     if event.end_date <= event.start_date:
         logger.error(f"Invalid dates: {event.start_date} -> {event.end_date}")
         raise HTTPException(400, "End date must be after start date")
