@@ -18,7 +18,7 @@ from shared.models.admin import AdminUser
 from shared.models.coupon import Coupon
 from shared.models.participant import Participant
 from shared.models.enrollment import EventParticipant
-from backend_api.app.security import get_current_admin
+from backend_api.app.security import get_current_admin, get_require_full_admin
 
 router = APIRouter(prefix="/api/admin/events", tags=["admin-events"])
 
@@ -136,7 +136,7 @@ class EventStatsResponse(BaseModel):
 async def create_event(
     event_data: EventCreate,
     db: Session = Depends(get_db_session),
-    current_admin: AdminUser = Depends(get_current_admin)
+    current_admin: AdminUser = Depends(get_require_full_admin)
 ):
     """Yeni event oluştur."""
     try:
@@ -286,7 +286,7 @@ async def update_event(
     event_id: int,
     event_data: EventUpdate,
     db: Session = Depends(get_db_session),
-    _: AdminUser = Depends(get_current_admin)
+    _: AdminUser = Depends(get_require_full_admin)
 ):
     """Event'i güncelle."""
     import logging
@@ -368,7 +368,7 @@ async def update_event(
 async def delete_event(
     event_id: int,
     db: Session = Depends(get_db_session),
-    current_admin: AdminUser = Depends(get_current_admin)
+    current_admin: AdminUser = Depends(get_require_full_admin)
 ):
     """Event'i sil."""
     # Updated: Allow regular admins to delete events as well, since there is no UI to create superadmins easily yet.
@@ -462,7 +462,7 @@ async def update_event_status(
     event_id: int,
     status_data: EventStatusUpdate,
     db: Session = Depends(get_db_session),
-    _: AdminUser = Depends(get_current_admin)
+    _: AdminUser = Depends(get_require_full_admin)
 ):
     """Event status'ünü güncelle."""
     import logging
@@ -508,7 +508,7 @@ async def get_event_stats(
 async def recalculate_event_points(
     event_id: int,
     db: Session = Depends(get_db_session),
-    current_admin: AdminUser = Depends(get_current_admin)
+    current_admin: AdminUser = Depends(get_require_full_admin)
 ):
     """Event'in tüm puanlarını yeniden hesapla."""
     if current_admin.role != "superadmin":
@@ -547,7 +547,7 @@ async def run_event_worker(
     event_id: int,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db_session),
-    _: AdminUser = Depends(get_current_admin)
+    _: AdminUser = Depends(get_require_full_admin)
 ):
     """Worker'ı manuel tetikle."""
     from shared.models.worker_log import WorkerLog
@@ -570,7 +570,7 @@ async def run_event_worker(
 async def distribute_event_rewards(
     event_id: int,
     db: Session = Depends(get_db_session),
-    current_admin: AdminUser = Depends(get_current_admin)
+    current_admin: AdminUser = Depends(get_require_full_admin)
 ):
     """Event ödüllerini dağıtmak için worker'ı tetikle."""
     from shared.models.reward_job import RewardJob
@@ -764,7 +764,7 @@ async def upload_event_image(
     event_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db_session),
-    _: AdminUser = Depends(get_current_admin)
+    _: AdminUser = Depends(get_require_full_admin)
 ):
     """Event için görsel yükle."""
     event = db.query(Event).filter(Event.id == event_id).first()

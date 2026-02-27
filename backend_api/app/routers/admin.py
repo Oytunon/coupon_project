@@ -8,7 +8,7 @@ from shared.models.config import SystemConfig
 from shared.models.admin import AdminUser
 from shared.models.event import Event
 from shared.models.enrollment import EventParticipant
-from backend_api.app.security import get_password_hash
+from backend_api.app.security import get_password_hash, get_require_full_admin
 from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta
 import openpyxl
@@ -110,7 +110,7 @@ async def get_settings(db: Session = Depends(get_db)):
     return {c.key: {"value": c.value, "description": c.description} for c in configs}
 
 @router.post("/settings")
-async def update_setting(update: ConfigUpdate, db: Session = Depends(get_db)):
+async def update_setting(update: ConfigUpdate, db: Session = Depends(get_db), _: AdminUser = Depends(get_require_full_admin)):
     config = db.query(SystemConfig).filter(SystemConfig.key == update.key).first()
     if not config:
         raise HTTPException(status_code=404, detail="Config not found")
@@ -136,12 +136,12 @@ class AdminUserResponse(BaseModel):
         from_attributes = True
 
 @router.get("/users", response_model=List[AdminUserResponse])
-async def list_admin_users(db: Session = Depends(get_db)):
+async def list_admin_users(db: Session = Depends(get_db), _: AdminUser = Depends(get_require_full_admin)):
     users = db.query(AdminUser).all()
     return users
 
 @router.post("/users", response_model=AdminUserResponse)
-async def create_admin_user(user_in: AdminUserCreate, db: Session = Depends(get_db)):
+async def create_admin_user(user_in: AdminUserCreate, db: Session = Depends(get_db), _: AdminUser = Depends(get_require_full_admin)):
     # Username check
     existing = db.query(AdminUser).filter(AdminUser.username == user_in.username).first()
     if existing:
@@ -165,7 +165,7 @@ async def create_admin_user(user_in: AdminUserCreate, db: Session = Depends(get_
     return new_user
 
 @router.delete("/users/{user_id}")
-async def delete_admin_user(user_id: int, db: Session = Depends(get_db)):
+async def delete_admin_user(user_id: int, db: Session = Depends(get_db), _: AdminUser = Depends(get_require_full_admin)):
     user = db.query(AdminUser).filter(AdminUser.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
@@ -191,7 +191,7 @@ async def get_worker_job_status(job_id: int, db: Session = Depends(get_db)):
     }
 
 @router.post("/worker-jobs/{job_id}/cancel")
-async def cancel_worker_job(job_id: int, db: Session = Depends(get_db)):
+async def cancel_worker_job(job_id: int, db: Session = Depends(get_db), _: AdminUser = Depends(get_require_full_admin)):
     from shared.models.worker_log import WorkerLog
     job = db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
     if not job:

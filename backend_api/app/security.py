@@ -67,3 +67,14 @@ async def get_current_admin(
     if user is None:
         raise credentials_exception
     return user
+
+async def get_require_full_admin(
+    current_user: AdminUser = Depends(get_current_admin)
+) -> AdminUser:
+    """Belirli sayfalarda ve aksiyonlarda 'moderator' (yan rol) erişimini kısıtlar."""
+    if current_user.role == "moderator":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bu işlem için yeterli yetkiniz bulunmuyor (Yan Rol Kısıtlaması)."
+        )
+    return current_user

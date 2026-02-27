@@ -4,6 +4,7 @@ import { jwtDecode } from "jwt-decode"
 interface AuthContextType {
     isAuthenticated: boolean
     user: string | null
+    adminRole: string | null
     login: (token: string) => void
     logout: () => void
     loading: boolean
@@ -14,6 +15,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [isAuthenticated, setIsAuthenticated] = useState(false)
     const [user, setUser] = useState<string | null>(null)
+    const [adminRole, setAdminRole] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -29,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 } else {
                     setIsAuthenticated(true)
                     setUser(decoded.sub)
+                    setAdminRole(decoded.role || 'admin')
                 }
             } catch (e) {
                 logout()
@@ -41,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("admin_token", token)
         const decoded: any = jwtDecode(token)
         setUser(decoded.sub)
+        setAdminRole(decoded.role || 'admin')
         setIsAuthenticated(true)
     }
 
@@ -48,10 +52,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem("admin_token")
         setIsAuthenticated(false)
         setUser(null)
+        setAdminRole(null)
     }
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, user, login, logout, loading }}>
+        <AuthContext.Provider value={{ isAuthenticated, user, adminRole, login, logout, loading }}>
             {children}
         </AuthContext.Provider>
     )

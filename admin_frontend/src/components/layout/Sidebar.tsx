@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/context/AuthContext"
 
 interface SidebarProps {
     activeTab: string
@@ -18,13 +19,19 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeTab, setActiveTab, logout }: SidebarProps) {
-    const menuItems = [
+    const { adminRole } = useAuth()
+
+    const allMenuItems = [
         { id: 'dashboard', label: 'Genel Bakış', icon: LayoutDashboard },
         { id: 'events', label: 'Kampanyalar', icon: Trophy },
         { id: 'participants', label: 'Katılımcılar', icon: Users },
         { id: 'users', label: 'Yöneticiler', icon: Shield },
         { id: 'leagues', label: 'Lig Yönetimi', icon: Map },
     ]
+
+    const menuItems = adminRole === 'moderator'
+        ? allMenuItems.filter(i => ['events', 'participants'].includes(i.id))
+        : allMenuItems
 
     return (
         <aside className="fixed left-0 top-0 h-full w-64 bg-card/50 backdrop-blur-xl border-r border-white/5 z-50 flex flex-col">

@@ -276,8 +276,8 @@ const ContentRuleEditor = ({ rules, onChange }: { rules: { title: string; conten
 export default function AdminPage() {
 
     const { toast } = useToast()
-    const { logout } = useAuth()
-    const [activeTab, setActiveTab] = useState<"dashboard" | "events" | "participants" | "users" | "leagues">("dashboard")
+    const { logout, adminRole } = useAuth()
+    const [activeTab, setActiveTab] = useState<"dashboard" | "events" | "participants" | "users" | "leagues">(adminRole === 'moderator' ? 'events' : 'dashboard')
     const [selectedParticipant, setSelectedParticipant] = useState<any | null>(null)
     const [userCoupons, setUserCoupons] = useState<any[]>([])
     const [totalUserCoupons, setTotalUserCoupons] = useState(0)
@@ -1177,9 +1177,11 @@ export default function AdminPage() {
                                     Arşiv <span className="ml-1.5 text-xs opacity-70">({events.filter(e => e.status === 'archived').length})</span>
                                 </button>
                             </div>
-                            <Button onClick={() => { setLeagueIdsInput(""); setShowAddEvent(true); }} className="gap-2 bg-primary hover:bg-primary/90 font-bold">
-                                <Plus className="h-4 w-4" /> Yeni Kampanya
-                            </Button>
+                            {adminRole !== 'moderator' && (
+                                <Button onClick={() => { setLeagueIdsInput(""); setShowAddEvent(true); }} className="gap-2 bg-primary hover:bg-primary/90 font-bold">
+                                    <Plus className="h-4 w-4" /> Yeni Kampanya
+                                </Button>
+                            )}
                         </div>
 
                         {/* Event List */}
@@ -1211,22 +1213,22 @@ export default function AdminPage() {
                                         </div>
                                         <div className="flex gap-2">
                                             {/* Status Actions */}
-                                            {event.status === 'draft' && (
+                                            {adminRole !== 'moderator' && event.status === 'draft' && (
                                                 <Button size="sm" variant="outline" className="border-green-800 text-green-500 hover:bg-green-500/10" onClick={() => handleEventStatus(event.id, 'active')}>
                                                     <PlayCircle className="h-4 w-4 mr-2" /> Başlat
                                                 </Button>
                                             )}
-                                            {event.status === 'active' && (
+                                            {adminRole !== 'moderator' && event.status === 'active' && (
                                                 <Button size="sm" variant="outline" className="border-orange-800 text-orange-500 hover:bg-orange-500/10" onClick={() => handleEventStatus(event.id, 'paused')}>
                                                     <PauseCircle className="h-4 w-4 mr-2" /> Duraklat
                                                 </Button>
                                             )}
-                                            {(event.status === 'active' || event.status === 'paused') && (
+                                            {adminRole !== 'moderator' && (event.status === 'active' || event.status === 'paused') && (
                                                 <Button size="sm" variant="outline" className="border-red-800 text-red-500 hover:bg-red-500/10" onClick={() => handleEventStatus(event.id, 'ended')}>
                                                     <StopCircle className="h-4 w-4 mr-2" /> Bitir
                                                 </Button>
                                             )}
-                                            {event.status === 'ended' && (
+                                            {adminRole !== 'moderator' && event.status === 'ended' && (
                                                 <>
                                                     <Button size="sm" variant="outline" className="border-green-800 text-green-500 hover:bg-green-500/10" onClick={() => handleEventStatus(event.id, 'active')}>
                                                         <PlayCircle className="h-4 w-4 mr-2" /> Tekrar Başlat
@@ -1239,11 +1241,13 @@ export default function AdminPage() {
 
 
 
-                                            <Button size="sm" variant="outline" className="border-yellow-800 text-yellow-500 hover:bg-yellow-500/10 font-bold gap-2" onClick={() => handleRunWorker(event)} title="Kuponları Çek">
-                                                <RefreshCw className="h-4 w-4" /> Kuponları Çek
-                                            </Button>
+                                            {adminRole !== 'moderator' && (
+                                                <Button size="sm" variant="outline" className="border-yellow-800 text-yellow-500 hover:bg-yellow-500/10 font-bold gap-2" onClick={() => handleRunWorker(event)} title="Kuponları Çek">
+                                                    <RefreshCw className="h-4 w-4" /> Kuponları Çek
+                                                </Button>
+                                            )}
 
-                                            {event.reward_status !== 'completed' && (
+                                            {adminRole !== 'moderator' && event.reward_status !== 'completed' && (
                                                 <Button size="icon" variant="ghost"
                                                     className={`${event.reward_status === 'processing' ? 'opacity-30 cursor-not-allowed' : 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10'}`}
                                                     disabled={event.reward_status === 'processing'}
@@ -1270,12 +1274,16 @@ export default function AdminPage() {
                                             <Button size="icon" variant="ghost" onClick={() => { setHistoryEvent(event); setShowHistoryModal(true); handleLoadRewardHistory(event.id); }} title="Ödül Geçmişi">
                                                 <History className="h-4 w-4 text-amber-400" />
                                             </Button>
-                                            <Button size="icon" variant="ghost" onClick={() => openEditModal(event)} title="Düzenle">
-                                                <Pencil className="h-4 w-4 text-blue-400" />
-                                            </Button>
-                                            <Button size="icon" variant="ghost" className="text-red-500/50 hover:text-red-500 hover:bg-red-500/10" onClick={() => handleDeleteEvent(event.id)} title="Kampanyayı Sil">
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                            {adminRole !== 'moderator' && (
+                                                <>
+                                                    <Button size="icon" variant="ghost" onClick={() => openEditModal(event)} title="Düzenle">
+                                                        <Pencil className="h-4 w-4 text-blue-400" />
+                                                    </Button>
+                                                    <Button size="icon" variant="ghost" className="text-red-500/50 hover:text-red-500 hover:bg-red-500/10" onClick={() => handleDeleteEvent(event.id)} title="Kampanyayı Sil">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </>
+                                            )}
                                         </div>
                                     </CardHeader>
                                     <CardContent>
@@ -2271,11 +2279,23 @@ export default function AdminPage() {
                                                 />
                                             </div>
                                         </div>
-                                        <div className="flex items-end gap-2">
-                                            <Button type="submit" className="flex-1 h-11 bg-emerald-600 hover:bg-emerald-700" disabled={saving === "create_user"}>
-                                                {saving === "create_user" ? "Oluşturuluyor..." : "Hesabı Oluştur"}
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-muted-foreground uppercase">Rol</label>
+                                            <Select value={newUser.role} onValueChange={v => setNewUser({ ...newUser, role: v })}>
+                                                <SelectTrigger className="h-11 bg-white/5 border-white/10">
+                                                    <SelectValue placeholder="Rol Seçin" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="admin">Yönetici (Admin)</SelectItem>
+                                                    <SelectItem value="moderator">Moderatör (Sadece Okuma)</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="md:col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t border-white/5">
+                                            <Button type="button" variant="ghost" onClick={() => setShowAddUser(false)}>İptal</Button>
+                                            <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 font-bold px-8" disabled={saving === "create_user"}>
+                                                {saving === "create_user" ? "Oluşturuluyor..." : "Oluştur"}
                                             </Button>
-                                            <Button type="button" variant="outline" className="h-11" onClick={() => setShowAddUser(false)}>İptal</Button>
                                         </div>
                                     </form>
                                 </CardContent>

@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from typing import List, Optional
 from backend_api.app.deps import get_db, verify_api_token
+from backend_api.app.security import get_require_full_admin
+from shared.models.admin import AdminUser
 from shared.models.league import League
 from pydantic import BaseModel
 
@@ -52,7 +54,8 @@ async def list_leagues(
 @router.post("/seed")
 async def seed_leagues(
     leagues: List[LeagueSeed],
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: AdminUser = Depends(get_require_full_admin)
 ):
     """Bulk upsert leagues"""
     count = 0
@@ -71,7 +74,8 @@ async def seed_leagues(
 @router.post("/", response_model=LeagueSchema)
 async def create_league(
     league: LeagueSchema,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: AdminUser = Depends(get_require_full_admin)
 ):
     existing = db.query(League).filter(League.id == league.id).first()
     if existing:
@@ -92,7 +96,8 @@ async def create_league(
 async def update_league(
     league_id: int,
     league_data: LeagueSchema,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: AdminUser = Depends(get_require_full_admin)
 ):
     league = db.query(League).filter(League.id == league_id).first()
     if not league:
@@ -109,7 +114,8 @@ async def update_league(
 @router.delete("/{league_id}")
 async def delete_league(
     league_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: AdminUser = Depends(get_require_full_admin)
 ):
     league = db.query(League).filter(League.id == league_id).first()
     if not league:
