@@ -29,8 +29,8 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
     (response) => response, // If success, return response
     (error) => {
-        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-            // If 401/403, redirect to login unless we are already there
+        if (error.response && error.response.status === 401) {
+            // If 401 (Unauthorized - invalid/expired token), redirect to login unless we are already there
             if (!window.location.pathname.includes("/login")) {
                 localStorage.removeItem("admin_token");
                 window.location.href = "/login";

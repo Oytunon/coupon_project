@@ -457,10 +457,10 @@ export default function AdminPage() {
         setLoading(true)
         try {
             const [s, p, u, e] = await Promise.all([
-                fetchAdminStats(),
-                fetchParticipants(selectedEventId || undefined, (page - 1) * limit, limit, debouncedSearch),
-                fetchAdminUsers(),
-                fetchEvents()
+                adminRole !== 'moderator' ? fetchAdminStats().catch(() => null) : Promise.resolve(null),
+                fetchParticipants(selectedEventId || undefined, (page - 1) * limit, limit, debouncedSearch).catch((err) => { console.error(err); return { items: [], total: 0 } }),
+                adminRole !== 'moderator' ? fetchAdminUsers().catch(() => []) : Promise.resolve([]),
+                fetchEvents().catch((err) => { console.error(err); return [] })
             ])
             setStats(s)
             if (p && p.items) {
@@ -475,8 +475,8 @@ export default function AdminPage() {
         } catch (err) {
             console.error("Data load failed", err)
             toast({
-                title: "Hata",
-                description: "Veriler yüklenirken bir hata oluştu.",
+                title: "Uyarı",
+                description: "Bazı veriler yüklenirken yetki sorunu veya hata oluştu.",
                 variant: "destructive"
             })
         } finally {
