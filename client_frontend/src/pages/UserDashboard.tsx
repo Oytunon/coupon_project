@@ -152,7 +152,7 @@ export default function UserDashboard() {
     const upcomingEventsList = publicEvents.filter(e => {
         const now = new Date()
         const start = parseDate(e.start_date)
-        const isUpcoming = (e.status === 'active' || e.status === 'paused') && (now < start)
+        const isUpcoming = e.status === 'active' && (now < start)
         const isJoined = myEnrollments.some(enr => enr.event_id === e.id)
         return isUpcoming && !isJoined
     })
@@ -165,16 +165,16 @@ export default function UserDashboard() {
         const isExpired = now > end
         const isJoined = myEnrollments.some(enr => enr.event_id === e.id)
 
-        if (activeCategory === 'all') return (e.status === 'active' || e.status === 'paused') && isStarted && !isExpired && !isJoined
-        if (activeCategory === 'active') return (e.status === 'active' || e.status === 'paused') && isStarted && !isExpired
-        if (activeCategory === 'upcoming') return (e.status === 'active' || e.status === 'paused') && !isStarted && !isExpired
+        if (activeCategory === 'all') return e.status === 'active' && isStarted && !isExpired && !isJoined
+        if (activeCategory === 'active') return e.status === 'active' && isStarted && !isExpired
+        if (activeCategory === 'upcoming') return e.status === 'active' && !isStarted && !isExpired
         if (activeCategory === 'enrollments') return isJoined
         return false
     })
 
     const pastEvents = publicEvents.filter(e => {
         const now = new Date()
-        const isPast = e.status === 'ended' || ((e.status === 'active' || e.status === 'paused') && now > parseDate(e.end_date))
+        const isPast = e.status === 'ended' || e.status === 'paused' || (e.status === 'active' && now > parseDate(e.end_date))
         if (!isPast) return false
         // Hide if display_until is set and expired
         if (e.display_until && now > parseDate(e.display_until)) return false
