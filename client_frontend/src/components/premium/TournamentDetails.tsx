@@ -1,6 +1,6 @@
 import {
     ArrowLeft, Trophy, Users, Award, Target, Calendar, Clock,
-    CheckCircle2, TrendingUp, Shield, Gift, Ticket, ScrollText, Info, Crown, Search, UserPlus, FileText, AlertCircle, X, ChevronDown
+    CheckCircle2, TrendingUp, Shield, Gift, Ticket, ScrollText, Info, Crown, Search, UserPlus, FileText, AlertCircle, X, ChevronDown, Globe
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { PublicEvent, getLeagues } from "@/api/client"
@@ -514,14 +514,22 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
                                     {(() => {
                                         const allowedIds = event.rules?.allowed_league_ids ?? [];
-                                        // If empty/null, it means ALL leagues are allowed (usually not the case for tournaments, checks might be needed)
-                                        // Assuming if empty => "Tüm Ligler" or specific logic. 
-                                        // But usually explicit list. If empty allowed list means "All", we should show "Tüm Ligler".
-                                        // Let's assume explicit list for now as per previous static list.
 
-                                        const filteredLeagues = allowedIds.length > 0
-                                            ? leagues.filter(l => allowedIds.includes(l.id))
-                                            : leagues; // If empty, maybe show all? Or "Tüm Ligler" text?
+                                        if (allowedIds.length === 0) {
+                                            return (
+                                                <div className="md:col-span-2 bg-gradient-to-r from-[#D9B648]/10 to-transparent border border-[#D9B648]/20 rounded-lg p-3 md:p-4 flex items-start gap-3">
+                                                    <Globe className="w-5 h-5 text-[#D9B648] shrink-0 mt-0.5" />
+                                                    <div>
+                                                        <div className="text-[#D9B648] text-xs md:text-sm font-bold mb-1">Tüm Spor Dalları ve Ligler</div>
+                                                        <div className="text-[#F7EBA5]/80 text-[10px] md:text-xs leading-relaxed">
+                                                            Belirtilen tarih aralığında, kurallara uygun şekilde yapılan tüm kuponlar puanlamaya dahil edilir.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+
+                                        const filteredLeagues = leagues.filter(l => allowedIds.includes(l.id));
 
                                         // Specific Sport IDs: 1=Football, 2=Basketball, 3=Volleyball, 4=Tennis
                                         const footballLeagues = filteredLeagues.filter(l => l.sport_id === 1 || !l.sport_id);
@@ -529,8 +537,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                         const volleyballLeagues = filteredLeagues.filter(l => l.sport_id === 3);
                                         const tennisLeagues = filteredLeagues.filter(l => l.sport_id === 4);
 
-                                        if (filteredLeagues.length === 0 && allowedIds.length > 0) return <div className="text-gray-500 text-xs p-2">Yükleniyor...</div>;
-                                        if (filteredLeagues.length === 0 && allowedIds.length === 0) return <div className="text-gray-500 text-xs p-2">Tüm Ligler Geçerlidir</div>;
+                                        if (filteredLeagues.length === 0) return <div className="text-gray-500 text-xs p-2">Yükleniyor...</div>;
 
                                         return (
                                             <>
