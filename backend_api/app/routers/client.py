@@ -22,6 +22,7 @@ class PublicEventResponse(BaseModel):
     participant_count: int
     image_url: Optional[str] = None # Placeholder for future use
     rules: dict = {}
+    content_rules: List[dict] = []
 
     class Config:
         from_attributes = True
@@ -61,7 +62,8 @@ async def get_public_events(
             display_until=event.display_until,
             participant_count=p_count or 0,
             image_url=event.image_url,
-            rules=event.rules or {}
+            rules=event.rules or {},
+            content_rules=event.content_rules or []
         ))
 
     # Python-side sorting: Active(1) > Paused(2) > Ended(3) > Other(4)
