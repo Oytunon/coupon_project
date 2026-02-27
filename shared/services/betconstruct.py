@@ -84,16 +84,16 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_
                 while skip_rows < safety_limit:
                     body = {
                         "BetId": None,
-                        "CalcEndDateLocal": None,
-                        "CalcStartDateLocal": None,
+                        "CalcEndDateLocal": end_str,
+                        "CalcStartDateLocal": start_str,
                         "ClientId": client_id,
                         "CurrencyId": "TRY",
-                        "EndDateLocal": end_str,
+                        "EndDateLocal": None,
                         "IsBonusBet": None,
                         "IsLive": None,
                         "MaxRows": max_rows,
                         "SkeepRows": skip_rows,
-                        "StartDateLocal": start_str,
+                        "StartDateLocal": None,
                         "State": None,
                         "ToCurrencyId": "TRY"
                     }

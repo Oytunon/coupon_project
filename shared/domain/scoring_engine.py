@@ -217,18 +217,18 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             sel_count = 1
                         
                         eligible_for_events = []
-                        raw_created = bet_history.get("CreatedAt") or bet_history.get("Created")
-                        bet_created_dt = datetime.utcnow()
-                        if raw_created:
+                        raw_calc = bet_history.get("CalcDate") or bet_history.get("CalcDateLocal")
+                        bet_calc_dt = datetime.utcnow()
+                        if raw_calc:
                             try:
-                                clean_created = str(raw_created).split('.')[0].replace("Z", "").split("+")[0]
-                                bet_created_dt = datetime.strptime(clean_created, "%Y-%m-%dT%H:%M:%S") if "T" in clean_created else datetime.strptime(clean_created, "%Y-%m-%d %H:%M:%S")
+                                clean_calc = str(raw_calc).split('.')[0].replace("Z", "").split("+")[0]
+                                bet_calc_dt = datetime.strptime(clean_calc, "%Y-%m-%dT%H:%M:%S") if "T" in clean_calc else datetime.strptime(clean_calc, "%Y-%m-%d %H:%M:%S")
                             except: pass
 
                         for target_event in user_target_events:
                             joined_at = user_enrollments.get(target_event.id)
                             p_start = max(target_event.start_date, joined_at or target_event.start_date)
-                            if bet_created_dt < p_start: continue
+                            if bet_calc_dt < p_start: continue
 
                             rules = target_event.rules or {}
                             if amount < rules.get("min_stake", 0): continue
@@ -245,7 +245,16 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             if all_zero:
                                 continue
 
-                        eligible_bets.append((bet_history, bet_id, mapped_state, amount, sel_count, eligible_for_events, bet_created_dt))
+                        # Extract created date just for DB storage
+                        raw_created = bet_history.get("CreatedAt") or bet_history.get("Created")
+                        bet_created_dt = bet_calc_dt
+                        if raw_created:
+                            try:
+                                clean_created = str(raw_created).split('.')[0].replace("Z", "").split("+")[0]
+                                bet_created_dt = datetime.strptime(clean_created, "%Y-%m-%dT%H:%M:%S") if "T" in clean_created else datetime.strptime(clean_created, "%Y-%m-%d %H:%M:%S")
+                            except: pass
+
+                        eligible_bets.append((bet_history, bet_id, mapped_state, amount, sel_count, eligible_for_events, bet_created_dt, bet_calc_dt))
 
                     # Phase 2: Batch fetch selection details
                     # Önce DB'deki mevcut kuponların selections verisini kontrol et
@@ -271,7 +280,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         logger.info(f"User {user.username}: All {len(eligible_bets)} selections already cached, no API calls needed")
 
                     # Phase 3: Process each bet with cached selections
-                    for bet_history, bet_id, mapped_state, amount, sel_count, eligible_for_events, bet_created_dt in eligible_bets:
+                    for bet_history, bet_id, mapped_state, amount, sel_count, eligible_for_events, bet_created_dt, bet_calc_dt in eligible_bets:
                         # Merge selections into bet_history for persistence
                         selections_for_bet = []
                         if bet_history.get("Selections"):
@@ -335,7 +344,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                                     client_id=user.client_id, bet_id=bet_id, event_id=final_events[0].id,
                                     stake=amount, odds=price, combination_count=sel_count, state=mapped_state,
                                     is_live=bool(bet_history.get("IsLive", False)), bet_data=bet_history,
-                                    created_at=bet_created_dt, winning=winning_amount, is_processed=True, processed_at=datetime.utcnow()
+                                    created_at=bet_calc_dt, winning=winning_amount, is_processed=True, processed_at=datetime.utcnow()
                                 )
                                 db.add(new_coupon)
                                 db.flush()
