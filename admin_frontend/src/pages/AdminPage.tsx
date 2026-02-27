@@ -1835,6 +1835,16 @@ export default function AdminPage() {
                                                 </div>
                                             )}
 
+                                            {/* TAB 4: CONTENT RULES */}
+                                            {modalTab === 'content_rules' && (
+                                                <div className="animate-in fade-in slide-in-from-right-4">
+                                                    <ContentRuleEditor
+                                                        rules={editingEvent.content_rules || []}
+                                                        onChange={(content_rules) => setEditingEvent({ ...editingEvent, content_rules })}
+                                                    />
+                                                </div>
+                                            )}
+
                                             <div className="flex justify-end gap-2 pt-4 border-t border-white/5">
                                                 <Button type="button" variant="ghost" onClick={() => setShowEditEvent(false)}>İptal</Button>
                                                 <Button type="submit" disabled={saving === "update_event"} className="bg-primary hover:bg-primary/90">
