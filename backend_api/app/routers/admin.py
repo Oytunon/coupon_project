@@ -125,6 +125,13 @@ class AdminUserCreate(BaseModel):
     email: EmailStr
     role: str = "admin"
 
+class AdminUserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None  # Add if we want to allow password changes
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+
 class AdminUserResponse(BaseModel):
     id: int
     username: str
@@ -163,6 +170,38 @@ async def create_admin_user(user_in: AdminUserCreate, db: Session = Depends(get_
     db.commit()
     db.refresh(new_user)
     return new_user
+
+@router.put("/users/{user_id}", response_model=AdminUserResponse)
+async def update_admin_user(user_id: int, user_in: AdminUserUpdate, db: Session = Depends(get_db), _: AdminUser = Depends(get_require_full_admin)):
+    user = db.query(AdminUser).filter(AdminUser.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
+
+    if user_in.username is not None and user_in.username != user.username:
+        # Check uniqueness
+        existing = db.query(AdminUser).filter(AdminUser.username == user_in.username).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Bu kullanıcı adı zaten alınmış.")
+        user.username = user_in.username
+
+    if user_in.email is not None and user_in.email != user.email:
+        existing_email = db.query(AdminUser).filter(AdminUser.email == user_in.email).first()
+        if existing_email:
+            raise HTTPException(status_code=400, detail="Bu e-posta adresi zaten kullanımda.")
+        user.email = user_in.email
+
+    if user_in.password:
+        user.hashed_password = get_password_hash(user_in.password)
+
+    if user_in.role is not None:
+        user.role = user_in.role
+
+    if user_in.is_active is not None:
+        user.is_active = user_in.is_active
+
+    db.commit()
+    db.refresh(user)
+    return user
 
 @router.delete("/users/{user_id}")
 async def delete_admin_user(user_id: int, db: Session = Depends(get_db), current_user: AdminUser = Depends(get_require_full_admin)):

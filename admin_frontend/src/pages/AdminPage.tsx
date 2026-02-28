@@ -79,6 +79,11 @@ const createAdminUser = async (userData: any) => {
     return res.data
 }
 
+const updateAdminUser = async (userId: number, userData: any) => {
+    const res = await apiClient.put(`/admin/users/${userId}`, userData)
+    return res.data
+}
+
 const deleteAdminUser = async (userId: number) => {
     const res = await apiClient.delete(`/admin/users/${userId}`)
     return res.data
@@ -375,6 +380,7 @@ export default function AdminPage() {
     const [saving, setSaving] = useState<string | null>(null)
 
     const [showAddUser, setShowAddUser] = useState(false)
+    const [editingUser, setEditingUser] = useState<any>(null)
     const [newUser, setNewUser] = useState({ username: "", password: "", email: "", role: "admin" })
 
     const fetchLeagues = async (search = "") => {
@@ -552,6 +558,40 @@ export default function AdminPage() {
             toast({
                 title: "Hata",
                 description: err.response?.data?.detail || "Kullanıcı oluşturulamadı.",
+                variant: "destructive"
+            })
+        } finally {
+            setSaving(null)
+        }
+    }
+
+    const handleUpdateUser = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!editingUser) return
+        setSaving("update_user")
+        try {
+            const payload: any = {
+                username: editingUser.username,
+                email: editingUser.email,
+                role: editingUser.role,
+                is_active: editingUser.is_active
+            }
+            if (editingUser.password && editingUser.password.trim() !== "") {
+                payload.password = editingUser.password
+            }
+
+            await updateAdminUser(editingUser.id, payload)
+            toast({
+                title: "Başarılı",
+                description: "Kullanıcı başarıyla güncellendi.",
+            })
+            setEditingUser(null)
+            const u = await fetchAdminUsers()
+            setAdminUsers(u)
+        } catch (err: any) {
+            toast({
+                title: "Hata",
+                description: err.response?.data?.detail || "Kullanıcı güncellenemedi.",
                 variant: "destructive"
             })
         } finally {
@@ -2302,6 +2342,108 @@ export default function AdminPage() {
                             </Card>
                         )}
 
+                        {editingUser && (
+                            <Card className="bg-slate-900 border-white/10 shadow-2xl relative mb-8">
+                                <CardHeader className="border-b border-white/5 pb-4">
+                                    <div className="flex justify-between items-center">
+                                        <CardTitle className="text-xl font-bold flex items-center gap-2">
+                                            <div className="h-8 w-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                                                <Pencil className="h-4 w-4 text-blue-500" />
+                                            </div>
+                                            Yönetici Hesap Bilgilerini Düzenle
+                                        </CardTitle>
+                                        <Button variant="ghost" size="icon" onClick={() => setEditingUser(null)}>
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                    <CardDescription>
+                                        Mevcut yönetici bilgilerini ve şifresini güncelleyebilirsiniz. Şifre alanı boş bırakılırsa, şifre değişmez.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="pt-6">
+                                    <form onSubmit={handleUpdateUser} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-4">
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
+                                                    <UserPlus className="h-3 w-3" /> Kullanıcı Adı
+                                                </label>
+                                                <Input
+                                                    placeholder="Örn: oytun"
+                                                    value={editingUser.username}
+                                                    onChange={e => setEditingUser({ ...editingUser, username: e.target.value })}
+                                                    className="h-11 bg-white/5 border-white/10 text-lg font-bold"
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
+                                                    <Mail className="h-3 w-3" /> E-posta
+                                                </label>
+                                                <Input
+                                                    type="email"
+                                                    placeholder="yonetici@gmail.com"
+                                                    value={editingUser.email}
+                                                    onChange={e => setEditingUser({ ...editingUser, email: e.target.value })}
+                                                    className="h-11 bg-white/5 border-white/10 text-lg"
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
+                                                    <Lock className="h-3 w-3" /> Yeni Şifre (Güncellemek İstiyorsanız)
+                                                </label>
+                                                <Input
+                                                    type="password"
+                                                    placeholder="••••••••"
+                                                    value={editingUser.password || ""}
+                                                    onChange={e => setEditingUser({ ...editingUser, password: e.target.value })}
+                                                    className="h-11 bg-white/5 border-white/10 font-mono tracking-widest text-lg"
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
+                                                        <Shield className="h-3 w-3" /> Rol
+                                                    </label>
+                                                    <Select value={editingUser.role} onValueChange={v => setEditingUser({ ...editingUser, role: v })}>
+                                                        <SelectTrigger className="h-11 bg-white/5 border-white/10">
+                                                            <SelectValue placeholder="Rol Seçin" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="admin">Yönetici (Admin)</SelectItem>
+                                                            <SelectItem value="moderator">Moderatör (Sadece Okuma)</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
+                                                        <Shield className="h-3 w-3" /> Durum
+                                                    </label>
+                                                    <Select value={editingUser.is_active ? "true" : "false"} onValueChange={v => setEditingUser({ ...editingUser, is_active: v === "true" })}>
+                                                        <SelectTrigger className="h-11 bg-white/5 border-white/10">
+                                                            <SelectValue placeholder="Durum Seçin" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="true">Aktif</SelectItem>
+                                                            <SelectItem value="false">Pasif</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="md:col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t border-white/5">
+                                            <Button type="button" variant="ghost" onClick={() => setEditingUser(null)}>İptal</Button>
+                                            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 font-bold px-8" disabled={saving === "update_user"}>
+                                                {saving === "update_user" ? "Güncelleniyor..." : "Kaydet"}
+                                            </Button>
+                                        </div>
+                                    </form>
+                                </CardContent>
+                            </Card>
+                        )}
+
                         <Card className="bg-card/50 border-white/5 backdrop-blur-xl">
                             <CardHeader>
                                 <CardTitle>Yönetici Listesi</CardTitle>
@@ -2335,14 +2477,24 @@ export default function AdminPage() {
                                                         <Badge variant="outline" className="text-[10px] uppercase">{user.role}</Badge>
                                                     </td>
                                                     <td className="px-4 py-4 text-right">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="text-red-500 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                            onClick={() => handleDeleteUser(user.id)}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="text-blue-500 hover:bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                onClick={() => setEditingUser({ ...user, password: "" })}
+                                                            >
+                                                                <Pencil className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="text-red-500 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                onClick={() => handleDeleteUser(user.id)}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
                                                     </td>
                                                     <td className="px-4 py-4 text-right">
                                                         <Badge className={user.is_active ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"}>
