@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from typing import Optional
@@ -29,7 +29,8 @@ async def check_user_enrollment(
     if target_event.status != "active":
         return {"can_join": False, "reason": "event_not_active"}
 
-    if target_event.end_date < datetime.utcnow():
+    now_tr = datetime.utcnow() + timedelta(hours=3)
+    if target_event.end_date < now_tr:
         return {"can_join": False, "reason": "event_expired"}
 
     # Resolve Client ID
@@ -103,7 +104,8 @@ async def join_event(
     if target_event.status != "active":
         raise HTTPException(status_code=400, detail="Bu turnuva şu an aktif değil.")
 
-    if target_event.end_date < datetime.utcnow():
+    now_tr = datetime.utcnow() + timedelta(hours=3)
+    if target_event.end_date < now_tr:
         raise HTTPException(status_code=400, detail="Bu turnuvanın süresi dolmuştur.")
         
     # Resolve User

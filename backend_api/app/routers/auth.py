@@ -74,7 +74,7 @@ async def request_magic_link_with_credentials(
     magic_token = MagicToken(
         user_id=user.id,
         token=token,
-        expires_at=datetime.utcnow() + timedelta(hours=24),
+        expires_at=datetime.utcnow() + timedelta(hours=24 + 3),
         is_used=False
     )
     db.add(magic_token)
@@ -121,7 +121,7 @@ async def request_magic_link(
     magic_token = MagicToken(
         user_id=user.id,
         token=token,
-        expires_at=datetime.utcnow() + timedelta(hours=24),
+        expires_at=datetime.utcnow() + timedelta(hours=24 + 3),
         is_used=False
     )
     db.add(magic_token)
@@ -173,10 +173,10 @@ async def verify_magic_link(
         )
     
     # Süresi dolmuş mu kontrol et
-    now = datetime.utcnow()
-    logger.info(f"Token expires at: {magic_token.expires_at}, Current time: {now}")
-    if magic_token.expires_at < now:
-        logger.warning(f"Token expired. Exp: {magic_token.expires_at}, Now: {now}")
+    now_tr = datetime.utcnow() + timedelta(hours=3)
+    logger.info(f"Token expires at: {magic_token.expires_at}, Current time: {now_tr}")
+    if magic_token.expires_at < now_tr:
+        logger.warning(f"Token expired. Exp: {magic_token.expires_at}, Now: {now_tr}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Linkin süresi dolmuş"
