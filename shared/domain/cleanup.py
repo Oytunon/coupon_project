@@ -34,10 +34,12 @@ async def auto_expire_events():
     from shared.models.event import Event
     db: Session = SessionLocal()
     try:
-        now = datetime.utcnow()
+        # DB'deki tarihler Türkiye Saati (UTC+3) olarak tutuluyor.
+        # Bu yüzden sunucunun UTC saatiyle karşılaştırmak yerine 3 saat ekliyoruz.
+        now_tr = datetime.utcnow() + timedelta(hours=3)
         expired_events = db.query(Event).filter(
             Event.status == "active",
-            Event.end_date < now
+            Event.end_date < now_tr
         ).all()
         
         expired_count = len(expired_events)
