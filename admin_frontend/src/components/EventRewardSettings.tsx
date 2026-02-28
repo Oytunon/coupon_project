@@ -151,6 +151,11 @@ export function EventRewardSettings({ rewards = [], onChange }: EventRewardSetti
             <div className="space-y-2">
                 <h3 className="text-sm font-bold text-muted-foreground uppercase flex items-center gap-2">
                     <Gift className="h-4 w-4" /> Tanımlı Ödüller ({rewards.length})
+                    {rewards.length > 0 && (
+                        <span className="text-[11px] text-white/50 bg-white/5 px-2 py-0.5 rounded-full ml-auto">
+                            Toplam: {new Intl.NumberFormat('tr-TR').format(rewards.reduce((acc, r) => acc + (Number(r.amount) || 0), 0))} TL
+                        </span>
+                    )}
                 </h3>
 
                 {rewards.length > 0 && (

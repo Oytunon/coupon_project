@@ -1366,7 +1366,12 @@ export default function AdminPage() {
                                                 >
                                                     <Gift className="h-3.5 w-3.5" />
                                                     {(event.rules.rewards || []).length > 0 ? (
-                                                        <span>{(event.rules.rewards || []).length} Ödül Tanımlı</span>
+                                                        <div className="flex flex-col">
+                                                            <span>{(event.rules.rewards || []).length} Ödül Tanımlı</span>
+                                                            <span className="text-[11px] text-white/50 bg-white/5 px-2 py-0.5 rounded-full w-fit mt-1">
+                                                                Toplam: {new Intl.NumberFormat('tr-TR').format((event.rules.rewards || []).reduce((acc: number, r: any) => acc + (Number(r.amount) || 0), 0))} TL
+                                                            </span>
+                                                        </div>
                                                     ) : (
                                                         <span className="text-white/20 italic font-normal">Tanımlanmadı</span>
                                                     )}
