@@ -40,7 +40,7 @@ class Event(Base):
         "max_combination": None,
         "allowed_league_ids": [],  # Boş array = tüm ligler
         "max_coupons_per_user": None,  # None = limit yok
-        "scoring_formula": "stake_times_odds",  # 'simple', 'stake_times_odds', 'combo_bonus'
+        "scoring_formula": "stake_times_odds",  # 'simple', 'stake_times_odds', 'net_profit_multiplier', 'combo_bonus'
         "combo_bonus_enabled": False,
         "combo_bonus_multiplier": 0.1,
         "min_deposit": 1000  # Default 1000 TL
