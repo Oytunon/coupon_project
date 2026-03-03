@@ -228,6 +228,7 @@ async def fetch_bet_selections_batch(
             except httpx.HTTPStatusError as e:
                 if attempt < max_retries:
                     logger.warning(f"Rate limited on {bid}, waiting {cooldown}s (retry {attempt + 1}/{max_retries})")
+                    await _set_rate_limit_cooldown(cooldown)
                     await _wait_if_rate_limited()
                     continue
                 else:
