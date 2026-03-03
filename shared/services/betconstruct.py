@@ -189,8 +189,8 @@ async def fetch_bet_selections(bet_id: str, http_client: httpx.AsyncClient = Non
              
         return data
     except httpx.HTTPStatusError as e:
-        if _is_rate_limited_response(e.response):
-            raise  # Üst katmanda retry
+        if _is_rate_limited_response(e.response) or "request lim" in str(e).lower():
+            raise  # Üst katmanda retry yapabilmesi için hatayı fırlat
         logger.error(f"Error fetching bet selections for {bet_id}: {e}")
         return {}
     except Exception as e:
