@@ -201,14 +201,14 @@ async def fetch_bet_selections(bet_id: str, http_client: httpx.AsyncClient = Non
 async def fetch_bet_selections_batch(
     bet_ids: list, 
     http_client: httpx.AsyncClient = None,
-    chunk_size: int = 8,
-    chunk_delay: float = 1.0,
+    chunk_size: int = 10,
+    chunk_delay: float = 2.0,
     max_retries: int = 4,
     cooldown: int = 60
 ) -> Dict[str, Dict]:
     """
     Bet selection detaylarını chunk'lar halinde paralel çeker.
-    10 istek paralel at → 0.4s bekle → 10 daha at.
+    10 istek paralel at → 2.0s bekle → 10 daha at.
     Rate limit olursa 1dk cooldown + retry.
     
     Returns: {bet_id: {Selections: [...]}, ...}
