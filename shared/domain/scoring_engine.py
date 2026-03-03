@@ -134,6 +134,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
 
         for i, user in enumerate(participants):
             user_saved_count = 0
+            api_calls_made = False
             try:
                 # Cancellation Check
                 if job_id and i % 3 == 0:
@@ -274,6 +275,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     
                     if bet_ids_needing_fetch:
                         logger.info(f"User {user.username}: Batch fetching {len(bet_ids_needing_fetch)} bet selections (skipped {len(eligible_bets) - len(bet_ids_needing_fetch)} cached)")
+                        api_calls_made = True
                         async with httpx.AsyncClient(timeout=30) as http_client:
                             fetched = await fetch_bet_selections_batch(
                                 bet_ids_needing_fetch, http_client
@@ -406,7 +408,11 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
             finally:
                 if job_id:
                     update_job_status("running", processed=1, saved=user_saved_count)
-                await asyncio.sleep(4.0)  # Kullanıcılar arası delay
+                
+                if api_calls_made:
+                    await asyncio.sleep(0.5)  # Selections API'si çağrıldıysa zaten gecikme yaşandı
+                else:
+                    await asyncio.sleep(4.0)  # Sadece GetBetHistory atıldıysa peşpeşe atmamak için bekle
 
         if job_id: update_job_status("completed")
     except Exception as e:
