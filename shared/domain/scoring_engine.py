@@ -65,6 +65,21 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
     """
     db = SessionLocal()
     try:
+        # Eşzamanlılık kilidi: Başka bir worker çalışıyor mu kontrol et
+        running_job = db.query(WorkerLog).filter(WorkerLog.status == "running").first()
+        if running_job:
+            logger.warning(f"⚠️ Başka bir worker zaten çalışıyor (job_id={running_job.id}). Atlanıyor.")
+            return
+
+        # Cron çağrısında (job_id=None) otomatik WorkerLog oluştur
+        if not job_id:
+            cron_job = WorkerLog(event_id=target_event_id, status="pending")
+            db.add(cron_job)
+            db.commit()
+            db.refresh(cron_job)
+            job_id = cron_job.id
+            logger.info(f"📋 Cron worker log oluşturuldu: job_id={job_id}")
+
         def update_job_status(status: str, processed=0, saved=0, error=None, total=0):
             if not job_id: return
             log_db = SessionLocal()

@@ -737,11 +737,20 @@ export default function AdminPage() {
             }, 2000)
 
         } catch (err: any) {
-            toast({
-                title: "Hata",
-                description: err.response?.data?.detail || "Kupon çekme işlemi başlatılamadı",
-                variant: "destructive"
-            })
+            if (err.response?.status === 409) {
+                toast({
+                    title: "Worker Çalışıyor",
+                    description: err.response?.data?.detail || "Başka bir worker zaten çalışıyor. Lütfen tamamlanmasını bekleyin.",
+                    variant: "destructive",
+                    duration: 5000
+                })
+            } else {
+                toast({
+                    title: "Hata",
+                    description: err.response?.data?.detail || "Kupon çekme işlemi başlatılamadı",
+                    variant: "destructive"
+                })
+            }
         }
     }
 
@@ -1396,9 +1405,17 @@ export default function AdminPage() {
                                             </div>
                                             <div className="space-y-1">
                                                 <span className="text-xs text-muted-foreground uppercase font-bold text-[10px] tracking-wider">Son Kupon Çekilme</span>
-                                                <div className="flex items-center gap-2 text-sm font-medium">
-                                                    <RefreshCw className="h-3.5 w-3.5 text-blue-400" />
-                                                    {event.last_worker_run ? new Date(event.last_worker_run + (String(event.last_worker_run).includes('Z') ? '' : 'Z')).toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : <span className="text-white/30 italic">Henüz çekilmedi</span>}
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-2 text-sm font-medium">
+                                                        <RefreshCw className="h-3 w-3 text-blue-400" />
+                                                        <span className="text-[10px] text-muted-foreground font-bold">OTOMATİK:</span>
+                                                        {event.last_cron_run ? new Date(event.last_cron_run + (String(event.last_cron_run).includes('Z') ? '' : 'Z')).toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : <span className="text-white/30 italic">—</span>}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-sm font-medium">
+                                                        <RefreshCw className="h-3 w-3 text-amber-400" />
+                                                        <span className="text-[10px] text-muted-foreground font-bold">MANUEL:</span>
+                                                        {event.last_worker_run ? new Date(event.last_worker_run + (String(event.last_worker_run).includes('Z') ? '' : 'Z')).toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : <span className="text-white/30 italic">—</span>}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

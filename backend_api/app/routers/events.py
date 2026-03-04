@@ -106,6 +106,7 @@ class EventResponse(BaseModel):
     content_rules: List[ContentRule] = []
     reward_status: Optional[str] = None
     last_worker_run: Optional[datetime] = None
+    last_cron_run: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
     
@@ -235,10 +236,11 @@ async def list_events(
     for event in events:
         event.reward_status = job_statuses.get(event.id, "none")
     
-    # Her event için son worker çalışma tarihini bul
+    # Her event için son worker çalışma tarihini bul (manuel vs otomatik ayrımı)
     from shared.models.worker_log import WorkerLog
     
-    worker_subquery = db.query(
+    # Manuel çalıştırmalar (event_id belirtilmiş olanlar)
+    manual_subquery = db.query(
         WorkerLog.event_id,
         func.max(WorkerLog.completed_at).label('last_run')
     ).filter(
@@ -246,19 +248,20 @@ async def list_events(
         WorkerLog.event_id.isnot(None)
     ).group_by(WorkerLog.event_id).subquery()
     
-    last_worker_runs = {
+    last_manual_runs = {
         row.event_id: row.last_run
-        for row in db.query(worker_subquery.c.event_id, worker_subquery.c.last_run).all()
+        for row in db.query(manual_subquery.c.event_id, manual_subquery.c.last_run).all()
     }
     
-    # event_id=None olan (cron) en son tamamlanan job
+    # Otomatik (cron) çalıştırmalar (event_id=None)
     cron_last_run = db.query(func.max(WorkerLog.completed_at)).filter(
         WorkerLog.status == "completed",
         WorkerLog.event_id.is_(None)
     ).scalar()
     
     for event in events:
-        event.last_worker_run = last_worker_runs.get(event.id) or cron_last_run
+        event.last_worker_run = last_manual_runs.get(event.id)
+        event.last_cron_run = cron_last_run
             
     return events
 
@@ -556,6 +559,11 @@ async def run_event_worker(
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
         raise HTTPException(404, "Event not found")
+    
+    # Eşzamanlılık kilidi: Başka bir worker çalışıyor mu?
+    running_job = db.query(WorkerLog).filter(WorkerLog.status == "running").first()
+    if running_job:
+        raise HTTPException(409, "Başka bir worker zaten çalışıyor. Lütfen tamamlanmasını bekleyin.")
     
     job = WorkerLog(event_id=event_id, status="pending")
     db.add(job)
