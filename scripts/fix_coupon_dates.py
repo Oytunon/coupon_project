@@ -77,11 +77,14 @@ def main():
             event = event_map.get(cer.event_id)
             if not coupon or not event:
                 continue
-            if coupon.created_at and coupon.created_at < event.start_date:
+            # Her zaman -1 saat uygulanmış değeri kullan (dry-run'da da doğru karşılaştırma için)
+            adjusted_created_at = coupon.created_at - timedelta(hours=1) if coupon.created_at else None
+            if adjusted_created_at and adjusted_created_at < event.start_date:
                 invalid_cer_ids.append(cer.id)
                 if DRY_RUN:
                     print(f"         [DRY RUN] Silinecek → CER id={cer.id} | "
-                          f"Kupon {coupon.bet_id} | created_at={coupon.created_at} | "
+                          f"Kupon {coupon.bet_id} | "
+                          f"created_at (düzeltilmiş)={adjusted_created_at} | "
                           f"Event start={event.start_date}")
 
         if not DRY_RUN:
