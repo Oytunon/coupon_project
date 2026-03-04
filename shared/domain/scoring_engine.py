@@ -81,11 +81,37 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
     Kuponları işleyen ana fonksiyon.
     """
     db = SessionLocal()
+    def update_job_status(status: str, processed=0, saved=0, error=None, total=0):
+        if not job_id: return
+        log_db = SessionLocal()
+        try:
+            job = log_db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
+            if job:
+                job.status = status
+                job.processed_count += processed
+                job.saved_count += saved
+                if total > 0:
+                    job.total_count = total
+                if error: job.error_message = str(error)
+                if status in ["completed", "failed", "cancelled"]:
+                    job.completed_at = datetime.utcnow()
+                log_db.commit()
+        except Exception as ex:
+            logger.error(f"Job update error: {ex}")
+        finally:
+            log_db.close()
+
     try:
         # Eşzamanlılık kilidi: Başka bir worker çalışıyor mu kontrol et
-        running_job = db.query(WorkerLog).filter(WorkerLog.status == "running").first()
+        running_query = db.query(WorkerLog).filter(WorkerLog.status.in_(["running", "pending"]))
+        if job_id:
+            running_query = running_query.filter(WorkerLog.id != job_id)
+            
+        running_job = running_query.first()
         if running_job:
             logger.warning(f"⚠️ Başka bir worker zaten çalışıyor (job_id={running_job.id}). Atlanıyor.")
+            if job_id:
+                update_job_status("failed", error=f"Başka bir worker zaten çalışıyor (ID: {running_job.id})")
             return
 
         # Cron çağrısında (job_id=None) otomatik WorkerLog oluştur
@@ -96,26 +122,6 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
             db.refresh(cron_job)
             job_id = cron_job.id
             logger.info(f"📋 Cron worker log oluşturuldu: job_id={job_id}")
-
-        def update_job_status(status: str, processed=0, saved=0, error=None, total=0):
-            if not job_id: return
-            log_db = SessionLocal()
-            try:
-                job = log_db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
-                if job:
-                    job.status = status
-                    job.processed_count += processed
-                    job.saved_count += saved
-                    if total > 0:
-                        job.total_count = total
-                    if error: job.error_message = str(error)
-                    if status in ["completed", "failed"]:
-                        job.completed_at = datetime.utcnow()
-                    log_db.commit()
-            except Exception as ex:
-                logger.error(f"Job update error: {ex}")
-            finally:
-                log_db.close()
 
         if job_id:
             update_job_status("running")

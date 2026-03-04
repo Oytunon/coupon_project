@@ -44,6 +44,8 @@ def _is_rate_limited_response(response: httpx.Response) -> bool:
     """BetConstruct rate limit kontrolü (403 + 'request limit' mesajı)."""
     if response.status_code == 403:
         try:
+            if "request lim" in str(response.reason_phrase).lower():
+                return True
             text = response.text or ""
             if "request lim" in text.lower():
                 return True
