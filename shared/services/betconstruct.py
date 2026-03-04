@@ -72,7 +72,7 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_
 
     all_bets = []
     skip_rows = 0
-    max_rows = 50
+    max_rows = 250  # OPTİMİZASYON: Tek seferde 50 yerine 250 kupon çekerek API istek sayısını %80 azaltıyoruz
     safety_limit = 2000
 
     for attempt in range(max_retries + 1):

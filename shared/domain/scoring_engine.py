@@ -168,14 +168,18 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                 if not user_target_events:
                     continue
 
-                seven_days_ago = datetime.utcnow() - timedelta(days=7)
+                # OPTİMİZASYON: Tüm geçmişi çekmek yerine (7 gün), sadece son 48 saati tara!
+                # Eğer event henüz yeni başladıysa (48 saatten daha yeniyse), event başlangıcından itibaren tara.
+                forty_eight_hours_ago = datetime.utcnow() - timedelta(hours=48)
                 user_p_starts = []
                 for event in user_target_events:
                     joined_at = user_enrollments.get(event.id)
                     p_start = max(event.start_date, joined_at or event.start_date)
                     user_p_starts.append(p_start)
                 
-                scan_start = max(min(user_p_starts), seven_days_ago) if user_p_starts else seven_days_ago
+                # scan_start = Eventin başladığı saat ile 48 saat öncesinden hangisi DAHA GÜNCELSE (daha büyükse) onu al.
+                # (Örn: Event 5 gün önce başladıysa 48 saat öncesini al. Event 10 saat önce başladıysa 10 saat öncesini al.)
+                scan_start = max(min(user_p_starts), forty_eight_hours_ago) if user_p_starts else forty_eight_hours_ago
                 start_str = scan_start.strftime("%Y-%m-%dT%H:%M:%SZ")
                 end_str = (datetime.utcnow() + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
