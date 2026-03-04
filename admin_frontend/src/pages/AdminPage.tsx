@@ -721,6 +721,13 @@ export default function AdminPage() {
                                 description: `${job.total || job.processed} kullanıcı incelendi.`,
                                 duration: 5000
                             })
+                            // Event listesini yenile → "Son Kupon Çekilme" saati güncellensin
+                            try {
+                                const updatedEvents = await fetchEvents()
+                                setEvents(updatedEvents)
+                            } catch (refreshErr) {
+                                console.error("Event refresh failed", refreshErr)
+                            }
                         }
                     }
                 } catch (e) {
