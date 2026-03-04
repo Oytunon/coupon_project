@@ -242,15 +242,14 @@ async def fetch_bet_selections_batch(
                 results[bid] = {}
                 return
     
-    # Chunk'lar halinde paralel çek
-    for i in range(0, len(bet_ids), chunk_size):
-        chunk = bet_ids[i:i + chunk_size]
-        await asyncio.gather(*[fetch_one(bid) for bid in chunk])
+    # Tamamen sıralı (sequential) çekim
+    for i, bid in enumerate(bet_ids):
+        await fetch_one(bid)
         
-        # Son chunk değilse bekle
-        if i + chunk_size < len(bet_ids):
-            await asyncio.sleep(chunk_delay)
-    
+        # Son eleman değilse 0.5 saniye mola ver
+        if i < len(bet_ids) - 1:
+            await asyncio.sleep(0.5)
+            
     logger.info(f"Batch fetch complete: {len(results)}/{len(bet_ids)} selections retrieved")
     return results
 
