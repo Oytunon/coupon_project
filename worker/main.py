@@ -18,10 +18,10 @@ def start_scheduler():
     scheduler = AsyncIOScheduler(event_loop=loop)
     from shared.domain.cleanup import cleanup_expired_magic_tokens, auto_expire_events
     
-    # Her 4 saatte bir kuponları işle (00:00, 04:00, 08:00, ...)
+    # TR saatiyle 02:00, 06:00, 10:00, 14:00, 18:00, 22:00 kuponları işle
     scheduler.add_job(
         process_coupons,
-        trigger=CronTrigger(hour='*/4', minute=0),
+        trigger=CronTrigger(hour='2,6,10,14,18,22', minute=0, timezone='Europe/Istanbul'),
         id='process_coupons',
         replace_existing=True
     )
@@ -29,15 +29,15 @@ def start_scheduler():
     # Her 15 dakikada bir süresi dolan active eventleri temizle
     scheduler.add_job(
         auto_expire_events,
-        trigger=CronTrigger(minute='*/15'),
+        trigger=CronTrigger(minute='*/15', timezone='Europe/Istanbul'),
         id='auto_expire_events',
         replace_existing=True
     )
 
-    # Her gece 01:00'de eski tokenları temizle
+    # Her gece 01:00'de (TR) eski tokenları temizle
     scheduler.add_job(
         cleanup_expired_magic_tokens,
-        trigger=CronTrigger(hour=1, minute=0),
+        trigger=CronTrigger(hour=1, minute=0, timezone='Europe/Istanbul'),
         id='cleanup_tokens',
         replace_existing=True
     )
