@@ -1,6 +1,6 @@
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -548,7 +548,6 @@ async def recalculate_event_points(
 @router.post("/{event_id}/worker", status_code=202)
 async def run_event_worker(
     event_id: int,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db_session),
     _: AdminUser = Depends(get_require_full_admin)
 ):
@@ -570,7 +569,8 @@ async def run_event_worker(
     db.commit()
     db.refresh(job)
 
-    background_tasks.add_task(process_coupons, target_event_id=event_id, job_id=job.id)
+    import asyncio
+    asyncio.create_task(process_coupons(target_event_id=event_id, job_id=job.id))
     return {"status": "initiated", "message": "Worker started", "job_id": job.id}
 
 
