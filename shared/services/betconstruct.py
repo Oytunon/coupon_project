@@ -254,8 +254,4 @@ async def fetch_bet_selections_batch(
     return results
 
 
-def get_date_range():
-    """Worker için varsayılan tarih aralığını döner (Son 7 gün)."""
-    end = datetime.utcnow()
-    start = end - timedelta(days=7)
-    return start.strftime("%Y-%m-%dT%H:%M:%SZ"), end.strftime("%Y-%m-%dT%H:%M:%SZ")
+
