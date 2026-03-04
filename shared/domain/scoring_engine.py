@@ -424,10 +424,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                 if job_id:
                     update_job_status("running", processed=1, saved=user_saved_count)
                 
-                if api_calls_made:
-                    await asyncio.sleep(0.5)  # Selections API'si çağrıldıysa zaten gecikme yaşandı
-                else:
-                    await asyncio.sleep(4.0)  # Sadece GetBetHistory atıldıysa peşpeşe atmamak için bekle
+                await asyncio.sleep(4.0)  # Kullanıcılar arası sabit bekleme süresi
 
         if job_id: update_job_status("completed")
     except Exception as e:
