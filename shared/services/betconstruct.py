@@ -115,14 +115,13 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_
                     data = r.json()
                     
                     bets_batch = []
+                    # Doğru iç içe (nested) kontrol. Çünkü API, 250 data'yı "BetData" altındaki "Objects" içine gömüyor.
                     if "Data" in data and isinstance(data["Data"], dict):
                         inner_data = data["Data"]
                         if "BetData" in inner_data and isinstance(inner_data["BetData"], dict):
                             bets_batch = inner_data["BetData"].get("Objects", [])
                     elif "BetData" in data and isinstance(data["BetData"], dict):
                         bets_batch = data["BetData"].get("Objects", [])
-                    elif "Data" in data and isinstance(data["Data"], list):
-                        bets_batch = data["Data"]
                     
                     if not bets_batch:
                         break
@@ -130,8 +129,12 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_
                     all_bets.extend(bets_batch)
                     skip_rows += max_rows
                     
+                    # Eğer aldığımız kupon 250'den azsa, daha fazla sayfa yoktur.
                     if len(bets_batch) < max_rows:
                         break
+                        
+                    # ÇOK ÖNEMLİ: Sayfalar arası geçerken API'yi yormamak için kısa bir mola ver!
+                    await asyncio.sleep(0.5)
                 else:
                     # while normal bitti (safety_limit), dış retry'dan da çık
                     break
