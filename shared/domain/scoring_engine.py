@@ -10,7 +10,7 @@ from shared.database import SessionLocal
 from shared.models.coupon import Coupon
 from shared.models.participant import Participant
 from shared.models.enrollment import EventParticipant
-from shared.services.betconstruct import fetch_bet_history, fetch_bet_selections, fetch_bet_selections_batch
+from shared.services.betconstruct import fetch_bet_history, fetch_bet_selections, fetch_bet_selections_batch, WorkerCancelledException, set_active_cancel_event
 from shared.models.worker_log import WorkerLog
 from shared.models.event import Event
 from shared.models.coupon_event_result import CouponEventResult
@@ -58,6 +58,23 @@ def calculate_points_for_event(
         "final_points": final_points,
         "truncated_odds": truncated_odds
     }
+
+async def _cancellation_poller(job_id: int, cancel_event: asyncio.Event):
+    """Arka planda DB'yi kontrol ederek iptal durumunu sürekli izler."""
+    while not cancel_event.is_set():
+        check_db = SessionLocal()
+        try:
+            job_check = check_db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
+            if job_check and job_check.status == "cancelled":
+                logger.info(f"   [POLLER] Job {job_id} cancelled from DB. Setting cancel event!")
+                cancel_event.set()
+                return
+        except Exception as e:
+            logger.error(f"Poller error: {e}")
+        finally:
+            check_db.close()
+        
+        await asyncio.sleep(1.0) # Saniyede bir kontrol et
 
 async def process_coupons(target_event_id: Optional[int] = None, job_id: Optional[int] = None):
     """
@@ -146,21 +163,22 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
 
         if job_id:
             update_job_status("running", total=len(participants))
+            
+        # Cancellation event ve poller'ı başlat
+        cancel_event = asyncio.Event()
+        set_active_cancel_event(cancel_event)
+        poller_task = None
+        if job_id:
+            poller_task = asyncio.create_task(_cancellation_poller(job_id, cancel_event))
 
         for i, user in enumerate(participants):
             user_saved_count = 0
             api_calls_made = False
             try:
-                # Cancellation Check
-                if job_id:
-                    check_db = SessionLocal()
-                    try:
-                        job_check = check_db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
-                        if job_check and job_check.status == "cancelled":
-                            logger.info(f"   [WORKER] Job {job_id} cancelled.")
-                            return
-                    finally:
-                        check_db.close()
+                # Cancellation Check anlık
+                if cancel_event.is_set():
+                    logger.info(f"   [WORKER] Job {job_id} cancelled.")
+                    return
 
                 user_enrollments = user_enrollment_map.get(user.id, {})
                 user_target_events = [event_info_map[eid]["object"] for eid in user_enrollments if eid in event_info_map]
@@ -421,14 +439,26 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     if enrollment: enrollment.total_points = total_points
 
                 db.commit()
+            except WorkerCancelledException as wc:
+                logger.info(f"   [WORKER] Interrupted by cancellation: {wc}")
+                db.rollback()
+                return
             except Exception as e:
                 logger.error(f"Error user {user.username}: {e}")
                 db.rollback()
             finally:
-                if job_id:
+                if job_id and not cancel_event.is_set():
                     update_job_status("running", processed=1, saved=user_saved_count)
                 
-                await asyncio.sleep(4.0)  # Kullanıcılar arası sabit bekleme süresi
+                # Kullanıcılar arası kesilebilir (interruptible) bekleme süresi
+                if not cancel_event.is_set():
+                    slept = 0.0
+                    while slept < 4.0:
+                        if cancel_event.is_set():
+                            logger.info(f"   [WORKER] Job {job_id} cancelled during user delay.")
+                            return
+                        await asyncio.sleep(0.5)
+                        slept += 0.5
 
         if job_id: update_job_status("completed")
     except Exception as e:
@@ -436,3 +466,6 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
         if job_id: update_job_status("failed", error=str(e))
     finally:
         db.close()
+        # Poller task'i temizle
+        if 'poller_task' in locals() and poller_task:
+            poller_task.cancel()

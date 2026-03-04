@@ -9,6 +9,35 @@ logger = logging.getLogger(__name__)
 
 # Rate limit durumunu global olarak takip et
 _rate_limit_until = None  # Rate limit bitene kadar bekle
+_active_cancel_event: Optional[asyncio.Event] = None
+
+
+class WorkerCancelledException(Exception):
+    """Exception raised when the worker is manually cancelled by the user."""
+    pass
+
+
+def set_active_cancel_event(event: asyncio.Event):
+    """Sets the global cancel event to allow interruptible sleeps."""
+    global _active_cancel_event
+    _active_cancel_event = event
+
+
+async def _check_cancellation():
+    """Checks if the worker was cancelled and raises an exception if so."""
+    if _active_cancel_event and _active_cancel_event.is_set():
+        raise WorkerCancelledException("Worker manually cancelled.")
+
+
+async def _interruptible_sleep(duration: float):
+    """Sleeps for duration seconds, but wakes up every 0.5s to check for cancellation."""
+    slept = 0.0
+    while slept < duration:
+        await _check_cancellation()
+        sleep_chunk = min(0.5, duration - slept)
+        await asyncio.sleep(sleep_chunk)
+        slept += sleep_chunk
+    await _check_cancellation()
 
 
 def _is_rate_limited_response(response: httpx.Response) -> bool:
@@ -32,7 +61,7 @@ async def _wait_if_rate_limited():
         wait_seconds = (_rate_limit_until - datetime.utcnow()).total_seconds()
         if wait_seconds > 0:
             logger.warning(f"⏳ Rate limit aktif, {wait_seconds:.0f}s bekleniyor...")
-            await asyncio.sleep(wait_seconds)
+            await _interruptible_sleep(wait_seconds)
 
 
 async def _set_rate_limit_cooldown(seconds: int = 60):
@@ -134,7 +163,7 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_
                         break
                         
                     # ÇOK ÖNEMLİ: Sayfalar arası geçerken API'yi yormamak için kısa bir mola ver!
-                    await asyncio.sleep(0.5)
+                    await _interruptible_sleep(0.5)
                 else:
                     # while normal bitti (safety_limit), dış retry'dan da çık
                     break
@@ -248,7 +277,7 @@ async def fetch_bet_selections_batch(
         
         # Son eleman değilse 0.5 saniye mola ver
         if i < len(bet_ids) - 1:
-            await asyncio.sleep(0.5)
+            await _interruptible_sleep(0.5)
             
     logger.info(f"Batch fetch complete: {len(results)}/{len(bet_ids)} selections retrieved")
     return results
