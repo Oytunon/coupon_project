@@ -152,7 +152,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
             api_calls_made = False
             try:
                 # Cancellation Check
-                if job_id and i % 3 == 0:
+                if job_id:
                     check_db = SessionLocal()
                     try:
                         job_check = check_db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
