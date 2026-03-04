@@ -221,7 +221,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             sel_count = 1
                         
                         eligible_for_events = []
-                        raw_calc = bet_history.get("CalcDate") or bet_history.get("CalcDateLocal")
+                        raw_calc = bet_history.get("CalcDateLocal") or bet_history.get("CalcDate")
                         bet_calc_dt = datetime.utcnow()
                         if raw_calc:
                             try:
