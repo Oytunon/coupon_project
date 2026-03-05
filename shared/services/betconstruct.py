@@ -279,7 +279,7 @@ async def fetch_bet_selections_batch(
         
         # Son eleman değilse 0.5 saniye mola ver
         if i < len(bet_ids) - 1:
-            await _interruptible_sleep(0.2)
+            await _interruptible_sleep(0.3)
             
     logger.info(f"Batch fetch complete: {len(results)}/{len(bet_ids)} selections retrieved")
     return results
