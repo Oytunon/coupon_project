@@ -66,8 +66,8 @@ async def _wait_if_rate_limited():
             await _interruptible_sleep(wait_seconds)
 
 
-async def _set_rate_limit_cooldown(seconds: int = 60):
-    """Rate limit cooldown ayarla (varsayılan 1 dakika)."""
+async def _set_rate_limit_cooldown(seconds: int = 120):
+    """Rate limit cooldown ayarla (varsayılan 2 dakika - Betconstruct 2dk bekle diyor)."""
     global _rate_limit_until
     _rate_limit_until = datetime.utcnow() + timedelta(seconds=seconds)
     logger.warning(f"🚫 Rate limited! {seconds}s cooldown başlatıldı.")
@@ -111,6 +111,7 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_
             # Rate limit varsa bekle
             await _wait_if_rate_limited()
 
+            rate_limit_hit = False
             async with httpx.AsyncClient(timeout=30) as client:
                 while skip_rows < safety_limit:
                     body = {
@@ -133,10 +134,10 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_
                     
                     # Rate limit kontrolü
                     if _is_rate_limited_response(r):
-                        await _set_rate_limit_cooldown(60)
+                        await _set_rate_limit_cooldown()
                         if attempt < max_retries:
                             logger.warning(f"Bet history rate limited for {client_id}, retry {attempt + 1}/{max_retries}")
-                            await _wait_if_rate_limited()
+                            rate_limit_hit = True
                             break  # Inner while'dan çık, retry döngüsüne dön
                         else:
                             logger.error(f"Bet history rate limited for {client_id}, max retries reached")
@@ -166,21 +167,19 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_
                         
                     # ÇOK ÖNEMLİ: Sayfalar arası geçerken API'yi yormamak için kısa bir mola ver!
                     await _interruptible_sleep(0.5)
-                else:
-                    # while normal bitti (safety_limit), dış retry'dan da çık
-                    break
                 
-                # Rate limit yüzünden break olduysa retry
-                if skip_rows < safety_limit or all_bets:
-                    if attempt < max_retries and not all_bets and skip_rows == 0:
-                        continue  # Retry
-                    break  # Başarılı veya kısmi veri var
+                # Rate limit yüzünden break olduysa → retry (cooldown sonrası)
+                # Boş sonuç veya normal bitti → retry YAPMA
+                if rate_limit_hit:
+                    await _wait_if_rate_limited()
+                    continue  # Dış for döngüsünde retry
+                break  # Normal sonuç, dış döngüden çık
                         
             return {"Bets": all_bets}
             
         except Exception as e:
             if "request lim" in str(e).lower() and attempt < max_retries:
-                await _set_rate_limit_cooldown(60)
+                await _set_rate_limit_cooldown()
                 await _wait_if_rate_limited()
                 continue
             logger.error(f"Error fetching bet history for {client_id}: {e}")
@@ -238,7 +237,7 @@ async def fetch_bet_selections_batch(
     chunk_size: int = 10,
     chunk_delay: float = 2.0,
     max_retries: int = 4,
-    cooldown: int = 60
+    cooldown: int = 120
 ) -> Dict[str, Dict]:
     """
     Bet selection detaylarını chunk'lar halinde paralel çeker.
@@ -277,9 +276,9 @@ async def fetch_bet_selections_batch(
     for i, bid in enumerate(bet_ids):
         await fetch_one(bid)
         
-        # Son eleman değilse 0.5 saniye mola ver
+        # Son eleman değilse 0.4 saniye mola ver (rate limit önleme)
         if i < len(bet_ids) - 1:
-            await _interruptible_sleep(0.3)
+            await _interruptible_sleep(0.4)
             
     logger.info(f"Batch fetch complete: {len(results)}/{len(bet_ids)} selections retrieved")
     return results
