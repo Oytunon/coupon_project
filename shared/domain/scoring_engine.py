@@ -332,18 +332,27 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     bet_ids_needing_fetch = []
                     selections_cache = {}
                     
-                    # Excluded bet cache'teki bet_id'leri toplu çek (N+1 sorgu yerine tek sorgu)
+                    # Excluded bet cache'teki bet_id'leri toplu çek
                     all_eligible_bids = [bid for _, bid, *_ in eligible_bets]
-                    excluded_bids = set(
-                        row.bet_id for row in db.query(ExcludedBetCache.bet_id).filter(
-                            ExcludedBetCache.bet_id.in_(all_eligible_bids)
-                        ).all()
-                    ) if all_eligible_bids else set()
                     
-                    for bet_hist, bid, *_ in eligible_bets:
-                        # Daha önce excluded olarak işaretlenmiş → API'ye istek atma
-                        if bid in excluded_bids:
+                    import collections
+                    excluded_bids_map = collections.defaultdict(set)
+                    
+                    if all_eligible_bids:
+                        for row in db.query(ExcludedBetCache.bet_id, ExcludedBetCache.event_id).filter(
+                            ExcludedBetCache.bet_id.in_(all_eligible_bids)
+                        ).all():
+                            excluded_bids_map[row.bet_id].add(row.event_id)
+                    
+                    for bet_hist, bid, mapped_state, amount, sel_count, eligible_for_events, bet_created_dt, bet_calc_dt in eligible_bets:
+                        # Bu kupon şu an girebileceği TÜM eventler için daha önceden exclude edilmiş mi?
+                        required_event_ids = set(ev.id for ev in eligible_for_events)
+                        already_excluded_for = excluded_bids_map.get(bid, set())
+                        
+                        # Eğer bu kuponun aday olduğu TÜM eventler için önceden denenip çöpe atıldığı cache'te varsa -> Atla
+                        if required_event_ids and required_event_ids.issubset(already_excluded_for):
                             continue
+                            
                         existing = db.query(Coupon).filter(Coupon.bet_id == bid).first()
                         if existing and existing.bet_data and existing.bet_data.get("Selections"):
                             # DB'de zaten detay var, API'ye istek atma
@@ -401,8 +410,8 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             
                             if all_valid: final_events.append(event)
 
+                        # final_events boş olsa bile, mevcut kupona selections ekle
                         if not final_events:
-                            # final_events boş olsa bile, mevcut kupona selections ekle
                             try:
                                 existing_coupon = db.query(Coupon).filter(Coupon.bet_id == bet_id).first()
                                 if existing_coupon and selections_for_bet and existing_coupon.bet_data:
@@ -414,15 +423,28 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                                         flag_modified(existing_coupon, "bet_data")
                             except Exception as sel_err:
                                 logger.warning(f"Bet {bet_id}: selections update failed: {sel_err}")
-                            
-                            # Excluded cache'e kaydet → sonraki çalışmada tekrar selection çekilmeyecek
+
+                        # Hangi eventlerden elendiyse, onları ExcludedCache'e kaydet
+                        excluded_events = [ev for ev in eligible_for_events if ev not in final_events]
+                        for ex_ev in excluded_events:
                             try:
-                                if not db.query(ExcludedBetCache).filter(ExcludedBetCache.bet_id == bet_id).first():
-                                    db.add(ExcludedBetCache(bet_id=bet_id, client_id=user.client_id))
-                                    db.commit() # Eksik commit eklendi!
+                                exists = db.query(ExcludedBetCache).filter(
+                                    ExcludedBetCache.bet_id == bet_id, 
+                                    ExcludedBetCache.event_id == ex_ev.id
+                                ).first()
+                                if not exists:
+                                    db.add(ExcludedBetCache(bet_id=bet_id, client_id=user.client_id, event_id=ex_ev.id))
                             except Exception as cache_err:
-                                logger.warning(f"Bet {bet_id}: excluded cache save failed: {cache_err}")
+                                logger.warning(f"Bet {bet_id} (Event {ex_ev.id}): excluded cache save failed: {cache_err}")
                                 db.rollback()
+                        
+                        try:
+                            db.commit()
+                        except Exception as e:
+                            logger.warning(f"Bet {bet_id}: excluded events commit failed: {e}")
+                            db.rollback()
+
+                        if not final_events:
                             continue
 
                         # Save to DB — her kupon bağımsız olarak kaydedilir
