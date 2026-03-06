@@ -216,10 +216,17 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                 # scan_start = Eventin başladığı saat ile 24 saat öncesinden hangisi DAHA GÜNCELSE (daha büyükse) onu al.
                 # (Örn: Event 5 gün önce başladıysa 24 saat öncesini al. Event 10 saat önce başladıysa 10 saat öncesini al.)
                 scan_start = max(min(user_p_starts), twenty_four_hours_ago) if user_p_starts else twenty_four_hours_ago
-                start_str = scan_start.strftime("%Y-%m-%dT%H:%M:%SZ")
-                end_str = (datetime.utcnow() + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+                
+                # BETCONSTRUCT TIMEZONE FIX: 
+                # Betconstruct API 'CalcStartDateLocal' ve 'CalcEndDateLocal' parametrelerini KENDİ yerel saati (GMT+4) sanıyor.
+                # Bizim sunucu ise UTC (GMT+0) kullanıyor. Bu yüzden isteklerimize +4 saat eklemeliyiz 
+                # yoksa son 4 saatte yapılan kuponlar hiç taranmaz (gelecekte kalmış gibi görünür).
+                bc_offset = timedelta(hours=4)
+                
+                start_str = (scan_start + bc_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
+                end_str = (datetime.utcnow() + bc_offset + timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-                logger.info(f"User {user.username}: Scanning from {start_str}")
+                logger.info(f"User {user.username}: Scanning from {start_str} (BC Local Time)")
                 bet_history_data = await fetch_bet_history(user.client_id, start_str, end_str)
                 
                 bets = []
