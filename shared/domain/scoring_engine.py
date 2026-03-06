@@ -14,6 +14,7 @@ from shared.services.betconstruct import fetch_bet_history, fetch_bet_selections
 from shared.models.worker_log import WorkerLog
 from shared.models.event import Event
 from shared.models.coupon_event_result import CouponEventResult
+from shared.models.excluded_bet_cache import ExcludedBetCache
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +103,17 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
             log_db.close()
 
     try:
+        # 24 saatten eski excluded_bet_cache kayıtlarını temizle
+        try:
+            cutoff = datetime.utcnow() - timedelta(hours=24)
+            deleted_count = db.query(ExcludedBetCache).filter(ExcludedBetCache.created_at < cutoff).delete()
+            if deleted_count > 0:
+                db.commit()
+                logger.info(f"🧹 Excluded bet cache: {deleted_count} eski kayıt temizlendi")
+        except Exception as cleanup_err:
+            logger.warning(f"Excluded cache cleanup error: {cleanup_err}")
+            db.rollback()
+
         # Eşzamanlılık kilidi: Başka bir worker çalışıyor mu kontrol et
         running_query = db.query(WorkerLog).filter(WorkerLog.status.in_(["running", "pending"]))
         if job_id:
@@ -292,6 +304,18 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             if all_zero:
                                 continue
 
+                        # PRE-FILTER: Tekli kuponlarda Price < min_odd ise selection çekmeye gerek yok
+                        if sel_count == 1:
+                            price = float(bet_history.get("Price", 0) or 0)
+                            all_excluded_by_odds = True
+                            for ev in eligible_for_events:
+                                ev_min_odd = float((ev.rules or {}).get("min_odd", 0) or 0)
+                                if ev_min_odd <= 0 or price >= ev_min_odd:
+                                    all_excluded_by_odds = False
+                                    break
+                            if all_excluded_by_odds:
+                                continue
+
                         # Extract created date just for DB storage
                         raw_created = bet_history.get("CreatedAt") or bet_history.get("Created")
                         bet_created_dt = bet_calc_dt
@@ -308,7 +332,18 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     bet_ids_needing_fetch = []
                     selections_cache = {}
                     
+                    # Excluded bet cache'teki bet_id'leri toplu çek (N+1 sorgu yerine tek sorgu)
+                    all_eligible_bids = [bid for _, bid, *_ in eligible_bets]
+                    excluded_bids = set(
+                        row.bet_id for row in db.query(ExcludedBetCache.bet_id).filter(
+                            ExcludedBetCache.bet_id.in_(all_eligible_bids)
+                        ).all()
+                    ) if all_eligible_bids else set()
+                    
                     for bet_hist, bid, *_ in eligible_bets:
+                        # Daha önce excluded olarak işaretlenmiş → API'ye istek atma
+                        if bid in excluded_bids:
+                            continue
                         existing = db.query(Coupon).filter(Coupon.bet_id == bid).first()
                         if existing and existing.bet_data and existing.bet_data.get("Selections"):
                             # DB'de zaten detay var, API'ye istek atma
@@ -379,6 +414,13 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                                         flag_modified(existing_coupon, "bet_data")
                             except Exception as sel_err:
                                 logger.warning(f"Bet {bet_id}: selections update failed: {sel_err}")
+                            
+                            # Excluded cache'e kaydet → sonraki çalışmada tekrar selection çekilmeyecek
+                            try:
+                                if not db.query(ExcludedBetCache).filter(ExcludedBetCache.bet_id == bet_id).first():
+                                    db.add(ExcludedBetCache(bet_id=bet_id, client_id=user.client_id))
+                            except Exception as cache_err:
+                                logger.warning(f"Bet {bet_id}: excluded cache save failed: {cache_err}")
                             continue
 
                         # Save to DB — her kupon bağımsız olarak kaydedilir
