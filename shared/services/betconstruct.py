@@ -276,12 +276,15 @@ async def fetch_bet_selections_batch(
     for i, bid in enumerate(bet_ids):
         await fetch_one(bid)
         
-        # Son eleman değilse 0.4 saniye mola ver (rate limit önleme)
+        # Son eleman değilse bekleme mantığını uygula
         if i < len(bet_ids) - 1:
-            await _interruptible_sleep(0.4)
+            # Her 10 istekte bir 2.5 saniye uzun bekle
+            if (i + 1) % 10 == 0:
+                logger.debug(f"Chunk limit reached (10), pausing for 2.5s to avoid rate limit...")
+                await _interruptible_sleep(2.5)
+            else:
+                # Normal istekler arası kısa mola (rate limit önleme)
+                await _interruptible_sleep(0.4)
             
     logger.info(f"Batch fetch complete: {len(results)}/{len(bet_ids)} selections retrieved")
     return results
-
-
-
