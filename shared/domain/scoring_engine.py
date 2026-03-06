@@ -295,6 +295,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             joined_at = user_enrollments.get(target_event.id)
                             p_start = max(target_event.start_date, joined_at or target_event.start_date)
                             if bet_calc_dt < p_start: continue
+                            if bet_calc_dt > target_event.end_date: continue
 
                             rules = target_event.rules or {}
                             if amount < rules.get("min_stake", 0): continue
