@@ -426,6 +426,9 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
 
                         # Hangi eventlerden elendiyse, onları ExcludedCache'e kaydet
                         excluded_events = [ev for ev in eligible_for_events if ev not in final_events]
+                        if excluded_events:
+                            logger.info(f"DEBUG: Bet {bet_id} excluded from {len(excluded_events)} events. Attempting to save to cache...")
+                        
                         for ex_ev in excluded_events:
                             try:
                                 exists = db.query(ExcludedBetCache).filter(
@@ -434,14 +437,19 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                                 ).first()
                                 if not exists:
                                     db.add(ExcludedBetCache(bet_id=bet_id, client_id=user.client_id, event_id=ex_ev.id))
+                                    logger.info(f"DEBUG: Bet {bet_id} added to DB session for Event {ex_ev.id}")
+                                else:
+                                    logger.info(f"DEBUG: Bet {bet_id} already exists in DB for Event {ex_ev.id}")
                             except Exception as cache_err:
-                                logger.warning(f"Bet {bet_id} (Event {ex_ev.id}): excluded cache save failed: {cache_err}")
+                                logger.warning(f"DEBUG: Bet {bet_id} (Event {ex_ev.id}) cache save failed: {cache_err}")
                                 db.rollback()
                         
                         try:
-                            db.commit()
+                            if excluded_events:
+                                db.commit()
+                                logger.info(f"DEBUG: DB Commit SUCCESS for {len(excluded_events)} events for bet {bet_id}")
                         except Exception as e:
-                            logger.warning(f"Bet {bet_id}: excluded events commit failed: {e}")
+                            logger.warning(f"DEBUG: Bet {bet_id} excluded events commit failed: {e}")
                             db.rollback()
 
                         if not final_events:
