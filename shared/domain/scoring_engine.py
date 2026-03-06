@@ -419,8 +419,10 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             try:
                                 if not db.query(ExcludedBetCache).filter(ExcludedBetCache.bet_id == bet_id).first():
                                     db.add(ExcludedBetCache(bet_id=bet_id, client_id=user.client_id))
+                                    db.commit() # Eksik commit eklendi!
                             except Exception as cache_err:
                                 logger.warning(f"Bet {bet_id}: excluded cache save failed: {cache_err}")
+                                db.rollback()
                             continue
 
                         # Save to DB — her kupon bağımsız olarak kaydedilir
