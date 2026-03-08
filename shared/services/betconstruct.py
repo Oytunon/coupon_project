@@ -14,7 +14,7 @@ _active_cancel_event: Optional[asyncio.Event] = None
 
 # GetBetSelections için sliding-window rate limiter (limit aşmadan max hız)
 _GETBET_WINDOW_SEC = 120  # BetConstruct "2dk bekle" diyor
-_GETBET_MAX_PER_WINDOW = 28  # 30-35 civarı limit; 28 ile güvenli pay
+_GETBET_MAX_PER_WINDOW = 24  # 28 ile hâlâ limit yedik; 24 ile güvenli pay
 _getbet_timestamps: List[float] = []
 _getbet_lock = asyncio.Lock()
 
@@ -83,7 +83,7 @@ async def _set_rate_limit_cooldown(seconds: int = 120):
 async def _acquire_getbet_slot():
     """
     GetBetSelections için sliding-window slot al.
-    Son 120 sn'de 28'den az istek varsa hemen geçer; yoksa en eski istek pencereden çıkana kadar bekler.
+    Son 120 sn'de 24'ten az istek varsa hemen geçer; yoksa en eski istek pencereden çıkana kadar bekler.
     Limit aşmadan maksimum hız sağlar.
     """
     global _getbet_timestamps
@@ -270,7 +270,7 @@ async def fetch_bet_selections_batch(
 ) -> Dict[str, Dict]:
     """
     Bet selection detaylarını sıralı çeker.
-    Sliding-window rate limiter (28/120sn) kullanır; limit aşmadan max hız.
+    Sliding-window rate limiter (24/120sn) kullanır; limit aşmadan max hız.
     Rate limit olursa cooldown + retry.
     
     Returns: {bet_id: {Selections: [...]}, ...}
