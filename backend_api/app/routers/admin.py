@@ -324,7 +324,7 @@ async def get_event_participants_api(event_id: int, db: Session = Depends(get_db
         ).scalar()
         
         # Get live points via CouponEventResult (Fix for discrepancy)
-        live_points = db.query(func.coalesce(func.round(func.sum(CouponEventResult.points_earned), 2), 0.0)).join(
+        live_points = db.query(func.coalesce(func.sum(CouponEventResult.points_earned), 0.0)).join(
              Coupon, Coupon.id == CouponEventResult.coupon_id
         ).filter(
             CouponEventResult.event_id == event_id,

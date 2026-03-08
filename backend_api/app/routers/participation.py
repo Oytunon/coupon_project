@@ -90,34 +90,26 @@ async def get_my_coupons(
         return []
 
     # Limit increased to 1000 to show 'all' coupons for the event as requested
-    from shared.models.coupon import Coupon
-    from shared.models.coupon_event_result import CouponEventResult
-    
-    results = db.query(Coupon, CouponEventResult).join(
-        CouponEventResult, CouponEventResult.coupon_id == Coupon.id
-    ).filter(
-        CouponEventResult.event_id == target_event_id,
-        Coupon.client_id == client_id
-    ).order_by(Coupon.created_at.desc()).limit(1000).all()
+    total, coupons = get_user_coupon_history(db, client_id, target_event_id, limit=1000)
     
     # Properly serialize coupon objects including bet_data
     result = []
-    for c, cer in results:
-        # Only show relevant states for the list
-        if cer.coupon_state and cer.coupon_state.lower() in ["won", "lost"]:
+    for c in coupons:
+        if c.state and c.state.lower() in ["won", "lost"]:
             result.append({
                 "id": c.id,
                 "bet_id": c.bet_id,
                 "client_id": c.client_id,
-                "event_id": cer.event_id,
+                "event_id": c.event_id,
                 "stake": c.stake,
                 "odds": c.odds,
-                "state": cer.coupon_state, # Use event-specific state
+                "state": c.state,
                 "winning": c.winning,
-                "calculation": cer.points_earned, # Use event-specific points
+                "calculation": c.calculation,
                 "is_live": c.is_live,
+                "inserted_at": c.inserted_at.isoformat() if c.inserted_at else None,
                 "created_at": c.created_at.isoformat() if c.created_at else None,
-                "bet_data": c.bet_data
+                "bet_data": c.bet_data  # JSONB field - properly included
             })
     return result
 
@@ -183,7 +175,7 @@ async def get_my_enrollments(
         
         # FIX: Query CouponEventResult instead of Coupon directly. 
         # A coupon might belong to multiple events or have a different primary event_id.
-        live_score = db.query(func.coalesce(func.round(func.sum(CouponEventResult.points_earned), 2), 0.0)).join(
+        live_score = db.query(func.coalesce(func.sum(CouponEventResult.points_earned), 0.0)).join(
             Coupon, Coupon.id == CouponEventResult.coupon_id
         ).filter(
             Coupon.client_id == participant.client_id, 
@@ -200,7 +192,7 @@ async def get_my_enrollments(
             .join(CouponEventResult, Coupon.id == CouponEventResult.coupon_id)
             .filter(CouponEventResult.event_id == eid, CouponEventResult.is_eligible == True)
             .group_by(Coupon.client_id)
-            .having(func.round(func.sum(CouponEventResult.points_earned), 2) > (live_score or 0))
+            .having(func.sum(CouponEventResult.points_earned) > (live_score or 0))
             .subquery()
         ).scalar()
 

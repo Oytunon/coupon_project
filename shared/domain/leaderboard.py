@@ -15,7 +15,7 @@ def get_event_leaderboard(db: Session, event_id: int):
         # A coupon might be associated with this event via CouponEventResult even if Coupon.event_id is different.
         from shared.models.coupon_event_result import CouponEventResult
         
-        total_points = db.query(func.coalesce(func.round(func.sum(CouponEventResult.points_earned), 2), 0.0)).join(
+        total_points = db.query(func.coalesce(func.sum(CouponEventResult.points_earned), 0.0)).join(
              Coupon, Coupon.id == CouponEventResult.coupon_id
         ).filter(
             Coupon.client_id == p.client_id, 

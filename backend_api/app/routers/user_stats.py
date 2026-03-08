@@ -53,46 +53,26 @@ async def get_user_event_stats(
 
         if enrollment:
             is_enrolled = True
+            total_points = enrollment.total_points
             
-            # Use CouponEventResult for live, accurate points (matches leaderboard)
-            from shared.models.coupon_event_result import CouponEventResult
-            total_points = db.query(func.coalesce(func.round(func.sum(CouponEventResult.points_earned), 2), 0.0)).join(
-                Coupon, Coupon.id == CouponEventResult.coupon_id
-            ).filter(
-                Coupon.client_id == participant.client_id,
-                CouponEventResult.event_id == event.id,
-                CouponEventResult.is_eligible == True
-            ).scalar()
+            # 4. Calculate Rank
+            rank = db.query(EventParticipant).filter(
+                EventParticipant.event_id == event.id,
+                EventParticipant.total_points > total_points
+            ).count() + 1
             
-            # Calculate rank live based on unique client scores for this event
-            higher_rank_count = db.query(func.count()).select_from(
-                db.query(Coupon.client_id)
-                .join(CouponEventResult, CouponEventResult.coupon_id == Coupon.id)
-                .filter(
-                    CouponEventResult.event_id == event.id,
-                    CouponEventResult.is_eligible == True
-                )
-                .group_by(Coupon.client_id)
-                .having(func.round(func.sum(CouponEventResult.points_earned), 2) > total_points)
-                .subquery()
-            ).scalar()
-            
-            rank = (higher_rank_count or 0) + 1
-            
-            # 5. Get Coupons with Event-Specific Results (Matches Leaderboard logic)
-            results = db.query(Coupon, CouponEventResult).join(
-                CouponEventResult, CouponEventResult.coupon_id == Coupon.id
-            ).filter(
-                CouponEventResult.event_id == event.id,
+            # 5. Get Coupons
+            coupons = db.query(Coupon).filter(
+                Coupon.event_id == event.id,
                 Coupon.client_id == participant.client_id
             ).order_by(Coupon.created_at.desc()).all()
 
-            for c, cer in results:
+            for c in coupons:
                 coupon_data = {
                     "bet_id": c.bet_id,
                     "created_at": c.created_at,
-                    "points": cer.points_earned, # Use live points from the result table
-                    "state": cer.coupon_state or c.state, # Use event-specific state
+                    "points": c.calculation,
+                    "state": c.state,
                     "is_processed": c.is_processed,
                     "matches": []
                 }
