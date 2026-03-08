@@ -546,6 +546,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             db.rollback()
 
                         if not final_events:
+                            logger.info(f"Bet {bet_id}: Skipped - no final_events after selections validation (had {len(eligible_for_events)} eligible events initially, selections_count={len(selections_for_bet)})")
                             continue
 
                         # Save to DB — her kupon bağımsız olarak kaydedilir
@@ -555,6 +556,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             winning_amount = float(bet_history.get("WinAmount") or bet_history.get("Payout") or 0.0)
 
                             if not existing_coupon:
+                                logger.info(f"Bet {bet_id}: Creating NEW coupon for events {[e.id for e in final_events]}")
                                 new_coupon = Coupon(
                                     client_id=user.client_id, bet_id=bet_id, event_id=final_events[0].id,
                                     stake=amount, odds=price, combination_count=sel_count, state=mapped_state,
@@ -566,6 +568,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                                 existing_coupon = new_coupon
                                 user_saved_count += 1
                             else:
+                                logger.info(f"Bet {bet_id}: Existing coupon found (id={existing_coupon.id}), updating state/winning if needed")
                                 if existing_coupon.state != mapped_state or existing_coupon.winning != winning_amount:
                                     existing_coupon.state = mapped_state
                                     existing_coupon.winning = winning_amount
@@ -583,12 +586,14 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                                 calc_points, calc_details = calculate_points_for_event(existing_coupon, event)
                                 cer = db.query(CouponEventResult).filter(CouponEventResult.coupon_id == existing_coupon.id, CouponEventResult.event_id == event.id).first()
                                 if not cer:
+                                    logger.info(f"Bet {bet_id} Event {event.id}: Creating NEW CouponEventResult, points={calc_points}")
                                     db.add(CouponEventResult(
                                         coupon_id=existing_coupon.id, event_id=event.id, is_eligible=True,
                                         coupon_state=mapped_state, points_earned=calc_points, points_calculation=calc_details,
                                         evaluated_at=datetime.utcnow(), last_checked_at=datetime.utcnow()
                                     ))
                                 else:
+                                    logger.info(f"Bet {bet_id} Event {event.id}: Updating existing CouponEventResult (id={cer.id}), points={calc_points}")
                                     cer.coupon_state = mapped_state
                                     cer.points_earned = calc_points
                                     cer.points_calculation = calc_details
