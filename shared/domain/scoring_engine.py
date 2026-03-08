@@ -236,6 +236,11 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     bets = bet_history_data
                 
                 if bets:
+                    logger.info(f"User {user.username}: Received {len(bets)} bets from API. IDs: {[b.get('BetId') or b.get('Id') for b in bets[:10]]}")
+                else:
+                    logger.info(f"User {user.username}: No bets returned from API.")
+
+                if bets:
                     # Phase 1: Collect eligible bets and determine which need selection detail
                     eligible_bets = []  # (bet_history, bet_id, mapped_state, amount, sel_count, eligible_events)
 
