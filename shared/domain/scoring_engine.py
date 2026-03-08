@@ -251,6 +251,8 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                 elif isinstance(bet_history_data, list):
                     bets = bet_history_data
                 
+                logger.info(f"User {user.username}: API returned {len(bets)} bets in date range")
+                
                 if bets:
                     # Phase 1: Collect eligible bets and determine which need selection detail
                     eligible_bets = []  # (bet_history, bet_id, mapped_state, amount, sel_count, eligible_events)
@@ -261,6 +263,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
 
                         # State Mapping
                         state_name = bet_history.get("StateName", "").lower()
+                        state_id = bet_history.get("State", 0)
                         mapped_state = "open"
                         if "won" in state_name: mapped_state = "won"
                         elif "lost" in state_name: mapped_state = "lost"
@@ -268,12 +271,15 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         elif "returned" in state_name: mapped_state = "returned"
                         
                         if mapped_state == "open":
-                            sid = bet_history.get("State", 0)
-                            if sid == 4: mapped_state = "won"
-                            elif sid == 3: mapped_state = "lost"
-                            elif sid == 2 or sid == 5: mapped_state = "cashout"
+                            if state_id == 4: mapped_state = "won"
+                            elif state_id == 3: mapped_state = "lost"
+                            elif state_id == 2 or state_id == 5: mapped_state = "cashout"
                         
-                        if mapped_state not in ["won", "lost"]: continue
+                        # Debug: State bilgisini logla
+                        raw_calc = bet_history.get("CalcDateLocal") or bet_history.get("CalcDate")
+                        if mapped_state not in ["won", "lost"]:
+                            logger.debug(f"Bet {bet_id}: Skipped - state={mapped_state} (StateName={state_name}, State={state_id}), CalcDateLocal={raw_calc}")
+                            continue
 
                         # Bonus Check: Skip bets made with bonus money, free bets, or attached to a wagering bonus
                         is_bonus_money = bet_history.get("IsBonusMoney", False)
@@ -313,14 +319,22 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         # Betconstruct'tan gelen tarihler GMT+4 (BC Local Time) olarak geliyor
                         # UTC'ye çevirmek için -4 saat ekliyoruz
                         bc_to_utc_offset = timedelta(hours=-4)
-                        bet_calc_dt_utc = datetime.utcnow()
+                        bet_calc_dt_utc = None
+                        parse_error = None
                         if raw_calc:
                             try:
                                 clean_calc = str(raw_calc).split('.')[0].replace("Z", "").split("+")[0]
                                 bet_calc_dt_parsed = datetime.strptime(clean_calc, "%Y-%m-%dT%H:%M:%S") if "T" in clean_calc else datetime.strptime(clean_calc, "%Y-%m-%d %H:%M:%S")
                                 # Betconstruct tarihleri GMT+4 olarak geliyor, UTC'ye çevir
                                 bet_calc_dt_utc = bet_calc_dt_parsed + bc_to_utc_offset
-                            except: pass
+                            except Exception as e:
+                                parse_error = str(e)
+                                logger.warning(f"Bet {bet_id}: CalcDateLocal parse failed: {raw_calc}, error: {e}")
+                        
+                        # Eğer parse edilemediyse, kuponu atla (tarih bilgisi olmadan event kontrolü yapamayız)
+                        if bet_calc_dt_utc is None:
+                            logger.warning(f"Bet {bet_id}: Skipping - CalcDateLocal parse failed: {raw_calc}")
+                            continue
 
                         # Event tarihleri TR saati (UTC+3) olarak saklanıyor, UTC'ye çevir
                         tr_offset = timedelta(hours=3)
@@ -334,8 +348,12 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             p_start_utc = max(event_start_utc, joined_at_utc)
                             
                             # UTC'ye normalize edilmiş tarihlerle karşılaştır
-                            if bet_calc_dt_utc < p_start_utc: continue
-                            if bet_calc_dt_utc > event_end_utc: continue
+                            if bet_calc_dt_utc < p_start_utc:
+                                logger.debug(f"Bet {bet_id} Event {target_event.id}: Skipped - bet_calc_dt_utc ({bet_calc_dt_utc}) < p_start_utc ({p_start_utc})")
+                                continue
+                            if bet_calc_dt_utc > event_end_utc:
+                                logger.debug(f"Bet {bet_id} Event {target_event.id}: Skipped - bet_calc_dt_utc ({bet_calc_dt_utc}) > event_end_utc ({event_end_utc})")
+                                continue
 
                             rules = target_event.rules or {}
                             if amount < rules.get("min_stake", 0): continue
