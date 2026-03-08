@@ -206,26 +206,22 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     continue
 
                 # OPTİMİZASYON: Tüm geçmişi çekmek yerine (7 gün), sadece son X saati tara!
-                # Eğer event henüz yeni başladıysa, event başlangıcından itibaren tara.
-                # ÖNEMLİ: Event tarihleri TR saati (UTC+3) olarak saklanıyor, bu yüzden UTC'ye +3 saat ekliyoruz
+                # API istek penceresi: event başlangıcından (veya scan_hours öncesinden) itibaren istek at.
+                # Böylece katılımdan hemen sonra sonuçlanan kuponlar (örn. 17:21) da gelir; "katılımdan sonra" filtresi
+                # aşağıda bet_calc_dt_utc >= p_start_utc ile uygulanıyor.
+                # ÖNEMLİ: Event tarihleri TR saati (UTC+3) olarak saklanıyor.
                 tr_offset = timedelta(hours=3)
                 now_utc = datetime.utcnow()
                 now_tr = now_utc + tr_offset
                 scan_limit_ago_tr = now_tr - timedelta(hours=scan_hours)
                 scan_limit_ago_utc = scan_limit_ago_tr - tr_offset  # UTC'ye çevir
                 
-                user_p_starts = []
-                for event in user_target_events:
-                    joined_at = user_enrollments.get(event.id)
-                    # Event tarihleri TR saati olarak saklanıyor, UTC'ye çevir
-                    event_start_utc = event.start_date - tr_offset
-                    # ÖNEMLİ: joined_at zaten UTC olarak saklanıyor (func.now() kullanılıyor), offset çıkarmamalıyız!
-                    joined_at_utc = joined_at if joined_at else event_start_utc
-                    p_start = max(event_start_utc, joined_at_utc)
-                    user_p_starts.append(p_start)
-                
-                # scan_start = Eventin başladığı saat ile belirtilen saat öncesinden hangisi DAHA GÜNCELSE onu al.
-                scan_start_utc = max(min(user_p_starts), scan_limit_ago_utc) if user_p_starts else scan_limit_ago_utc
+                # İstek penceresi = event başlangıçlarından en erken olan (veya scan_hours öncesi). joined_at KULLANMIYORUZ;
+                # aksi halde katılımdan hemen sonra sonuçlanan kuponlar API'den hiç gelmez (örn. 16:49 katılım → 17:49'dan istek → 17:21 kuponu kaçar).
+                # BC tarafında CalcDateLocal bazen event başlangıcından önce görünebileceği için 1 saat buffer ekliyoruz.
+                event_starts_utc = [e.start_date - tr_offset for e in user_target_events]
+                earliest_event_utc = min(event_starts_utc) if event_starts_utc else now_utc
+                scan_start_utc = max(earliest_event_utc - timedelta(hours=1), scan_limit_ago_utc)
                 
                 # BETCONSTRUCT TIMEZONE FIX: 
                 # Betconstruct API 'CalcStartDateLocal' ve 'CalcEndDateLocal' parametrelerini KENDİ yerel saati (GMT+4) sanıyor.
