@@ -219,7 +219,8 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     joined_at = user_enrollments.get(event.id)
                     # Event tarihleri TR saati olarak saklanıyor, UTC'ye çevir
                     event_start_utc = event.start_date - tr_offset
-                    joined_at_utc = (joined_at - tr_offset) if joined_at else event_start_utc
+                    # ÖNEMLİ: joined_at zaten UTC olarak saklanıyor (func.now() kullanılıyor), offset çıkarmamalıyız!
+                    joined_at_utc = joined_at if joined_at else event_start_utc
                     p_start = max(event_start_utc, joined_at_utc)
                     user_p_starts.append(p_start)
                 
@@ -235,7 +236,13 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                 start_str = (scan_start_utc + bc_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
                 end_str = (now_utc + bc_offset + timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-                logger.info(f"User {user.username}: Scanning from {start_str} (BC Local Time)")
+                # Debug log: Katılım tarihi ve scan_start bilgisi
+                if user_enrollments:
+                    for eid, joined in user_enrollments.items():
+                        if joined:
+                            logger.info(f"User {user.username} Event {eid}: joined_at={joined} (UTC), scan_start_utc={scan_start_utc} (UTC), scan_start_bc={start_str} (BC Local)")
+                
+                logger.info(f"User {user.username}: Scanning from {start_str} (BC Local Time) to {end_str}")
                 bet_history_data = await fetch_bet_history(user.client_id, start_str, end_str)
                 
                 bets = []
@@ -322,7 +329,8 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             # Event tarihlerini UTC'ye çevir
                             event_start_utc = target_event.start_date - tr_offset
                             event_end_utc = target_event.end_date - tr_offset
-                            joined_at_utc = (joined_at - tr_offset) if joined_at else event_start_utc
+                            # ÖNEMLİ: joined_at zaten UTC olarak saklanıyor (func.now() kullanılıyor), offset çıkarmamalıyız!
+                            joined_at_utc = joined_at if joined_at else event_start_utc
                             p_start_utc = max(event_start_utc, joined_at_utc)
                             
                             # UTC'ye normalize edilmiş tarihlerle karşılaştır
