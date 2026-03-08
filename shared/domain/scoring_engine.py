@@ -278,7 +278,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         # Debug: State bilgisini logla
                         raw_calc = bet_history.get("CalcDateLocal") or bet_history.get("CalcDate")
                         if mapped_state not in ["won", "lost"]:
-                            logger.debug(f"Bet {bet_id}: Skipped - state={mapped_state} (StateName={state_name}, State={state_id}), CalcDateLocal={raw_calc}")
+                            logger.info(f"Bet {bet_id}: Skipped - state={mapped_state} (StateName={state_name}, State={state_id}), CalcDateLocal={raw_calc}")
                             continue
 
                         # Bonus Check: Skip bets made with bonus money, free bets, or attached to a wagering bonus
@@ -333,8 +333,11 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         
                         # Eğer parse edilemediyse, kuponu atla (tarih bilgisi olmadan event kontrolü yapamayız)
                         if bet_calc_dt_utc is None:
-                            logger.warning(f"Bet {bet_id}: Skipping - CalcDateLocal parse failed: {raw_calc}")
+                            logger.info(f"Bet {bet_id}: Skipping - CalcDateLocal parse failed: {raw_calc}")
                             continue
+                        
+                        # Debug: Parse edilen tarihi logla
+                        logger.info(f"Bet {bet_id}: CalcDateLocal={raw_calc}, parsed_utc={bet_calc_dt_utc}, state={mapped_state}")
 
                         # Event tarihleri TR saati (UTC+3) olarak saklanıyor, UTC'ye çevir
                         tr_offset = timedelta(hours=3)
@@ -349,17 +352,23 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             
                             # UTC'ye normalize edilmiş tarihlerle karşılaştır
                             if bet_calc_dt_utc < p_start_utc:
-                                logger.debug(f"Bet {bet_id} Event {target_event.id}: Skipped - bet_calc_dt_utc ({bet_calc_dt_utc}) < p_start_utc ({p_start_utc})")
+                                logger.info(f"Bet {bet_id} Event {target_event.id}: Skipped - bet_calc_dt_utc ({bet_calc_dt_utc}) < p_start_utc ({p_start_utc}) [joined_at={joined_at}]")
                                 continue
                             if bet_calc_dt_utc > event_end_utc:
-                                logger.debug(f"Bet {bet_id} Event {target_event.id}: Skipped - bet_calc_dt_utc ({bet_calc_dt_utc}) > event_end_utc ({event_end_utc})")
+                                logger.info(f"Bet {bet_id} Event {target_event.id}: Skipped - bet_calc_dt_utc ({bet_calc_dt_utc}) > event_end_utc ({event_end_utc})")
                                 continue
 
                             rules = target_event.rules or {}
-                            if amount < rules.get("min_stake", 0): continue
+                            min_stake = rules.get("min_stake", 0)
+                            if amount < min_stake:
+                                logger.info(f"Bet {bet_id} Event {target_event.id}: Skipped - amount ({amount}) < min_stake ({min_stake})")
+                                continue
                             min_sel = rules.get("min_combination") or rules.get("min_selection_count") or 1
-                            if sel_count < int(min_sel): continue
+                            if sel_count < int(min_sel):
+                                logger.info(f"Bet {bet_id} Event {target_event.id}: Skipped - sel_count ({sel_count}) < min_combination ({min_sel})")
+                                continue
                             
+                            logger.info(f"Bet {bet_id} Event {target_event.id}: ELIGIBLE - bet_calc_dt_utc={bet_calc_dt_utc}, amount={amount}, sel_count={sel_count}, state={mapped_state}")
                             eligible_for_events.append(target_event)
 
                         if not eligible_for_events: continue
