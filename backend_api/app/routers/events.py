@@ -570,7 +570,7 @@ async def run_event_worker(
     db.refresh(job)
 
     import asyncio
-    asyncio.create_task(process_coupons(target_event_id=event_id, job_id=job.id))
+    asyncio.create_task(process_coupons(target_event_id=event_id, job_id=job.id, scan_hours=48))
     return {"status": "initiated", "message": "Worker started", "job_id": job.id}
 
 

@@ -77,9 +77,10 @@ async def _cancellation_poller(job_id: int, cancel_event: asyncio.Event):
         
         await asyncio.sleep(1.0) # Saniyede bir kontrol et
 
-async def process_coupons(target_event_id: Optional[int] = None, job_id: Optional[int] = None):
+async def process_coupons(target_event_id: Optional[int] = None, job_id: Optional[int] = None, scan_hours: int = 24):
     """
     Kuponları işleyen ana fonksiyon.
+    scan_hours: Geriye dönük kaç saatlik periyodu tarayacağını belirler (varsayılan: 24).
     """
     db = SessionLocal()
     def update_job_status(status: str, processed=0, saved=0, error=None, total=0):
@@ -204,18 +205,17 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                 if not user_target_events:
                     continue
 
-                # OPTİMİZASYON: Tüm geçmişi çekmek yerine (7 gün), sadece son 24 saati (1 gün) tara!
-                # Eğer event henüz yeni başladıysa (24 saatten daha yeniyse), event başlangıcından itibaren tara.
-                twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
+                # OPTİMİZASYON: Tüm geçmişi çekmek yerine (7 gün), sadece son X saati tara!
+                # Eğer event henüz yeni başladıysa, event başlangıcından itibaren tara.
+                scan_limit_ago = datetime.utcnow() - timedelta(hours=scan_hours)
                 user_p_starts = []
                 for event in user_target_events:
                     joined_at = user_enrollments.get(event.id)
                     p_start = max(event.start_date, joined_at or event.start_date)
                     user_p_starts.append(p_start)
                 
-                # scan_start = Eventin başladığı saat ile 24 saat öncesinden hangisi DAHA GÜNCELSE (daha büyükse) onu al.
-                # (Örn: Event 5 gün önce başladıysa 24 saat öncesini al. Event 10 saat önce başladıysa 10 saat öncesini al.)
-                scan_start = max(min(user_p_starts), twenty_four_hours_ago) if user_p_starts else twenty_four_hours_ago
+                # scan_start = Eventin başladığı saat ile belirtilen saat öncesinden hangisi DAHA GÜNCELSE onu al.
+                scan_start = max(min(user_p_starts), scan_limit_ago) if user_p_starts else scan_limit_ago
                 
                 # BETCONSTRUCT TIMEZONE FIX: 
                 # Betconstruct API 'CalcStartDateLocal' ve 'CalcEndDateLocal' parametrelerini KENDİ yerel saati (GMT+4) sanıyor.
@@ -258,6 +258,16 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             elif sid == 2 or sid == 5: mapped_state = "cashout"
                         
                         if mapped_state not in ["won", "lost"]: continue
+
+                        # Bonus Check: Skip bets made with bonus money, free bets, or attached to a wagering bonus
+                        is_bonus_money = bet_history.get("IsBonusMoney", False)
+                        wagering_bonus_id = bet_history.get("WageringBonusId")
+                        bonus_amount = float(bet_history.get("BonusAmount", 0) or 0)
+                        free_bet_amount = float(bet_history.get("FreeBetAmount", 0) or 0)
+
+                        if is_bonus_money or wagering_bonus_id is not None or bonus_amount > 0 or free_bet_amount > 0:
+                            logger.info(f"Bet {bet_id} skipped: Identified as bonus/free bet (IsBonusMoney: {is_bonus_money}, WageringBonusId: {wagering_bonus_id}, BonusAmount: {bonus_amount}, FreeBet: {free_bet_amount})")
+                            continue
 
                         # Strict Type Whitelist (Only Single and Multiple allowed)
                         type_val = bet_history.get("Type", 1)
@@ -392,6 +402,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             bet_history["Selections"] = selections_for_bet
 
                         final_events = []
+                        skipped_events_due_to_missing_data = set()
 
                         for event in eligible_for_events:
                             rules = event.rules or {}
@@ -399,27 +410,42 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             min_odd = float(rules.get("min_odd", 0) or 0)
                             
                             all_valid = True
+                            is_missing_selections = False
 
                             # min_odd kontrolü: Kombine kuponlarda her seçimin oranı min_odd'dan büyük olmalı
-                            if min_odd > 0 and selections_for_bet:
-                                for sel in selections_for_bet:
-                                    sel_price = float(sel.get("Price", 0) or 0)
-                                    if sel_price < min_odd:
-                                        logger.info(f"Bet {bet_id} excluded from event {event.id}: selection odds {sel_price} < min_odd {min_odd}")
-                                        all_valid = False
-                                        break
+                            if min_odd > 0:
+                                if not selections_for_bet:
+                                    logger.info(f"Bet {bet_id} skipped for event {event.id}: Missing selections while min_odd > 0 is required.")
+                                    all_valid = False
+                                    is_missing_selections = True
+                                else:
+                                    for sel in selections_for_bet:
+                                        sel_price = float(sel.get("Price", 0) or sel.get("Odds", 0) or sel.get("Coefficient", 0) or 0)
+                                        if sel_price < min_odd:
+                                            logger.info(f"Bet {bet_id} excluded from event {event.id}: selection odds {sel_price} < min_odd {min_odd}")
+                                            all_valid = False
+                                            break
 
                             if allowed_leagues and all_valid:
                                 if not selections_for_bet:
                                     # Detay çekilemedi — kaybeden ve 0 puan ise kabul et, değilse atla (sonraki çalışmada tekrar denenecek)
-                                    all_valid = (mapped_state == "lost" and float(getattr(event, 'loss_point_multiplier', 0)) == 0)
+                                    if mapped_state == "lost" and float(getattr(event, 'loss_point_multiplier', 0)) == 0:
+                                        all_valid = True
+                                    else:
+                                        logger.info(f"Bet {bet_id} skipped for event {event.id}: Missing selections while allowed_leagues requires checking.")
+                                        all_valid = False
+                                        is_missing_selections = True
                                 else:
                                     all_valid = all(str(s.get("CompetitionId")) in [str(lid) for lid in allowed_leagues] for s in selections_for_bet)
                             
-                            if all_valid: final_events.append(event)
+                            if all_valid: 
+                                final_events.append(event)
+                            elif is_missing_selections:
+                                # Mark as skipped entirely instead of simply excluded so we DON'T add to ExcludedBetCache
+                                skipped_events_due_to_missing_data.add(event.id)
 
                         # final_events boş olsa bile, mevcut kupona selections ekle
-                        if not final_events:
+                        if not final_events and not skipped_events_due_to_missing_data:
                             try:
                                 existing_coupon = db.query(Coupon).filter(Coupon.bet_id == bet_id).first()
                                 if existing_coupon and selections_for_bet and existing_coupon.bet_data:
@@ -433,7 +459,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                                 logger.warning(f"Bet {bet_id}: selections update failed: {sel_err}")
 
                         # Hangi eventlerden elendiyse, onları ExcludedCache'e kaydet
-                        excluded_events = [ev for ev in eligible_for_events if ev not in final_events]
+                        excluded_events = [ev for ev in eligible_for_events if ev not in final_events and ev.id not in skipped_events_due_to_missing_data]
                         if excluded_events:
                             logger.info(f"DEBUG: Bet {bet_id} excluded from {len(excluded_events)} events. Attempting to save to cache...")
                         
