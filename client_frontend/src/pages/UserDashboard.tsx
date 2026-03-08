@@ -926,7 +926,7 @@ export default function UserDashboard() {
                                                                 </Badge>
                                                             </div>
                                                             <div className="text-[10px] text-neutral-500 font-medium">
-                                                                {new Date(coupon.created_at || coupon.inserted_at).toLocaleString('tr-TR')}
+                                                                {new Date((s => s.includes('Z') || s.includes('+') ? s : s + 'Z')(String(coupon.created_at || coupon.inserted_at || ''))).toLocaleString('tr-TR')}
                                                             </div>
                                                             {coupon.is_live && <Badge className="bg-red-500 text-[#F7EBA5] text-[9px] font-black px-1.5 py-0 h-4 border-none">CANLI</Badge>}
                                                         </div>

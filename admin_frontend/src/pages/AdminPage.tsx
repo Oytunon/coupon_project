@@ -2201,7 +2201,7 @@ export default function AdminPage() {
                                                         <td className="px-4 py-4 text-xs text-muted-foreground">
                                                             <div className="flex items-center gap-1">
                                                                 <Clock className="h-3 w-3" />
-                                                                {new Date(c.created_at).toLocaleString("tr-TR")}
+                                                                {new Date((c.created_at || '').includes('Z') || (c.created_at || '').includes('+') ? c.created_at : (c.created_at || '') + 'Z').toLocaleString("tr-TR")}
                                                             </div>
                                                         </td>
                                                         <td className="px-4 py-4 text-xs max-w-[350px]">

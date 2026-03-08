@@ -905,8 +905,8 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                                             <td className="py-4 px-4"><span className="text-gray-300 font-mono text-xs md:text-sm">{coupon.bet_id}</span></td>
                                                             <td className="py-4 px-4 text-center text-xs text-gray-400 hidden md:table-cell">
                                                                 <div className="flex flex-col items-center">
-                                                                    <span>{new Date(coupon.created_at).toLocaleDateString('tr-TR')}</span>
-                                                                    <span className="text-[10px]">{new Date(coupon.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                                    <span>{new Date((coupon.created_at || '').includes('Z') || (coupon.created_at || '').includes('+') ? coupon.created_at : (coupon.created_at || '') + 'Z').toLocaleDateString('tr-TR')}</span>
+                                                                    <span className="text-[10px]">{new Date((coupon.created_at || '').includes('Z') || (coupon.created_at || '').includes('+') ? coupon.created_at : (coupon.created_at || '') + 'Z').toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
                                                                 </div>
                                                             </td>
                                                             <td className="py-4 px-4 text-center"><span className="text-[#F7EBA5] font-semibold text-sm md:text-base">{coupon.stake}₺</span></td>
