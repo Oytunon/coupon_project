@@ -1,6 +1,7 @@
 import asyncio
 import httpx
 import logging
+import time
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 from shared.settings import settings
@@ -10,6 +11,12 @@ logger = logging.getLogger(__name__)
 # Rate limit durumunu global olarak takip et
 _rate_limit_until = None  # Rate limit bitene kadar bekle
 _active_cancel_event: Optional[asyncio.Event] = None
+
+# GetBetSelections için sliding-window rate limiter (limit aşmadan max hız)
+_GETBET_WINDOW_SEC = 120  # BetConstruct "2dk bekle" diyor
+_GETBET_MAX_PER_WINDOW = 28  # 30-35 civarı limit; 28 ile güvenli pay
+_getbet_timestamps: List[float] = []
+_getbet_lock = asyncio.Lock()
 
 
 class WorkerCancelledException(Exception):
@@ -71,6 +78,28 @@ async def _set_rate_limit_cooldown(seconds: int = 120):
     global _rate_limit_until
     _rate_limit_until = datetime.utcnow() + timedelta(seconds=seconds)
     logger.warning(f"🚫 Rate limited! {seconds}s cooldown başlatıldı.")
+
+
+async def _acquire_getbet_slot():
+    """
+    GetBetSelections için sliding-window slot al.
+    Son 120 sn'de 28'den az istek varsa hemen geçer; yoksa en eski istek pencereden çıkana kadar bekler.
+    Limit aşmadan maksimum hız sağlar.
+    """
+    global _getbet_timestamps
+    while True:
+        async with _getbet_lock:
+            now = time.monotonic()
+            cutoff = now - _GETBET_WINDOW_SEC
+            _getbet_timestamps = [t for t in _getbet_timestamps if t > cutoff]
+            if len(_getbet_timestamps) < _GETBET_MAX_PER_WINDOW:
+                _getbet_timestamps.append(now)
+                return
+            oldest = min(_getbet_timestamps)
+            wait_sec = (oldest + _GETBET_WINDOW_SEC) - now
+        if wait_sec > 0:
+            wait_chunk = min(1.0, wait_sec)
+            await _interruptible_sleep(wait_chunk)
 
 
 def get_headers():
@@ -196,6 +225,8 @@ async def fetch_bet_selections(bet_id: str, http_client: httpx.AsyncClient = Non
     
     # Rate limit varsa bekle
     await _wait_if_rate_limited()
+    # Sliding-window: limit aşmadan max hız
+    await _acquire_getbet_slot()
     
     try:
         if http_client:
@@ -234,15 +265,13 @@ async def fetch_bet_selections(bet_id: str, http_client: httpx.AsyncClient = Non
 async def fetch_bet_selections_batch(
     bet_ids: list, 
     http_client: httpx.AsyncClient = None,
-    chunk_size: int = 10,
-    chunk_delay: float = 2.0,
     max_retries: int = 4,
     cooldown: int = 120
 ) -> Dict[str, Dict]:
     """
-    Bet selection detaylarını chunk'lar halinde paralel çeker.
-    10 istek paralel at → 2.0s bekle → 10 daha at.
-    Rate limit olursa 1dk cooldown + retry.
+    Bet selection detaylarını sıralı çeker.
+    Sliding-window rate limiter (28/120sn) kullanır; limit aşmadan max hız.
+    Rate limit olursa cooldown + retry.
     
     Returns: {bet_id: {Selections: [...]}, ...}
     """
@@ -272,19 +301,9 @@ async def fetch_bet_selections_batch(
                 results[bid] = {}
                 return
     
-    # Tamamen sıralı (sequential) çekim
-    for i, bid in enumerate(bet_ids):
+    # Sıralı çekim; _acquire_getbet_slot her istekte otomatik bekleme yapar
+    for bid in bet_ids:
         await fetch_one(bid)
-        
-        # Son eleman değilse bekleme mantığını uygula
-        if i < len(bet_ids) - 1:
-            # Her 10 istekte bir 2.5 saniye uzun bekle
-            if (i + 1) % 10 == 0:
-                logger.debug(f"Chunk limit reached (10), pausing for 2.5s to avoid rate limit...")
-                await _interruptible_sleep(2.5)
-            else:
-                # Normal istekler arası kısa mola (rate limit önleme)
-                await _interruptible_sleep(0.4)
             
     logger.info(f"Batch fetch complete: {len(results)}/{len(bet_ids)} selections retrieved")
     return results
