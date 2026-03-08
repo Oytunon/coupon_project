@@ -207,7 +207,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
 
                 # OPTİMİZASYON: Tüm geçmişi çekmek yerine (7 gün), sadece son X saati tara!
                 # Eğer event henüz yeni başladıysa, event başlangıcından itibaren tara.
-                scan_limit_ago = datetime.utcnow() - timedelta(hours=scan_hours)
+                scan_limit_ago = datetime.now() - timedelta(hours=scan_hours)
                 user_p_starts = []
                 for event in user_target_events:
                     joined_at = user_enrollments.get(event.id)
@@ -221,10 +221,10 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                 # Betconstruct API 'CalcStartDateLocal' ve 'CalcEndDateLocal' parametrelerini KENDİ yerel saati (GMT+4) sanıyor.
                 # Bizim sunucu ise UTC (GMT+0) kullanıyor. Bu yüzden isteklerimize +4 saat eklemeliyiz 
                 # yoksa son 4 saatte yapılan kuponlar hiç taranmaz (gelecekte kalmış gibi görünür).
-                bc_offset = timedelta(hours=4)
+                bc_offset = timedelta(hours=1)
                 
                 start_str = (scan_start + bc_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
-                end_str = (datetime.utcnow() + bc_offset + timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+                end_str = (datetime.now() + bc_offset + timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
                 logger.info(f"User {user.username}: Scanning from {start_str} (BC Local Time)")
                 bet_history_data = await fetch_bet_history(user.client_id, start_str, end_str)
