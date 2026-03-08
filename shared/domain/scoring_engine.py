@@ -636,10 +636,10 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                 if job_id and not cancel_event.is_set():
                     update_job_status("running", processed=1, saved=user_saved_count)
                 
-                # Kullanıcılar arası kısa bekleme (sliding-window zaten rate limit yönetiyor)
+                # Kullanıcılar arası 4sn bekleme
                 if not cancel_event.is_set():
                     slept = 0.0
-                    while slept < 2.0:
+                    while slept < 4.0:
                         if cancel_event.is_set():
                             logger.info(f"   [WORKER] Job {job_id} cancelled during user delay.")
                             return
