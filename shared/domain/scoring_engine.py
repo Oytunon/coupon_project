@@ -312,17 +312,17 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         
                         eligible_for_events = []
                         raw_calc = bet_history.get("CalcDateLocal") or bet_history.get("CalcDate")
-                        # Betconstruct'tan gelen tarihler GMT+4 (BC Local Time) olarak geliyor
-                        # UTC'ye çevirmek için -4 saat ekliyoruz
-                        bc_to_utc_offset = timedelta(hours=-4)
+                        # CalcDateLocal: Operator/site Türkiye ise API Türkiye saati (GMT+3) döndürüyor; sitede
+                        # 17:21 görünüyorsa değer 17:21 TR'dir. BC (GMT+4) sanıp -4 uygularsak 16:21 TR çıkar (1 saat kayma).
+                        # Bu yüzden CalcDateLocal'ı TR (GMT+3) kabul edip UTC'ye -3 saat ile çeviriyoruz.
+                        calc_local_to_utc_offset = timedelta(hours=-3)  # Turkey (operator) time → UTC
                         bet_calc_dt_utc = None
                         parse_error = None
                         if raw_calc:
                             try:
                                 clean_calc = str(raw_calc).split('.')[0].replace("Z", "").split("+")[0]
                                 bet_calc_dt_parsed = datetime.strptime(clean_calc, "%Y-%m-%dT%H:%M:%S") if "T" in clean_calc else datetime.strptime(clean_calc, "%Y-%m-%d %H:%M:%S")
-                                # Betconstruct tarihleri GMT+4 olarak geliyor, UTC'ye çevir
-                                bet_calc_dt_utc = bet_calc_dt_parsed + bc_to_utc_offset
+                                bet_calc_dt_utc = bet_calc_dt_parsed + calc_local_to_utc_offset
                             except Exception as e:
                                 parse_error = str(e)
                                 logger.warning(f"Bet {bet_id}: CalcDateLocal parse failed: {raw_calc}, error: {e}")
@@ -406,8 +406,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             try:
                                 clean_created = str(raw_created).split('.')[0].replace("Z", "").split("+")[0]
                                 bet_created_dt_parsed = datetime.strptime(clean_created, "%Y-%m-%dT%H:%M:%S") if "T" in clean_created else datetime.strptime(clean_created, "%Y-%m-%d %H:%M:%S")
-                                # Betconstruct tarihleri GMT+4 olarak geliyor, UTC'ye çevir
-                                bet_created_dt_utc = bet_created_dt_parsed + bc_to_utc_offset
+                                bet_created_dt_utc = bet_created_dt_parsed + calc_local_to_utc_offset
                             except: pass
 
                         eligible_bets.append((bet_history, bet_id, mapped_state, amount, sel_count, eligible_for_events, bet_created_dt_utc, bet_calc_dt_utc))
