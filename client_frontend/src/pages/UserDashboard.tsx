@@ -20,6 +20,7 @@ import { ClientLayout } from "@/components/layout/ClientLayout"
 
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { TournamentDetails } from "@/components/premium/TournamentDetails"
+import { parseEventDate, parseUtcDate } from "@/utils/dateUtils"
 
 export default function UserDashboard() {
     const [searchParams, setSearchParams] = useSearchParams()
@@ -97,7 +98,7 @@ export default function UserDashboard() {
         }
 
         const event = publicEvents.find(e => e.id === id)
-        if (event && new Date() > parseDate(event.end_date)) {
+        if (event && new Date() > parseEventDate(event.end_date)) {
             toast({ title: "Hata", description: "Bu turnuvanın süresi dolmuştur.", variant: "destructive" })
             return
         }
@@ -144,14 +145,10 @@ export default function UserDashboard() {
     // Detail View Logic
     const targetEventId = paramEventId ? Number(paramEventId) : null
 
-    // Filter Logic
-    // Use direct Date parsing to match properties used in UpcomingEventsSlider (which interprets as local/browser dependent if Z is missing)
-    // This resolves the discrepancy where Slider shows 00:00 (Local) but Filter thinks it's Future (UTC)
-    const parseDate = (d: string) => new Date(d)
-
+    // Filter Logic - Event dates are stored as TR (UTC+3), parse with +03:00 to avoid 3h shift
     const upcomingEventsList = publicEvents.filter(e => {
         const now = new Date()
-        const start = parseDate(e.start_date)
+        const start = parseEventDate(e.start_date)
         const isUpcoming = e.status === 'active' && (now < start)
         const isJoined = myEnrollments.some(enr => enr.event_id === e.id)
         return isUpcoming && !isJoined
@@ -159,8 +156,8 @@ export default function UserDashboard() {
 
     const filteredEvents = publicEvents.filter(e => {
         const now = new Date()
-        const start = parseDate(e.start_date)
-        const end = parseDate(e.end_date)
+        const start = parseEventDate(e.start_date)
+        const end = parseEventDate(e.end_date)
         const isStarted = now >= start
         const isExpired = now > end
         const isJoined = myEnrollments.some(enr => enr.event_id === e.id)
@@ -174,10 +171,10 @@ export default function UserDashboard() {
 
     const pastEvents = publicEvents.filter(e => {
         const now = new Date()
-        const isPast = e.status === 'ended' || e.status === 'paused' || (e.status === 'active' && now > parseDate(e.end_date))
+        const isPast = e.status === 'ended' || e.status === 'paused' || (e.status === 'active' && now > parseEventDate(e.end_date))
         if (!isPast) return false
         // Hide if display_until is set and expired
-        if (e.display_until && now > parseDate(e.display_until)) return false
+        if (e.display_until && now > parseEventDate(e.display_until)) return false
         return true
     })
 
@@ -256,7 +253,7 @@ export default function UserDashboard() {
                                     </div>
                                     <div className="h-4 w-px bg-gradient-to-b from-transparent via-gray-700 to-transparent"></div>
                                     <div className="flex items-baseline gap-1">
-                                        <span className="text-lg font-black bg-gradient-to-r from-[#F7EBA5] to-[#FF8C00] bg-clip-text text-transparent tabular-nums">{publicEvents.filter(e => e.status === 'active' && new Date() >= parseDate(e.start_date) && new Date() <= parseDate(e.end_date)).length}</span>
+                                        <span className="text-lg font-black bg-gradient-to-r from-[#F7EBA5] to-[#FF8C00] bg-clip-text text-transparent tabular-nums">{publicEvents.filter(e => e.status === 'active' && new Date() >= parseEventDate(e.start_date) && new Date() <= parseEventDate(e.end_date)).length}</span>
                                         <span className="text-[8px] text-[#F7EBA5] font-medium uppercase">aktif</span>
                                     </div>
                                 </div>
@@ -283,7 +280,7 @@ export default function UserDashboard() {
                                 </div>
                                 <div className="w-px h-10 bg-white/10"></div>
                                 <div className="flex items-center gap-4">
-                                    <span className="text-primary font-black text-4xl italic tracking-tighter leading-none">{publicEvents.filter(e => e.status === 'active' && new Date() >= parseDate(e.start_date) && new Date() <= parseDate(e.end_date)).length}</span>
+                                    <span className="text-primary font-black text-4xl italic tracking-tighter leading-none">{publicEvents.filter(e => e.status === 'active' && new Date() >= parseEventDate(e.start_date) && new Date() <= parseEventDate(e.end_date)).length}</span>
                                     <span className="text-[10px] text-[#F7EBA5] font-black uppercase tracking-widest leading-tight">AKTİF<br />TURNUVA</span>
                                 </div>
                             </div>
@@ -299,7 +296,7 @@ export default function UserDashboard() {
                         {/* Enrolled Tournaments (Only show when activeCategory is 'all' and user has enrollments) */}
                         {activeCategory === 'all' && myEnrollments.length > 0 && (() => {
                             const enrolledEvents = publicEvents.filter(e => {
-                                const isExpired = new Date() > parseDate(e.end_date)
+                                const isExpired = new Date() > parseEventDate(e.end_date)
                                 return myEnrollments.some(enr => enr.event_id === e.id) && ['active', 'upcoming', 'paused'].includes(e.status) && !isExpired
                             });
                             if (enrolledEvents.length === 0) return null;
@@ -355,7 +352,7 @@ export default function UserDashboard() {
                                     <div className="text-center p-4 text-neutral-500 italic bg-white/5 rounded-xl border border-dashed border-white/10">
                                         {(() => {
                                             if (activeCategory !== 'all') return "Bu kategoride turnuva bulunamadı.";
-                                            const activeStartedEvents = publicEvents.filter(e => e.status === 'active' && new Date() >= new Date(e.start_date) && new Date() <= new Date(e.end_date));
+                                            const activeStartedEvents = publicEvents.filter(e => e.status === 'active' && new Date() >= parseEventDate(e.start_date) && new Date() <= parseEventDate(e.end_date));
                                             if (activeStartedEvents.length > 0 && activeStartedEvents.every(e => myEnrollments.some(enr => enr.event_id === e.id))) {
                                                 return "Tüm aktif turnuvalara katıldınız,";
                                             }
@@ -926,7 +923,7 @@ export default function UserDashboard() {
                                                                 </Badge>
                                                             </div>
                                                             <div className="text-[10px] text-neutral-500 font-medium">
-                                                                {new Date((s => s.includes('Z') || s.includes('+') ? s : s + 'Z')(String(coupon.created_at || coupon.inserted_at || ''))).toLocaleString('tr-TR')}
+                                                                {parseUtcDate(coupon.created_at || coupon.inserted_at).toLocaleString('tr-TR')}
                                                             </div>
                                                             {coupon.is_live && <Badge className="bg-red-500 text-[#F7EBA5] text-[9px] font-black px-1.5 py-0 h-4 border-none">CANLI</Badge>}
                                                         </div>
@@ -1059,8 +1056,8 @@ export default function UserDashboard() {
                                                                     </TableCell>
                                                                     <TableCell className="text-right font-mono text-[#F7EBA5]">{event.participant_count}</TableCell>
                                                                     <TableCell className="text-right text-[10px] text-neutral-500">
-                                                                        <div className="font-bold">{new Date(event.start_date).toLocaleDateString('tr-TR')}</div>
-                                                                        <div>{new Date(event.end_date).toLocaleDateString('tr-TR')}</div>
+                                                                        <div className="font-bold">{parseEventDate(event.start_date).toLocaleDateString('tr-TR')}</div>
+                                                                        <div>{parseEventDate(event.end_date).toLocaleDateString('tr-TR')}</div>
                                                                     </TableCell>
                                                                     <TableCell className="text-right">
                                                                         <Button size="sm" variant={event.status === 'active' ? "default" : "outline"}

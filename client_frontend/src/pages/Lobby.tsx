@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge"
 import { ClientLayout } from "@/components/layout/ClientLayout"
 import { useUsername } from "@/utils/useUsername"
+import { parseEventDate } from "@/utils/dateUtils"
 
 export default function Lobby() {
     const [events, setEvents] = useState<PublicEvent[]>([])
@@ -42,7 +43,7 @@ export default function Lobby() {
     // Filter Logic matching UserDashboard
     const activeEvents = isEventsArray ? events.filter(e => {
         const now = new Date()
-        const isExpired = now > new Date(e.end_date)
+        const isExpired = now > parseEventDate(e.end_date)
 
         if (activeCategory === 'all') return e.status !== 'ended' && !isExpired
         if (activeCategory === 'active') return e.status === 'active' && !isExpired
@@ -53,10 +54,10 @@ export default function Lobby() {
     // Only show past events if category is finished
     const showPastEvents = activeCategory === 'finished'
     const pastEvents = isEventsArray && showPastEvents ? events.filter(e => {
-        const isPast = e.status === 'ended' || (e.status === 'active' && new Date() > new Date(e.end_date))
+        const isPast = e.status === 'ended' || (e.status === 'active' && new Date() > parseEventDate(e.end_date))
         if (!isPast) return false
         // Hide if display_until is set and expired
-        if (e.display_until && new Date() > new Date(e.display_until)) return false
+        if (e.display_until && new Date() > parseEventDate(e.display_until)) return false
         return true
     }) : []
 
@@ -147,7 +148,7 @@ function EventCard({ event, onAction, actionLabel, variant = "primary" }: { even
             {/* Status Badge */}
             <div className="absolute top-4 right-4 z-10">
                 {(() => {
-                    const isExpired = new Date() > new Date(event.end_date)
+                    const isExpired = new Date() > parseEventDate(event.end_date)
                     const statusText = event.status === 'active' ? (isExpired ? 'TAMAMLANDI' : '● CANLI') : (event.status === 'paused' ? 'DURAKLATILDI' : 'TAMAMLANDI')
                     const isActive = event.status === 'active' && !isExpired
 
@@ -172,7 +173,7 @@ function EventCard({ event, onAction, actionLabel, variant = "primary" }: { even
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4 text-primary/70" />
                     <span>
-                        {format(new Date(event.start_date), "d MMM", { locale: tr })} - {format(new Date(event.end_date), "d MMM yyyy", { locale: tr })}
+                        {format(parseEventDate(event.start_date), "d MMM", { locale: tr })} - {format(parseEventDate(event.end_date), "d MMM yyyy", { locale: tr })}
                     </span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { parseEventDate } from "@/utils/dateUtils"
 
 interface UpcomingTournamentCardProps {
     id: number
@@ -17,7 +18,7 @@ export function UpcomingTournamentCard({
 
     useEffect(() => {
         const calculateTimeRemaining = () => {
-            const end = new Date(startDate).getTime()
+            const end = parseEventDate(startDate).getTime()
             const now = new Date().getTime()
             const distance = end - now
 

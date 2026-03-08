@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { Trophy, Users, Award, Target } from "lucide-react"
+import { parseEventDate } from "@/utils/dateUtils"
 
 interface TournamentCardProps {
     id: number
@@ -25,12 +26,12 @@ export function TournamentCard({
     const baseUrl = ""
     const [mounted, setMounted] = useState(false)
 
-    const isUpcoming = new Date() < new Date(startDate)
-    const isExpired = new Date() > new Date(endDate)
+    const isUpcoming = new Date() < parseEventDate(startDate)
+    const isExpired = new Date() > parseEventDate(endDate)
 
     // Calculate time remaining
     const calculateTimeRemaining = () => {
-        const end = isUpcoming ? new Date(startDate).getTime() : new Date(endDate).getTime();
+        const end = isUpcoming ? parseEventDate(startDate).getTime() : parseEventDate(endDate).getTime();
         const now = new Date().getTime();
         const distance = end - now;
 

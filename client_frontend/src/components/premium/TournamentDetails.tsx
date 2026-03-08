@@ -7,6 +7,7 @@ import { PublicEvent, getLeagues } from "@/api/client"
 import { getLeaderboard, getMyCoupons, getRewardWinners } from "@/api/participation"
 import React, { useState, useEffect } from "react"
 import { Loader2 } from "lucide-react"
+import { parseEventDate, parseUtcDate } from "@/utils/dateUtils"
 
 interface TournamentDetailsProps {
     event: PublicEvent
@@ -72,8 +73,8 @@ const CountUpAnimation = ({ target, duration = 2000 }: { target: number, duratio
 
 export function TournamentDetails({ event, userPoints, userRank, isJoined, joinedAt, onBack, username, onJoin }: TournamentDetailsProps) {
     const baseUrl = ""
-    const startDate = new Date(event.start_date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    const endDate = new Date(event.end_date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    const startDate = parseEventDate(event.start_date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    const endDate = parseEventDate(event.end_date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     const joinDateDisplay = isJoined && joinedAt ? new Date(joinedAt.endsWith('Z') ? joinedAt : joinedAt + 'Z').toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
     const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number }>({ days: 0, hours: 0, minutes: 0 })
     const [activeTab, setActiveTab] = useState<'info' | 'leaderboard' | 'coupons' | 'rewards' | 'rules'>('info')
@@ -94,8 +95,8 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
     const [loadingRewardWinners, setLoadingRewardWinners] = useState(false)
     const [leagues, setLeagues] = useState<any[]>([])
 
-    const isUpcoming = new Date() < new Date(event.start_date)
-    const isExpired = new Date() > new Date(event.end_date)
+    const isUpcoming = new Date() < parseEventDate(event.start_date)
+    const isExpired = new Date() > parseEventDate(event.end_date)
 
     // Calculate dynamic values
     const totalPrize = calculateTotalPrize(event.rules);
@@ -117,7 +118,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
 
     useEffect(() => {
         const calculateTimeRemaining = () => {
-            const end = isUpcoming ? new Date(event.start_date).getTime() : new Date(event.end_date).getTime()
+            const end = isUpcoming ? parseEventDate(event.start_date).getTime() : parseEventDate(event.end_date).getTime()
             const now = new Date().getTime()
             const distance = end - now
 
@@ -905,8 +906,8 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                                             <td className="py-4 px-4"><span className="text-gray-300 font-mono text-xs md:text-sm">{coupon.bet_id}</span></td>
                                                             <td className="py-4 px-4 text-center text-xs text-gray-400 hidden md:table-cell">
                                                                 <div className="flex flex-col items-center">
-                                                                    <span>{new Date((coupon.created_at || '').includes('Z') || (coupon.created_at || '').includes('+') ? coupon.created_at : (coupon.created_at || '') + 'Z').toLocaleDateString('tr-TR')}</span>
-                                                                    <span className="text-[10px]">{new Date((coupon.created_at || '').includes('Z') || (coupon.created_at || '').includes('+') ? coupon.created_at : (coupon.created_at || '') + 'Z').toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                                    <span>{parseUtcDate(coupon.created_at).toLocaleDateString('tr-TR')}</span>
+                                                                    <span className="text-[10px]">{parseUtcDate(coupon.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
                                                                 </div>
                                                             </td>
                                                             <td className="py-4 px-4 text-center"><span className="text-[#F7EBA5] font-semibold text-sm md:text-base">{coupon.stake}₺</span></td>

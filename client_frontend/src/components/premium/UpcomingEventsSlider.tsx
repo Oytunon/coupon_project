@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { parseEventDate } from '@/utils/dateUtils'
 
 interface Event {
     id: number
@@ -38,7 +39,7 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
 
         const calculateTimeLeft = () => {
             const now = new Date().getTime()
-            const start = new Date(currentEvent.start_date).getTime()
+            const start = parseEventDate(currentEvent.start_date).getTime()
             const distance = start - now
 
             if (distance < 0) {
