@@ -336,11 +336,15 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             logger.info(f"Bet {bet_id}: Skipping - CalcDateLocal parse failed: {raw_calc}")
                             continue
                         
-                        # Debug: Parse edilen tarihi logla
-                        logger.info(f"Bet {bet_id}: CalcDateLocal={raw_calc}, parsed_utc={bet_calc_dt_utc}, state={mapped_state}")
-
                         # Event tarihleri TR saati (UTC+3) olarak saklanıyor, UTC'ye çevir
                         tr_offset = timedelta(hours=3)
+                        
+                        # Debug: Parse edilen tarihi logla - DETAYLI SAAT BİLGİSİ (17:50:56 kuponu için)
+                        bet_calc_bc_local = bet_calc_dt_utc + timedelta(hours=4)  # BC Local Time (GMT+4)
+                        bet_calc_tr_local = bet_calc_dt_utc + tr_offset  # TR Local Time (UTC+3)
+                        logger.info(f"Bet {bet_id}: CalcDateLocal={raw_calc}, parsed_utc={bet_calc_dt_utc.strftime('%Y-%m-%d %H:%M:%S')}, "
+                                  f"BC_Local={bet_calc_bc_local.strftime('%Y-%m-%d %H:%M:%S')}, "
+                                  f"TR_Local={bet_calc_tr_local.strftime('%Y-%m-%d %H:%M:%S')}, state={mapped_state}")
                         for target_event in user_target_events:
                             joined_at = user_enrollments.get(target_event.id)
                             # Event tarihlerini UTC'ye çevir
@@ -349,6 +353,14 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             # ÖNEMLİ: joined_at zaten UTC olarak saklanıyor (func.now() kullanılıyor), offset çıkarmamalıyız!
                             joined_at_utc = joined_at if joined_at else event_start_utc
                             p_start_utc = max(event_start_utc, joined_at_utc)
+                            
+                            # DETAYLI TARİH LOGLAMA - 17:50:56 kuponu için
+                            logger.info(f"Bet {bet_id} Event {target_event.id}: DATE CHECK - "
+                                      f"bet_calc_utc={bet_calc_dt_utc.strftime('%Y-%m-%d %H:%M:%S')} (BC_Local: {bet_calc_bc_local.strftime('%Y-%m-%d %H:%M:%S')}, TR_Local: {bet_calc_tr_local.strftime('%Y-%m-%d %H:%M:%S')}), "
+                                      f"p_start_utc={p_start_utc.strftime('%Y-%m-%d %H:%M:%S')} (TR: {(p_start_utc + tr_offset).strftime('%Y-%m-%d %H:%M:%S')}), "
+                                      f"event_start_utc={event_start_utc.strftime('%Y-%m-%d %H:%M:%S')} (TR: {(event_start_utc + tr_offset).strftime('%Y-%m-%d %H:%M:%S')}), "
+                                      f"event_end_utc={event_end_utc.strftime('%Y-%m-%d %H:%M:%S')} (TR: {(event_end_utc + tr_offset).strftime('%Y-%m-%d %H:%M:%S')}), "
+                                      f"joined_at={joined_at}")
                             
                             # UTC'ye normalize edilmiş tarihlerle karşılaştır
                             if bet_calc_dt_utc < p_start_utc:
