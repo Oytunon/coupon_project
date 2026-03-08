@@ -90,26 +90,34 @@ async def get_my_coupons(
         return []
 
     # Limit increased to 1000 to show 'all' coupons for the event as requested
-    total, coupons = get_user_coupon_history(db, client_id, target_event_id, limit=1000)
+    from shared.models.coupon import Coupon
+    from shared.models.coupon_event_result import CouponEventResult
+    
+    results = db.query(Coupon, CouponEventResult).join(
+        CouponEventResult, CouponEventResult.coupon_id == Coupon.id
+    ).filter(
+        CouponEventResult.event_id == target_event_id,
+        Coupon.client_id == client_id
+    ).order_by(Coupon.created_at.desc()).limit(1000).all()
     
     # Properly serialize coupon objects including bet_data
     result = []
-    for c in coupons:
-        if c.state and c.state.lower() in ["won", "lost"]:
+    for c, cer in results:
+        # Only show relevant states for the list
+        if cer.coupon_state and cer.coupon_state.lower() in ["won", "lost"]:
             result.append({
                 "id": c.id,
                 "bet_id": c.bet_id,
                 "client_id": c.client_id,
-                "event_id": c.event_id,
+                "event_id": cer.event_id,
                 "stake": c.stake,
                 "odds": c.odds,
-                "state": c.state,
+                "state": cer.coupon_state, # Use event-specific state
                 "winning": c.winning,
-                "calculation": c.calculation,
+                "calculation": cer.points_earned, # Use event-specific points
                 "is_live": c.is_live,
-                "inserted_at": c.inserted_at.isoformat() if c.inserted_at else None,
                 "created_at": c.created_at.isoformat() if c.created_at else None,
-                "bet_data": c.bet_data  # JSONB field - properly included
+                "bet_data": c.bet_data
             })
     return result
 
