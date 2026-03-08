@@ -56,7 +56,7 @@ async def get_user_event_stats(
             
             # Use CouponEventResult for live, accurate points (matches leaderboard)
             from shared.models.coupon_event_result import CouponEventResult
-            total_points = db.query(func.coalesce(func.sum(CouponEventResult.points_earned), 0.0)).join(
+            total_points = db.query(func.coalesce(func.round(func.sum(CouponEventResult.points_earned), 2), 0.0)).join(
                 Coupon, Coupon.id == CouponEventResult.coupon_id
             ).filter(
                 Coupon.client_id == participant.client_id,
@@ -73,7 +73,7 @@ async def get_user_event_stats(
                     CouponEventResult.is_eligible == True
                 )
                 .group_by(Coupon.client_id)
-                .having(func.sum(CouponEventResult.points_earned) > total_points)
+                .having(func.round(func.sum(CouponEventResult.points_earned), 2) > total_points)
                 .subquery()
             ).scalar()
             
