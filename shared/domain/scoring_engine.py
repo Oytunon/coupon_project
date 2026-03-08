@@ -207,15 +207,24 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
 
                 # OPTİMİZASYON: Tüm geçmişi çekmek yerine (7 gün), sadece son X saati tara!
                 # Eğer event henüz yeni başladıysa, event başlangıcından itibaren tara.
-                scan_limit_ago = datetime.utcnow() - timedelta(hours=scan_hours)
+                # ÖNEMLİ: Event tarihleri TR saati (UTC+3) olarak saklanıyor, bu yüzden UTC'ye +3 saat ekliyoruz
+                tr_offset = timedelta(hours=3)
+                now_utc = datetime.utcnow()
+                now_tr = now_utc + tr_offset
+                scan_limit_ago_tr = now_tr - timedelta(hours=scan_hours)
+                scan_limit_ago_utc = scan_limit_ago_tr - tr_offset  # UTC'ye çevir
+                
                 user_p_starts = []
                 for event in user_target_events:
                     joined_at = user_enrollments.get(event.id)
-                    p_start = max(event.start_date, joined_at or event.start_date)
+                    # Event tarihleri TR saati olarak saklanıyor, UTC'ye çevir
+                    event_start_utc = event.start_date - tr_offset
+                    joined_at_utc = (joined_at - tr_offset) if joined_at else event_start_utc
+                    p_start = max(event_start_utc, joined_at_utc)
                     user_p_starts.append(p_start)
                 
                 # scan_start = Eventin başladığı saat ile belirtilen saat öncesinden hangisi DAHA GÜNCELSE onu al.
-                scan_start = max(min(user_p_starts), scan_limit_ago) if user_p_starts else scan_limit_ago
+                scan_start_utc = max(min(user_p_starts), scan_limit_ago_utc) if user_p_starts else scan_limit_ago_utc
                 
                 # BETCONSTRUCT TIMEZONE FIX: 
                 # Betconstruct API 'CalcStartDateLocal' ve 'CalcEndDateLocal' parametrelerini KENDİ yerel saati (GMT+4) sanıyor.
@@ -223,8 +232,8 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                 # yoksa son 4 saatte yapılan kuponlar hiç taranmaz (gelecekte kalmış gibi görünür).
                 bc_offset = timedelta(hours=4)
                 
-                start_str = (scan_start + bc_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
-                end_str = (datetime.utcnow() + bc_offset + timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+                start_str = (scan_start_utc + bc_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
+                end_str = (now_utc + bc_offset + timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
                 logger.info(f"User {user.username}: Scanning from {start_str} (BC Local Time)")
                 bet_history_data = await fetch_bet_history(user.client_id, start_str, end_str)
@@ -294,18 +303,31 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         
                         eligible_for_events = []
                         raw_calc = bet_history.get("CalcDateLocal") or bet_history.get("CalcDate")
-                        bet_calc_dt = datetime.utcnow()
+                        # Betconstruct'tan gelen tarihler GMT+4 (BC Local Time) olarak geliyor
+                        # UTC'ye çevirmek için -4 saat ekliyoruz
+                        bc_to_utc_offset = timedelta(hours=-4)
+                        bet_calc_dt_utc = datetime.utcnow()
                         if raw_calc:
                             try:
                                 clean_calc = str(raw_calc).split('.')[0].replace("Z", "").split("+")[0]
-                                bet_calc_dt = datetime.strptime(clean_calc, "%Y-%m-%dT%H:%M:%S") if "T" in clean_calc else datetime.strptime(clean_calc, "%Y-%m-%d %H:%M:%S")
+                                bet_calc_dt_parsed = datetime.strptime(clean_calc, "%Y-%m-%dT%H:%M:%S") if "T" in clean_calc else datetime.strptime(clean_calc, "%Y-%m-%d %H:%M:%S")
+                                # Betconstruct tarihleri GMT+4 olarak geliyor, UTC'ye çevir
+                                bet_calc_dt_utc = bet_calc_dt_parsed + bc_to_utc_offset
                             except: pass
 
+                        # Event tarihleri TR saati (UTC+3) olarak saklanıyor, UTC'ye çevir
+                        tr_offset = timedelta(hours=3)
                         for target_event in user_target_events:
                             joined_at = user_enrollments.get(target_event.id)
-                            p_start = max(target_event.start_date, joined_at or target_event.start_date)
-                            if bet_calc_dt < p_start: continue
-                            if bet_calc_dt > target_event.end_date: continue
+                            # Event tarihlerini UTC'ye çevir
+                            event_start_utc = target_event.start_date - tr_offset
+                            event_end_utc = target_event.end_date - tr_offset
+                            joined_at_utc = (joined_at - tr_offset) if joined_at else event_start_utc
+                            p_start_utc = max(event_start_utc, joined_at_utc)
+                            
+                            # UTC'ye normalize edilmiş tarihlerle karşılaştır
+                            if bet_calc_dt_utc < p_start_utc: continue
+                            if bet_calc_dt_utc > event_end_utc: continue
 
                             rules = target_event.rules or {}
                             if amount < rules.get("min_stake", 0): continue
@@ -336,14 +358,16 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
 
                         # Extract created date just for DB storage
                         raw_created = bet_history.get("CreatedAt") or bet_history.get("Created")
-                        bet_created_dt = bet_calc_dt
+                        bet_created_dt_utc = bet_calc_dt_utc
                         if raw_created:
                             try:
                                 clean_created = str(raw_created).split('.')[0].replace("Z", "").split("+")[0]
-                                bet_created_dt = datetime.strptime(clean_created, "%Y-%m-%dT%H:%M:%S") if "T" in clean_created else datetime.strptime(clean_created, "%Y-%m-%d %H:%M:%S")
+                                bet_created_dt_parsed = datetime.strptime(clean_created, "%Y-%m-%dT%H:%M:%S") if "T" in clean_created else datetime.strptime(clean_created, "%Y-%m-%d %H:%M:%S")
+                                # Betconstruct tarihleri GMT+4 olarak geliyor, UTC'ye çevir
+                                bet_created_dt_utc = bet_created_dt_parsed + bc_to_utc_offset
                             except: pass
 
-                        eligible_bets.append((bet_history, bet_id, mapped_state, amount, sel_count, eligible_for_events, bet_created_dt, bet_calc_dt))
+                        eligible_bets.append((bet_history, bet_id, mapped_state, amount, sel_count, eligible_for_events, bet_created_dt_utc, bet_calc_dt_utc))
 
                     # Phase 2: Batch fetch selection details
                     # Önce DB'deki mevcut kuponların selections verisini kontrol et
@@ -390,7 +414,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         logger.info(f"User {user.username}: All {len(eligible_bets)} selections already cached, no API calls needed")
 
                     # Phase 3: Process each bet with cached selections
-                    for bet_history, bet_id, mapped_state, amount, sel_count, eligible_for_events, bet_created_dt, bet_calc_dt in eligible_bets:
+                    for bet_history, bet_id, mapped_state, amount, sel_count, eligible_for_events, bet_created_dt_utc, bet_calc_dt_utc in eligible_bets:
                         # Merge selections into bet_history for persistence
                         selections_for_bet = []
                         if bet_history.get("Selections"):
@@ -500,7 +524,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                                     client_id=user.client_id, bet_id=bet_id, event_id=final_events[0].id,
                                     stake=amount, odds=price, combination_count=sel_count, state=mapped_state,
                                     is_live=bool(bet_history.get("IsLive", False)), bet_data=bet_history,
-                                    created_at=bet_calc_dt, winning=winning_amount, is_processed=True, processed_at=datetime.utcnow()
+                                    created_at=bet_calc_dt_utc, winning=winning_amount, is_processed=True, processed_at=datetime.utcnow()
                                 )
                                 db.add(new_coupon)
                                 db.flush()

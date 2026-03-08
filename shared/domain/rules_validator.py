@@ -1,23 +1,30 @@
 from typing import List, Optional, Any, Dict
 from sqlalchemy.orm import Session
 from datetime import datetime
+import logging
 from shared.database import get_db_session, SessionLocal
 from shared.models.event import Event
+
+logger = logging.getLogger(__name__)
 
 
 def get_active_events(db: Optional[Session] = None) -> List[Event]:
     """Aktif event'leri çek (status='active' ve tarih aralığında olanlar)."""
+    from datetime import timedelta
     should_close = False
     if db is None:
         db = SessionLocal()
         should_close = True
     
     try:
-        now = datetime.utcnow()
+        # ÖNEMLİ: Event tarihleri TR saati (UTC+3) olarak saklanıyor
+        # Bu yüzden UTC'ye +3 saat ekleyerek TR saatiyle karşılaştırıyoruz
+        tr_offset = timedelta(hours=3)
+        now_tr = datetime.utcnow() + tr_offset
         events = db.query(Event).filter(
             Event.status == "active",
-            Event.start_date <= now,
-            Event.end_date >= now
+            Event.start_date <= now_tr,
+            Event.end_date >= now_tr
         ).all()
         return events
     except Exception as e:
