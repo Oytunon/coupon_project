@@ -8,7 +8,6 @@ from shared.database import get_db_session
 from shared.models.coupon import Coupon
 from shared.models.participant import Participant
 from shared.models.enrollment import EventParticipant
-from shared.models.coupon_event_result import CouponEventResult
 from shared.models.event import Event
 
 router = APIRouter(prefix="/api", tags=["user-stats"])
@@ -62,21 +61,18 @@ async def get_user_event_stats(
                 EventParticipant.total_points > total_points
             ).count() + 1
             
-            # 5. Get Coupons with Event-Specific Results
-            # Join Coupon with CouponEventResult to get event-specific points and state
-            results = db.query(Coupon, CouponEventResult).join(
-                CouponEventResult, CouponEventResult.coupon_id == Coupon.id
-            ).filter(
-                CouponEventResult.event_id == event.id,
+            # 5. Get Coupons
+            coupons = db.query(Coupon).filter(
+                Coupon.event_id == event.id,
                 Coupon.client_id == participant.client_id
             ).order_by(Coupon.created_at.desc()).all()
 
-            for c, cer in results:
+            for c in coupons:
                 coupon_data = {
                     "bet_id": c.bet_id,
                     "created_at": c.created_at,
-                    "points": cer.points_earned, # Use event-specific points
-                    "state": cer.coupon_state or c.state, # Use event-specific state if available
+                    "points": c.calculation,
+                    "state": c.state,
                     "is_processed": c.is_processed,
                     "matches": []
                 }
