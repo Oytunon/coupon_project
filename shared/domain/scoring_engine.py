@@ -385,6 +385,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         if mapped_state == "lost":
                             all_zero = all(float(getattr(ev, 'loss_point_multiplier', 0)) == 0 for ev in eligible_for_events)
                             if all_zero:
+                                logger.info(f"Bet {bet_id}: Skipped - lost and loss_point_multiplier=0 for all eligible events (no points for losses)")
                                 continue
 
                         # PRE-FILTER: Tekli kuponlarda Price < min_odd ise selection çekmeye gerek yok

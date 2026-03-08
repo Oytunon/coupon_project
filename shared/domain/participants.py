@@ -15,6 +15,9 @@ def list_participants_paginated(
 ):
     query = db.query(Participant)
     
+    if event_id:
+        query = query.join(EventParticipant).filter(EventParticipant.event_id == event_id)
+    
     if search:
         search_term = f"%{search}%"
         query = query.filter(Participant.username.ilike(search_term))
