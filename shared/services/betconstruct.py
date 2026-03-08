@@ -145,6 +145,9 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_
                     
                     r.raise_for_status()
                     data = r.json()
+                    logger.info(f"DEBUG: BetConstruct API response keys: {list(data.keys())}")
+                    if "Data" in data:
+                        logger.info(f"DEBUG: Data keys: {list(data['Data'].keys()) if isinstance(data['Data'], dict) else 'not a dict'}")
                     
                     bets_batch = []
                     # Doğru iç içe (nested) kontrol. Çünkü API, 250 data'yı "BetData" altındaki "Objects" içine gömüyor.
