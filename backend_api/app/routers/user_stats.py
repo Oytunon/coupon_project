@@ -54,13 +54,31 @@ async def get_user_event_stats(
 
         if enrollment:
             is_enrolled = True
-            total_points = enrollment.total_points
             
-            # 4. Calculate Rank
-            rank = db.query(EventParticipant).filter(
-                EventParticipant.event_id == event.id,
-                EventParticipant.total_points > total_points
-            ).count() + 1
+            # 3.1 Get Live Total Points for accuracy
+            total_points = db.query(func.coalesce(func.sum(CouponEventResult.points_earned), 0.0)).join(
+                Coupon, Coupon.id == CouponEventResult.coupon_id
+            ).filter(
+                Coupon.client_id == participant.client_id,
+                CouponEventResult.event_id == event.id,
+                CouponEventResult.is_eligible == True
+            ).scalar()
+            
+            # 4. Calculate Live Rank
+            # We count how many unique clients have a higher total score for this specific event
+            higher_rank_count = db.query(func.count()).select_from(
+                db.query(Coupon.client_id)
+                .join(CouponEventResult, CouponEventResult.coupon_id == Coupon.id)
+                .filter(
+                    CouponEventResult.event_id == event.id,
+                    CouponEventResult.is_eligible == True
+                )
+                .group_by(Coupon.client_id)
+                .having(func.sum(CouponEventResult.points_earned) > total_points)
+                .subquery()
+            ).scalar()
+            
+            rank = (higher_rank_count or 0) + 1
             
             # 5. Get Coupons with Event-Specific Results
             # Join Coupon with CouponEventResult to get event-specific points and state
