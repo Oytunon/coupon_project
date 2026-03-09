@@ -174,6 +174,13 @@ async def create_event(
                 else:
                     processed_content_rules.append(rule)
 
+        # stake_times_odds_raw: çarpanlar sabit (kazanan=1, kaybeden=0)
+        scoring_formula = getattr(event_data.rules, 'scoring_formula', None)
+        if scoring_formula == "stake_times_odds_raw":
+            won_mult, loss_mult = 1.0, 0.0
+        else:
+            won_mult, loss_mult = event_data.won_point_multiplier, event_data.loss_point_multiplier
+
         event = Event(
             name=event_data.name,
             slug=slug_to_use,
@@ -181,8 +188,8 @@ async def create_event(
             start_date=event_data.start_date,
             end_date=event_data.end_date,
             display_until=event_data.display_until,
-            won_point_multiplier=event_data.won_point_multiplier,
-            loss_point_multiplier=event_data.loss_point_multiplier,
+            won_point_multiplier=won_mult,
+            loss_point_multiplier=loss_mult,
             image_url=event_data.image_url,
             rules=event_data.rules.dict(),
             content_rules=processed_content_rules,
@@ -330,6 +337,10 @@ async def update_event(
         merged_rules = {**current_rules, **new_rules}
         logger.info(f"Rules update: {current_rules} -> {merged_rules}")
         event.rules = merged_rules
+        # stake_times_odds_raw: çarpanlar sabit (kazanan=1, kaybeden=0)
+        if merged_rules.get("scoring_formula") == "stake_times_odds_raw":
+            event.won_point_multiplier = 1.0
+            event.loss_point_multiplier = 0.0
         # Explicitly mark rules as modified for SQLAlchemy
         flag_modified(event, "rules")
 

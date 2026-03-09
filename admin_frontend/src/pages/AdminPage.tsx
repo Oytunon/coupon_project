@@ -1573,28 +1573,37 @@ export default function AdminPage() {
                                                     <div className="grid grid-cols-2 gap-4">
                                                         {/* Multipliers */}
                                                         <div className="space-y-3 bg-white/5 p-3 rounded-lg border border-white/5">
-                                                            <div className="space-y-2">
-                                                                <div className="flex justify-between items-center">
-                                                                    <label className="text-xs font-bold text-emerald-400">Kazanan Çarpanı: <span className="text-sm">x{newEvent.won_point_multiplier.toFixed(1)}</span></label>
+                                                            {newEvent.rules.scoring_formula === 'stake_times_odds_raw' ? (
+                                                                <div className="text-xs text-muted-foreground py-2">
+                                                                    <p className="font-medium text-foreground">Bu puan türünde çarpanlar sabittir:</p>
+                                                                    <p className="mt-1">Kazanan: x1 · Kaybeden: x0</p>
                                                                 </div>
-                                                                <input
-                                                                    type="range" min="0.5" max="5.0" step="0.1"
-                                                                    value={newEvent.won_point_multiplier}
-                                                                    onChange={e => setNewEvent({ ...newEvent, won_point_multiplier: parseFloat(e.target.value) })}
-                                                                    className="w-full h-1.5 bg-emerald-500/20 rounded-lg appearance-none cursor-pointer accent-emerald-500 hover:accent-emerald-400 transition-all"
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <div className="flex justify-between items-center">
-                                                                    <label className="text-xs font-bold text-red-400">Kaybeden Çarpanı: <span className="text-sm">x{newEvent.loss_point_multiplier.toFixed(1)}</span></label>
-                                                                </div>
-                                                                <input
-                                                                    type="range" min="0" max="2.0" step="0.1"
-                                                                    value={newEvent.loss_point_multiplier}
-                                                                    onChange={e => setNewEvent({ ...newEvent, loss_point_multiplier: parseFloat(e.target.value) })}
-                                                                    className="w-full h-1.5 bg-red-500/20 rounded-lg appearance-none cursor-pointer accent-red-500 hover:accent-red-400 transition-all"
-                                                                />
-                                                            </div>
+                                                            ) : (
+                                                                <>
+                                                                    <div className="space-y-2">
+                                                                        <div className="flex justify-between items-center">
+                                                                            <label className="text-xs font-bold text-emerald-400">Kazanan Çarpanı: <span className="text-sm">x{newEvent.won_point_multiplier.toFixed(1)}</span></label>
+                                                                        </div>
+                                                                        <input
+                                                                            type="range" min="0.5" max="5.0" step="0.1"
+                                                                            value={newEvent.won_point_multiplier}
+                                                                            onChange={e => setNewEvent({ ...newEvent, won_point_multiplier: parseFloat(e.target.value) })}
+                                                                            className="w-full h-1.5 bg-emerald-500/20 rounded-lg appearance-none cursor-pointer accent-emerald-500 hover:accent-emerald-400 transition-all"
+                                                                        />
+                                                                    </div>
+                                                                    <div className="space-y-2">
+                                                                        <div className="flex justify-between items-center">
+                                                                            <label className="text-xs font-bold text-red-400">Kaybeden Çarpanı: <span className="text-sm">x{newEvent.loss_point_multiplier.toFixed(1)}</span></label>
+                                                                        </div>
+                                                                        <input
+                                                                            type="range" min="0" max="2.0" step="0.1"
+                                                                            value={newEvent.loss_point_multiplier}
+                                                                            onChange={e => setNewEvent({ ...newEvent, loss_point_multiplier: parseFloat(e.target.value) })}
+                                                                            className="w-full h-1.5 bg-red-500/20 rounded-lg appearance-none cursor-pointer accent-red-500 hover:accent-red-400 transition-all"
+                                                                        />
+                                                                    </div>
+                                                                </>
+                                                            )}
                                                         </div>
 
                                                         {/* Formula */}
@@ -1604,7 +1613,8 @@ export default function AdminPage() {
                                                                 value={newEvent.rules.scoring_formula}
                                                                 onValueChange={(val) => setNewEvent({
                                                                     ...newEvent,
-                                                                    rules: { ...newEvent.rules, scoring_formula: val }
+                                                                    rules: { ...newEvent.rules, scoring_formula: val },
+                                                                    ...(val === 'stake_times_odds_raw' ? { won_point_multiplier: 1, loss_point_multiplier: 0 } : {})
                                                                 })}
                                                             >
                                                                 <SelectTrigger className="bg-black/20 border-white/10">
@@ -1613,7 +1623,7 @@ export default function AdminPage() {
                                                                 <SelectContent>
                                                                     <SelectItem value="simple">Oran X Kazanç Çarpanı</SelectItem>
                                                                     <SelectItem value="stake_times_odds">Bahis x Oran x Kazanç Çarpanı / 10</SelectItem>
-                                                                    <SelectItem value="stake_times_odds_raw">Bahis x Oran x Kazanç Çarpanı</SelectItem>
+                                                                    <SelectItem value="stake_times_odds_raw">Bahis x Oran = Toplam Puan</SelectItem>
                                                                     <SelectItem value="net_profit_multiplier">Kazanç - Bahis x Kazanç Çarpanı</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
@@ -1804,28 +1814,37 @@ export default function AdminPage() {
                                                     <div className="grid grid-cols-2 gap-4">
                                                         {/* Multipliers */}
                                                         <div className="space-y-3 bg-white/5 p-3 rounded-lg border border-white/5">
-                                                            <div className="space-y-2">
-                                                                <div className="flex justify-between items-center">
-                                                                    <label className="text-xs font-bold text-emerald-400">Kazanan Çarpanı: <span className="text-sm">x{editingEvent.won_point_multiplier.toFixed(1)}</span></label>
+                                                            {editingEvent.rules.scoring_formula === 'stake_times_odds_raw' ? (
+                                                                <div className="text-xs text-muted-foreground py-2">
+                                                                    <p className="font-medium text-foreground">Bu puan türünde çarpanlar sabittir:</p>
+                                                                    <p className="mt-1">Kazanan: x1 · Kaybeden: x0</p>
                                                                 </div>
-                                                                <input
-                                                                    type="range" min="0.5" max="5.0" step="0.1"
-                                                                    value={editingEvent.won_point_multiplier}
-                                                                    onChange={e => setEditingEvent({ ...editingEvent, won_point_multiplier: parseFloat(e.target.value) })}
-                                                                    className="w-full h-1.5 bg-emerald-500/20 rounded-lg appearance-none cursor-pointer accent-emerald-500 hover:accent-emerald-400 transition-all"
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <div className="flex justify-between items-center">
-                                                                    <label className="text-xs font-bold text-red-400">Kaybeden Çarpanı: <span className="text-sm">x{editingEvent.loss_point_multiplier.toFixed(1)}</span></label>
-                                                                </div>
-                                                                <input
-                                                                    type="range" min="0" max="2.0" step="0.1"
-                                                                    value={editingEvent.loss_point_multiplier}
-                                                                    onChange={e => setEditingEvent({ ...editingEvent, loss_point_multiplier: parseFloat(e.target.value) })}
-                                                                    className="w-full h-1.5 bg-red-500/20 rounded-lg appearance-none cursor-pointer accent-red-500 hover:accent-red-400 transition-all"
-                                                                />
-                                                            </div>
+                                                            ) : (
+                                                                <>
+                                                                    <div className="space-y-2">
+                                                                        <div className="flex justify-between items-center">
+                                                                            <label className="text-xs font-bold text-emerald-400">Kazanan Çarpanı: <span className="text-sm">x{editingEvent.won_point_multiplier.toFixed(1)}</span></label>
+                                                                        </div>
+                                                                        <input
+                                                                            type="range" min="0.5" max="5.0" step="0.1"
+                                                                            value={editingEvent.won_point_multiplier}
+                                                                            onChange={e => setEditingEvent({ ...editingEvent, won_point_multiplier: parseFloat(e.target.value) })}
+                                                                            className="w-full h-1.5 bg-emerald-500/20 rounded-lg appearance-none cursor-pointer accent-emerald-500 hover:accent-emerald-400 transition-all"
+                                                                        />
+                                                                    </div>
+                                                                    <div className="space-y-2">
+                                                                        <div className="flex justify-between items-center">
+                                                                            <label className="text-xs font-bold text-red-400">Kaybeden Çarpanı: <span className="text-sm">x{editingEvent.loss_point_multiplier.toFixed(1)}</span></label>
+                                                                        </div>
+                                                                        <input
+                                                                            type="range" min="0" max="2.0" step="0.1"
+                                                                            value={editingEvent.loss_point_multiplier}
+                                                                            onChange={e => setEditingEvent({ ...editingEvent, loss_point_multiplier: parseFloat(e.target.value) })}
+                                                                            className="w-full h-1.5 bg-red-500/20 rounded-lg appearance-none cursor-pointer accent-red-500 hover:accent-red-400 transition-all"
+                                                                        />
+                                                                    </div>
+                                                                </>
+                                                            )}
                                                         </div>
 
                                                         {/* Formula */}
@@ -1833,7 +1852,11 @@ export default function AdminPage() {
                                                             <label className="text-xs font-bold text-muted-foreground">Puan Hesaplama Türü</label>
                                                             <Select
                                                                 value={editingEvent.rules.scoring_formula || "simple"}
-                                                                onValueChange={(val) => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, scoring_formula: val } })}
+                                                                onValueChange={(val) => setEditingEvent({
+                                                                    ...editingEvent,
+                                                                    rules: { ...editingEvent.rules, scoring_formula: val },
+                                                                    ...(val === 'stake_times_odds_raw' ? { won_point_multiplier: 1, loss_point_multiplier: 0 } : {})
+                                                                })}
                                                             >
                                                                 <SelectTrigger className="bg-black/20 border-white/10">
                                                                     <SelectValue placeholder="Seçiniz" />
@@ -1841,7 +1864,7 @@ export default function AdminPage() {
                                                                 <SelectContent>
                                                                     <SelectItem value="simple">Oran X Kazanç Çarpanı</SelectItem>
                                                                     <SelectItem value="stake_times_odds">Bahis x Oran x Kazanç Çarpanı / 10</SelectItem>
-                                                                    <SelectItem value="stake_times_odds_raw">Bahis x Oran x Kazanç Çarpanı</SelectItem>
+                                                                    <SelectItem value="stake_times_odds_raw">Bahis x Oran = Toplam Puan</SelectItem>
                                                                     <SelectItem value="net_profit_multiplier">Kazanç - Bahis x Kazanç Çarpanı</SelectItem>
                                                                 </SelectContent>
                                                             </Select>

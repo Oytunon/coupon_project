@@ -29,7 +29,10 @@ def calculate_points_for_event(
     formula = rules.get("scoring_formula", "simple")
     state = coupon.state.lower()
     
-    if state == 'won':
+    # stake_times_odds_raw: çarpanlar sabit (kazanan=1, kaybeden=0)
+    if formula == "stake_times_odds_raw":
+        multiplier = 1.0 if state == 'won' else 0.0
+    elif state == 'won':
         multiplier = event.won_point_multiplier
     elif state == 'lost':
         multiplier = event.loss_point_multiplier
