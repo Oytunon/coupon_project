@@ -95,9 +95,7 @@ def get_report_headers():
 
 
 async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_retries: int = 4) -> Dict[str, Any]:
-    """Betconstruct'tan bahis geçmişini çeker.
-    Sayfalama (Pagination) kullanarak tüm kuponları eksiksiz alır.
-    Rate limit durumunda cooldown + retry."""
+    """Betconstruct'tan bahis geçmişini çeker (GetBetHistory). Kullanılmıyor - GetBetReport kullanılıyor."""
     try:
         if "T" in start_date:
             s_dt = datetime.strptime(start_date, "%Y-%m-%dT%H:%M:%SZ")
@@ -114,14 +112,12 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_
 
     all_bets = []
     skip_rows = 0
-    max_rows = 250  # OPTİMİZASYON: Tek seferde 50 yerine 250 kupon çekerek API istek sayısını %80 azaltıyoruz
+    max_rows = 250
     safety_limit = 2000
 
     for attempt in range(max_retries + 1):
         try:
-            # Rate limit varsa bekle
             await _wait_if_rate_limited()
-
             rate_limit_hit = False
             async with httpx.AsyncClient(timeout=30) as client:
                 while skip_rows < safety_limit:
@@ -143,13 +139,12 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_
 
                     r = await client.post(settings.BAPI_BET_HISTORY_URL, headers=get_headers(), json=body)
                     
-                    # Rate limit kontrolü
                     if _is_rate_limited_response(r):
                         await _set_rate_limit_cooldown()
                         if attempt < max_retries:
                             logger.warning(f"Bet history rate limited for {client_id}, retry {attempt + 1}/{max_retries}")
                             rate_limit_hit = True
-                            break  # Inner while'dan çık, retry döngüsüne dön
+                            break
                         else:
                             logger.error(f"Bet history rate limited for {client_id}, max retries reached")
                             return {"Bets": all_bets}
@@ -158,7 +153,6 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_
                     data = r.json()
                     
                     bets_batch = []
-                    # Doğru iç içe (nested) kontrol. Çünkü API, 250 data'yı "BetData" altındaki "Objects" içine gömüyor.
                     if "Data" in data and isinstance(data["Data"], dict):
                         inner_data = data["Data"]
                         if "BetData" in inner_data and isinstance(inner_data["BetData"], dict):
@@ -172,19 +166,15 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_
                     all_bets.extend(bets_batch)
                     skip_rows += max_rows
                     
-                    # Eğer aldığımız kupon 250'den azsa, daha fazla sayfa yoktur.
                     if len(bets_batch) < max_rows:
                         break
                         
-                    # ÇOK ÖNEMLİ: Sayfalar arası geçerken API'yi yormamak için kısa bir mola ver!
                     await _interruptible_sleep(0.5)
                 
-                # Rate limit yüzünden break olduysa → retry (cooldown sonrası)
-                # Boş sonuç veya normal bitti → retry YAPMA
                 if rate_limit_hit:
                     await _wait_if_rate_limited()
-                    continue  # Dış for döngüsünde retry
-                break  # Normal sonuç, dış döngüden çık
+                    continue
+                break
                         
             return {"Bets": all_bets}
             
