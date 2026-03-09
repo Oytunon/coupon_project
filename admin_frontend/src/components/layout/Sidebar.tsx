@@ -3,9 +3,7 @@ import {
     Trophy,
     Users,
     Shield,
-    Settings,
     LogOut,
-    Zap,
     Map
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -35,19 +33,7 @@ export function Sidebar({ activeTab, setActiveTab, logout }: SidebarProps) {
 
     return (
         <aside className="fixed left-0 top-0 h-full w-64 bg-card/50 backdrop-blur-xl border-r border-white/5 z-50 flex flex-col">
-            <div className="h-16 flex items-center gap-3 px-6 border-b border-white/5">
-                <div className="h-8 w-8 bg-gradient-to-tr from-amber-500 to-yellow-600 rounded-lg flex items-center justify-center shadow-lg shadow-amber-500/20">
-                    <Zap className="h-5 w-5 text-white fill-current" />
-                </div>
-                <div>
-                    <h1 className="font-bold text-lg tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-                        Extra<span className="text-amber-500">Bet</span>
-                    </h1>
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">Admin Panel</p>
-                </div>
-            </div>
-
-            <div className="flex-1 py-6 px-3 space-y-1">
+            <div className="flex-1 py-6 px-3 space-y-1 pt-8">
                 {menuItems.map((item) => (
                     <button
                         key={item.id}
