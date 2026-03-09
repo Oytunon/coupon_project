@@ -83,6 +83,17 @@ def get_headers():
     return headers
 
 
+def get_report_headers():
+    """GetBetReport için gerekli header'lar (Origin/Referer)."""
+    return {
+        "Content-Type": "application/json;charset=UTF-8",
+        "Accept": "application/json, text/plain, */*",
+        "Origin": "https://backoffice.betconstruct.com",
+        "Referer": "https://backoffice.betconstruct.com/",
+        "X-Requested-With": "XMLHttpRequest",
+    } | ({"Authentication": settings.BAPI_TOKEN} if settings.BAPI_TOKEN else {})
+
+
 async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_retries: int = 4) -> Dict[str, Any]:
     """Betconstruct'tan bahis geçmişini çeker.
     Sayfalama (Pagination) kullanarak tüm kuponları eksiksiz alır.
@@ -185,6 +196,133 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_
             logger.error(f"Error fetching bet history for {client_id}: {e}")
             return {"Bets": all_bets}
     
+    return {"Bets": all_bets}
+
+
+async def fetch_bet_report(
+    start_date: str,
+    end_date: str,
+    include_selections: bool = True,
+    state_filter: Optional[int] = None,
+    max_retries: int = 4,
+) -> Dict[str, Any]:
+    """
+    GetBetReport API - Tek istekle tüm kuponları çeker (tüm kullanıcılar).
+    MaxRows=null ile tüm kayıtlar tek seferde gelir.
+    State=null ile Won+Lost birlikte; State=4 sadece Won, State=3 sadece Lost.
+    """
+    try:
+        # Girdi: 2026-03-08T21:00:00Z veya 2026-03-08 -> Çıktı: DD-MM-YY - HH:MM:SS
+        def _parse(s: str) -> datetime:
+            clean = str(s).replace("Z", "").split("+")[0].strip()[:19]
+            if "T" in clean:
+                return datetime.strptime(clean, "%Y-%m-%dT%H:%M:%S")
+            return datetime.strptime(clean[:10], "%Y-%m-%d")
+        s_dt = _parse(start_date)
+        e_dt = _parse(end_date)
+        start_str = s_dt.strftime("%d-%m-%y - %H:%M:%S")
+        end_str = e_dt.strftime("%d-%m-%y - %H:%M:%S")
+    except (ValueError, IndexError):
+        start_str = start_date
+        end_str = end_date
+
+    body = {
+        "ToCurrencyId": "TRY",
+        "byPassTotals": False,
+        "filterBet": {
+            "AmountFrom": None,
+            "AmountTo": None,
+            "WinningAmountFrom": None,
+            "WinningAmountTo": None,
+            "BetTypes": [1, 2],
+            "BarCode": None,
+            "BetId": None,
+            "BetShopGroupId": None,
+            "BetshopId": None,
+            "BonusTypeId": "",
+            "CalcEndDateLocal": end_str,
+            "CalcStartDateLocal": start_str,
+            "CashDeskId": None,
+            "ClientBetShopGroupId": None,
+            "ClientCashdeskId": "",
+            "ClientExternalId": "",
+            "ClientId": "",
+            "ClientLogin": None,
+            "ClientLoginIp": "",
+            "CurrencyId": None,
+            "EndDateLocal": None,
+            "ExternalId": None,
+            "InfoBetshopId": "",
+            "InfoCashDeskId": "",
+            "IsBonusBet": None,
+            "IsCashDeskPaid": None,
+            "IsClientWithBetShop": None,
+            "IsLive": None,
+            "IsOrderedDesc": True,
+            "IsRecalculated": None,
+            "IsSuperBet": None,
+            "IsTest": False,
+            "IsWithSelections": include_selections,
+            "MaxRows": None,
+            "MaxSelectionCount": None,
+            "MinSelectionCount": None,
+            "Number": None,
+            "OrderedItem": 9,
+            "PriceFrom": None,
+            "PriceTo": None,
+            "SkeepRows": 0,
+            "Sources": [],
+            "SportsbookProfileId": "",
+            "StartDateLocal": None,
+            "State": state_filter,
+            "WinningAmountFrom": None,
+            "WinningAmountTo": None,
+        },
+        "filterBetSelection": {"SportId": None, "RegionId": None, "CompetitionId": None, "MatchId": None},
+        "isCalcTime": True,
+        "matchFilter": {"currentSport": None, "currentRegion": None, "currentCompetition": None, "currentMatch": None},
+    }
+
+    # State=null bazen hata veriyor; Won(4)+Lost(3) için iki istek yapıp birleştir
+    all_bets = []
+    states_to_fetch = [4, 3] if state_filter is None else [state_filter]
+    for st in states_to_fetch:
+        body["filterBet"]["State"] = st
+        for attempt in range(max_retries + 1):
+            try:
+                await _wait_if_rate_limited()
+                async with httpx.AsyncClient(timeout=120) as client:
+                    r = await client.post(settings.BAPI_BET_REPORT_URL, headers=get_report_headers(), json=body)
+                if _is_rate_limited_response(r):
+                    await _set_rate_limit_cooldown()
+                    if attempt < max_retries:
+                        logger.warning(f"Bet report rate limited, retry {attempt + 1}/{max_retries}")
+                        await _wait_if_rate_limited()
+                        continue
+                    break
+                r.raise_for_status()
+                data = r.json()
+                if data.get("HasError"):
+                    logger.error(f"GetBetReport API error (State={st}): {data.get('AlertMessage', '')}")
+                    break
+                bd = data.get("Data", {}) or {}
+                if isinstance(bd, dict) and "BetData" in bd:
+                    batch = bd["BetData"].get("Objects", []) or []
+                    all_bets.extend(batch)
+                    if len(states_to_fetch) > 1 and batch:
+                        await _interruptible_sleep(1.0)
+                break
+            except Exception as e:
+                if attempt < max_retries:
+                    logger.warning(f"GetBetReport error State={st} (retry {attempt + 1}/{max_retries}): {e}")
+                    await _interruptible_sleep(2.0)
+                    continue
+                logger.error(f"GetBetReport failed State={st}: {e}")
+                break
+    for b in all_bets:
+        if b.get("BetSelections") and not b.get("Selections"):
+            b["Selections"] = b["BetSelections"]
+    logger.info(f"GetBetReport: {len(all_bets)} kupon ({len(states_to_fetch)} istek)")
     return {"Bets": all_bets}
 
 

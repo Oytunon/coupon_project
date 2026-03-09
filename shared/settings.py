@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     BAPI_CLIENT_INFO_URL: str = "https://backofficewebadmin.betconstruct.com/api/en/Client/GetClients"
     BAPI_DEPOSIT_URL: str = "https://backofficewebadmin.betconstruct.com/api/en/Client/GetClientTransactionsV1"
     BAPI_BET_HISTORY_URL: str = "https://backofficewebadmin.betconstruct.com/api/en/Report/GetBetHistory"
+    BAPI_BET_REPORT_URL: str = "https://backofficewebadmin.betconstruct.com/api/en/Report/GetBetReport"
     BAPI_BET_SELECTIONS_URL: str = "https://backofficewebadmin.betconstruct.com/api/en/Sport/GetBetSelections"
 
     # Mailgun (Email)
