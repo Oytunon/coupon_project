@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import { User, Lock, ArrowRight, CheckCircle2, Mail, KeyRound, Trophy } from "lucide-react"
+import { User, Lock, ArrowRight, CheckCircle2 } from "lucide-react"
 import { apiClient } from "../api/client"
 import { login } from "../api/auth"
 import { Button } from "@/components/ui/button"
@@ -96,25 +96,9 @@ export default function LoginPage() {
 
             <Card className="w-full max-w-md bg-card/80 backdrop-blur-xl border-white/10 text-card-foreground shadow-2xl relative z-10">
                 <CardHeader>
-                    <div className="flex justify-center mb-6">
-                        <div className="bg-gradient-to-br from-amber-500 to-yellow-600 p-3 rounded-2xl shadow-lg shadow-amber-500/20">
-                            <Trophy className="h-8 w-8 text-white fill-white/20" />
-                        </div>
-                    </div>
-                    <CardTitle className="text-2xl font-black text-center uppercase tracking-tight italic">
-                        Extra<span className="text-primary">Bet</span>
-                    </CardTitle>
-                    <CardDescription className="text-center text-muted-foreground font-medium">
-                        Güvenli Admin Girişi
-                    </CardDescription>
+                    <CardTitle className="text-xl font-semibold text-center">Admin Girişi</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex gap-2 mb-6 bg-secondary/50 p-1 rounded-lg border border-white/5">
-                        <div className="flex-1 py-2 text-sm font-bold rounded-md bg-background text-primary shadow-sm ring-1 ring-black/5 flex items-center justify-center gap-2">
-                            <Lock className="h-4 w-4" /> 2 Adımlı Doğrulama
-                        </div>
-                    </div>
-
                     <form onSubmit={handleMagicLogin} className="space-y-4">
                         <div className="space-y-2 relative">
                             <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
