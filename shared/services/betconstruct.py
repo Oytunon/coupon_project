@@ -275,7 +275,7 @@ async def fetch_bet_selections_batch(
         # Chunk delay: her 10'da 10sn, arada 1sn (2dk pencerede limit ~25-30)
         if i + 1 < len(bet_ids):
             if (i + 1) % 10 == 0:
-                await _interruptible_sleep(10.0)
+                await _interruptible_sleep(9.0)
             else:
                 await _interruptible_sleep(1.0)
             
