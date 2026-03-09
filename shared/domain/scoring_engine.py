@@ -44,6 +44,9 @@ def calculate_points_for_event(
     if formula == "stake_times_odds":
         base_points = (coupon.stake * truncated_odds) / 10
         formula_str = "(stake * odds) / 10"
+    elif formula == "stake_times_odds_raw":
+        base_points = coupon.stake * truncated_odds
+        formula_str = "stake * odds"
     elif formula == "net_profit_multiplier":
         base_points = max(0.0, (coupon.stake * truncated_odds) - coupon.stake)
         formula_str = "(stake * odds) - stake"

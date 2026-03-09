@@ -1613,6 +1613,7 @@ export default function AdminPage() {
                                                                 <SelectContent>
                                                                     <SelectItem value="simple">Oran X Kazanç Çarpanı</SelectItem>
                                                                     <SelectItem value="stake_times_odds">Bahis x Oran x Kazanç Çarpanı / 10</SelectItem>
+                                                                    <SelectItem value="stake_times_odds_raw">Bahis x Oran x Kazanç Çarpanı</SelectItem>
                                                                     <SelectItem value="net_profit_multiplier">Kazanç - Bahis x Kazanç Çarpanı</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
@@ -1840,6 +1841,7 @@ export default function AdminPage() {
                                                                 <SelectContent>
                                                                     <SelectItem value="simple">Oran X Kazanç Çarpanı</SelectItem>
                                                                     <SelectItem value="stake_times_odds">Bahis x Oran x Kazanç Çarpanı / 10</SelectItem>
+                                                                    <SelectItem value="stake_times_odds_raw">Bahis x Oran x Kazanç Çarpanı</SelectItem>
                                                                     <SelectItem value="net_profit_multiplier">Kazanç - Bahis x Kazanç Çarpanı</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
