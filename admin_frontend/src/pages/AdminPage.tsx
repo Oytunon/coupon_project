@@ -311,6 +311,16 @@ export default function AdminPage() {
     const [workerJob, setWorkerJob] = useState<any | null>(null)
     const [showWorkerModal, setShowWorkerModal] = useState(false)
     const [workerStartTime, setWorkerStartTime] = useState<number | null>(null)
+    const [workerElapsedSeconds, setWorkerElapsedSeconds] = useState(0)
+    const [workerEstimatedSeconds, setWorkerEstimatedSeconds] = useState<number | null>(null)
+
+    useEffect(() => {
+        if (!showWorkerModal || !workerStartTime) return
+        const interval = setInterval(() => {
+            setWorkerElapsedSeconds(Math.floor((Date.now() - workerStartTime) / 1000))
+        }, 1000)
+        return () => clearInterval(interval)
+    }, [showWorkerModal, workerStartTime])
 
     useEffect(() => {
         if (activeTab === "leagues") {
@@ -707,6 +717,8 @@ export default function AdminPage() {
             setWorkerJob({ id: jobId, status: 'pending', total: 0, processed: 0, saved: 0, event_name: event.name })
             setShowWorkerModal(true)
             setWorkerStartTime(Date.now())
+            setWorkerElapsedSeconds(0)
+            setWorkerEstimatedSeconds(event.avg_worker_duration_seconds ?? 120)
 
             const checkStatus = setInterval(async () => {
                 try {
@@ -2597,37 +2609,37 @@ export default function AdminPage() {
                             {/* Progress Stats */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="p-3 bg-white/5 rounded-lg border border-white/5 flex flex-col items-center">
-                                    <span className="text-[10px] text-muted-foreground uppercase font-bold">Kullanıcılar</span>
-                                    <span className="text-xl font-black">{workerJob.processed} / {workerJob.total || '?'}</span>
+                                    <span className="text-[10px] text-muted-foreground uppercase font-bold">Taranan Kupon</span>
+                                    <span className="text-xl font-black">{workerJob.processed ?? 0}</span>
                                 </div>
                                 <div className="p-3 bg-white/5 rounded-lg border border-white/5 flex flex-col items-center">
                                     <span className="text-[10px] text-muted-foreground uppercase font-bold">Yeni Kupon</span>
-                                    <span className="text-xl font-black text-emerald-400">+{workerJob.saved}</span>
+                                    <span className="text-xl font-black text-emerald-400">+{workerJob.saved ?? 0}</span>
                                 </div>
                             </div>
 
-                            {/* Progress Bar */}
+                            {/* Progress Bar + Geçen süre */}
                             <div className="space-y-2">
-                                <div className="flex justify-between text-xs font-bold">
-                                    <span>İlerleme: %{workerJob.total > 0 ? Math.round((workerJob.processed / workerJob.total) * 100) : 0}</span>
-                                    {workerJob.status === 'running' && (
-                                        <span className="text-primary italic flex items-center gap-1">
-                                            <Timer className="h-3 w-3" /> Tahmini: {(() => {
-                                                if (!workerStartTime || workerJob.processed <= 1) return "...";
-                                                const elapsed = (Date.now() - workerStartTime) / 1000;
-                                                const rate = workerJob.processed / elapsed;
-                                                const remaining = (workerJob.total || 0) - workerJob.processed;
-                                                if (remaining <= 0) return "Bitti";
-                                                const eta = Math.round(remaining / rate);
-                                                return eta > 60 ? `${Math.floor(eta / 60)}dk ${eta % 60}sn` : `${eta}sn`;
+                                <div className="flex justify-between text-xs font-bold flex-wrap gap-1">
+                                    <span>İlerleme: {workerJob.status === 'completed' || workerJob.status === 'failed' || workerJob.status === 'cancelled' ? '%100' : 'İşleniyor...'}</span>
+                                    {workerStartTime && (
+                                        <span className="text-primary flex items-center gap-1">
+                                            <Timer className="h-3 w-3" /> Geçen süre: {workerElapsedSeconds >= 60 ? `${Math.floor(workerElapsedSeconds / 60)}dk ${workerElapsedSeconds % 60}sn` : `${workerElapsedSeconds}sn`}
+                                        </span>
+                                    )}
+                                    {workerEstimatedSeconds != null && (workerJob.status === 'running' || workerJob.status === 'pending') && (
+                                        <span className="text-amber-400 flex items-center gap-1 font-bold">
+                                            Kalan: {(() => {
+                                                const remaining = Math.max(0, Math.round(workerEstimatedSeconds - workerElapsedSeconds))
+                                                return remaining >= 60 ? `${Math.floor(remaining / 60)}dk ${remaining % 60}sn` : `${remaining}sn`
                                             })()}
                                         </span>
                                     )}
                                 </div>
                                 <div className="h-3 bg-black/40 rounded-full overflow-hidden border border-white/5 shadow-inner">
                                     <div
-                                        className="h-full bg-gradient-to-r from-primary to-emerald-500 transition-all duration-500 ease-out"
-                                        style={{ width: `${workerJob.total > 0 ? (workerJob.processed / workerJob.total) * 100 : 0}%` }}
+                                        className={`h-full bg-gradient-to-r from-primary to-emerald-500 transition-all duration-500 ease-out ${(workerJob.status === 'running' || workerJob.status === 'pending') ? 'animate-pulse' : ''}`}
+                                        style={{ width: `${workerJob.status === 'completed' || workerJob.status === 'failed' || workerJob.status === 'cancelled' ? 100 : 15}%` }}
                                     />
                                 </div>
                             </div>

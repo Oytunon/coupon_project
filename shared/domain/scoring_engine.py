@@ -223,6 +223,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
 
         total_saved = 0
         eligible_bets = []
+        matched_count = 0
         for bet_history in bets:
             try:
                 if cancel_event.is_set():
@@ -231,6 +232,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                 client_id = bet_history.get("ClientId")
                 if client_id is None or client_id not in enrolled_client_ids:
                     continue
+                matched_count += 1
                 user = client_id_to_participant.get(client_id)
                 if not user:
                     continue
@@ -339,7 +341,9 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                 eligible_bets.append((bet_history, bet_id, mapped_state, amount, sel_count, eligible_for_events, bet_created_dt_utc, bet_calc_dt_utc, user))
 
             except Exception as bet_err:
-                logger.warning(f"Bet processing error: {bet_err}")
+                logger.warning(f"[Worker] Bet işleme hatası bet_id={bet_history.get('BetId') or bet_history.get('Id')}: {bet_err}")
+
+        logger.info(f"[Worker] Filtre sonucu | Katılımcı eşleşen: {matched_count} | Uygun kupon: {len(eligible_bets)}")
 
         # Phase 2: Selections - GetBetReport zaten dahil etti; eksik olanlar için DB/fetch
         import collections
@@ -496,7 +500,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                 continue
 
         t_total = time.perf_counter() - t_start
-        logger.info(f"[Worker] Tamamlandı | Tarandı: {len(bets)} | Uygun: {len(eligible_bets)} | Yeni: {total_saved} | Süre: {t_total:.1f}s")
+        logger.info(f"[Worker] Tamamlandı | Tarandı: {len(bets)} | Uygun: {len(eligible_bets)} | Yeni: {total_saved} | Toplam süre: {t_total:.1f}s (API: {t_api:.1f}s)")
 
         # Update Participant Totals (tüm katılımcılar için)
         for user in participants:
@@ -521,8 +525,11 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
         if job_id:
             update_job_status("cancelled")
     except Exception as e:
-        logger.error(f"Worker failed: {e}")
-        if job_id: update_job_status("failed", error=str(e))
+        import traceback
+        logger.error(f"[Worker] Hata: {e}")
+        logger.error(traceback.format_exc())
+        if job_id:
+            update_job_status("failed", error=str(e))
     finally:
         db.close()
         # Poller task'i temizle

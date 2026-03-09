@@ -107,6 +107,7 @@ class EventResponse(BaseModel):
     reward_status: Optional[str] = None
     last_worker_run: Optional[datetime] = None
     last_cron_run: Optional[datetime] = None
+    avg_worker_duration_seconds: Optional[float] = None
     created_at: datetime
     updated_at: datetime
     
@@ -266,9 +267,29 @@ async def list_events(
         WorkerLog.event_id.is_(None)
     ).scalar()
     
+    # Her event için son 5 tamamlanmış worker'ın ortalama süresi (geri sayım için)
+    event_ids = [e.id for e in events]
+    completed_logs = db.query(WorkerLog).filter(
+        WorkerLog.event_id.in_(event_ids),
+        WorkerLog.status == "completed",
+        WorkerLog.completed_at.isnot(None),
+        WorkerLog.created_at.isnot(None)
+    ).order_by(WorkerLog.event_id, WorkerLog.completed_at.desc()).all()
+    from collections import defaultdict
+    by_event = defaultdict(list)
+    for log in completed_logs:
+        if len(by_event[log.event_id]) < 5:
+            by_event[log.event_id].append(log)
+    avg_durations = {}
+    for eid, logs in by_event.items():
+        durations = [(l.completed_at - l.created_at).total_seconds() for l in logs]
+        if durations:
+            avg_durations[eid] = round(sum(durations) / len(durations), 1)
+
     for event in events:
         event.last_worker_run = last_manual_runs.get(event.id)
         event.last_cron_run = cron_last_run
+        event.avg_worker_duration_seconds = avg_durations.get(event.id)
             
     return events
 
