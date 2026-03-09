@@ -753,7 +753,7 @@ export default function UserDashboard() {
                                                                     </div>
                                                                 </td>
                                                                 <td className="py-3 md:py-4 px-1 md:px-4 text-center text-xs text-gray-300 table-cell whitespace-nowrap">
-                                                                    {enr.joined_at ? new Date(enr.joined_at.endsWith('Z') ? enr.joined_at : enr.joined_at + 'Z').toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
+                                                                    {enr.joined_at ? new Date(enr.joined_at.endsWith('Z') ? enr.joined_at : enr.joined_at + 'Z').toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-'}
                                                                 </td>
                                                                 <td className="py-3 md:py-4 px-2 md:px-4 text-center text-xs text-gray-300 hidden md:table-cell">
                                                                     <Badge variant={enr.status === 'active' ? 'default' : 'secondary'} className={enr.status === 'active' ? 'bg-emerald-500/20 text-emerald-500 border-none' : 'bg-white/5 text-neutral-500 border-none'}>

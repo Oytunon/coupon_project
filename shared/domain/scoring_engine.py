@@ -292,8 +292,10 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     sel_count = 1
                 eligible_for_events = []
                 raw_calc = bet_history.get("CalcDateLocal") or bet_history.get("CalcDate")
+                raw_created = bet_history.get("CreatedAt") or bet_history.get("Created")
                 calc_local_to_utc_offset = timedelta(hours=-3)
                 bet_calc_dt_utc = None
+                bet_created_dt_utc = None
                 if raw_calc:
                     try:
                         clean_calc = str(raw_calc).split('.')[0].replace("Z", "").split("+")[0]
@@ -301,15 +303,26 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         bet_calc_dt_utc = bet_calc_dt_parsed + calc_local_to_utc_offset
                     except Exception as e:
                         logger.warning(f"Bet {bet_id}: CalcDateLocal parse failed: {raw_calc}, error: {e}")
+                if raw_created:
+                    try:
+                        clean_created = str(raw_created).split('.')[0].replace("Z", "").split("+")[0]
+                        bet_created_parsed = datetime.strptime(clean_created, "%Y-%m-%dT%H:%M:%S") if "T" in clean_created else datetime.strptime(clean_created, "%Y-%m-%d %H:%M:%S")
+                        bet_created_dt_utc = bet_created_parsed + calc_local_to_utc_offset
+                    except Exception:
+                        pass
+                if bet_created_dt_utc is None:
+                    bet_created_dt_utc = bet_calc_dt_utc
                 if bet_calc_dt_utc is None:
                     continue
+                # Katılım kontrolü: Created (oynanma) kullan.
+                bet_time_for_join = bet_created_dt_utc or bet_calc_dt_utc
                 for target_event in user_target_events:
                     joined_at = user_enrollments.get(target_event.id)
                     event_start_utc = target_event.start_date - tr_offset
                     event_end_utc = target_event.end_date - tr_offset
                     joined_at_utc = joined_at if joined_at else event_start_utc
                     p_start_utc = max(event_start_utc, joined_at_utc)
-                    if bet_calc_dt_utc < p_start_utc:
+                    if bet_time_for_join < p_start_utc:
                         continue
                     if bet_calc_dt_utc > event_end_utc:
                         continue
@@ -337,15 +350,6 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                             break
                     if all_excluded_by_odds:
                         continue
-                raw_created = bet_history.get("CreatedAt") or bet_history.get("Created")
-                bet_created_dt_utc = bet_calc_dt_utc
-                if raw_created:
-                    try:
-                        clean_created = str(raw_created).split('.')[0].replace("Z", "").split("+")[0]
-                        bet_created_dt_parsed = datetime.strptime(clean_created, "%Y-%m-%dT%H:%M:%S") if "T" in clean_created else datetime.strptime(clean_created, "%Y-%m-%d %H:%M:%S")
-                        bet_created_dt_utc = bet_created_dt_parsed + calc_local_to_utc_offset
-                    except Exception:
-                        pass
                 eligible_bets.append((bet_history, bet_id, mapped_state, amount, sel_count, eligible_for_events, bet_created_dt_utc, bet_calc_dt_utc, user))
 
             except Exception as bet_err:

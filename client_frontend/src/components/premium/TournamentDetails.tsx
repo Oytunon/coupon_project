@@ -75,7 +75,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
     const baseUrl = ""
     const startDate = parseEventDate(event.start_date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     const endDate = parseEventDate(event.end_date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    const joinDateDisplay = isJoined && joinedAt ? new Date(joinedAt.endsWith('Z') ? joinedAt : joinedAt + 'Z').toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
+    const joinDateDisplay = isJoined && joinedAt ? new Date(joinedAt.endsWith('Z') ? joinedAt : joinedAt + 'Z').toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-';
     const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number }>({ days: 0, hours: 0, minutes: 0 })
     const [activeTab, setActiveTab] = useState<'info' | 'leaderboard' | 'coupons' | 'rewards' | 'rules'>('info')
 
@@ -450,9 +450,13 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                 <div className="bg-black/50 border border-[#D9B648]/30 rounded-lg p-3 md:p-4">
                                     <div className="flex items-center gap-2 mb-2">
                                         <Calendar className="w-4 h-4 text-[#D9B648]" />
-                                        <span className="text-[#D9B648] text-xs md:text-sm font-semibold">Başlangıç Tarihi</span>
+                                        <span className="text-[#D9B648] text-xs md:text-sm font-semibold">Başlangıç - Bitiş Tarihi</span>
                                     </div>
-                                    <p className="text-[#F7EBA5] text-sm md:text-base font-medium">{startDate}</p>
+                                    <p className="text-[#F7EBA5] text-sm md:text-base font-medium">
+                                        <span>{startDate}</span>
+                                        <span className="mx-2 text-gray-500">→</span>
+                                        <span>{endDate}</span>
+                                    </p>
                                 </div>
                                 <div className="bg-black/50 border border-[#D9B648]/30 rounded-lg p-3 md:p-4">
                                     <div className="flex items-center gap-2 mb-2">

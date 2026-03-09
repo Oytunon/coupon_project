@@ -2121,7 +2121,7 @@ export default function AdminPage() {
                                                             <span className="text-muted-foreground italic text-xs">-</span>
                                                         )}
                                                     </td>
-                                                    <td className="px-4 py-4 text-xs">{new Date(p.joined_at).toLocaleDateString("tr-TR")}</td>
+                                                    <td className="px-4 py-4 text-xs">{p.joined_at ? new Date(p.joined_at + (String(p.joined_at).includes('Z') ? '' : 'Z')).toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) : '-'}</td>
                                                     <td className="px-4 py-4"><Badge variant="secondary">{p.coupon_count}</Badge></td>
                                                     <td className="px-4 py-4 font-black italic text-primary">{p.points}</td>
                                                     <td className="px-4 py-4">
