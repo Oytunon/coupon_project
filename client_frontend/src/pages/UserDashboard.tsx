@@ -662,8 +662,8 @@ export default function UserDashboard() {
                                     </div>
                                 </div>
 
-                                {/* Middle Row - Secondary Stats */}
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
+                                {/* Middle Row - Secondary Stats (Katılım, İlk 3, Başarı) - Gizli, sonra açılacak */}
+                                <div className="hidden grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
                                     <div className="bg-black border-2 border-[#D9B648]/30 rounded-xl p-4 md:p-6 hover:border-[#D9B648] transition-colors">
                                         <div className="flex items-center justify-between mb-3">
                                             <div className="flex items-center gap-2">
