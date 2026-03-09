@@ -2624,11 +2624,13 @@ export default function AdminPage() {
                                     <Timer className="h-4 w-4 text-primary" />
                                     Geçen süre: <span className="text-primary">{workerStartTime ? (workerElapsedSeconds >= 60 ? `${Math.floor(workerElapsedSeconds / 60)}dk ${workerElapsedSeconds % 60}sn` : `${workerElapsedSeconds}sn`) : '—'}</span>
                                 </span>
-                                {workerEstimatedSeconds != null && (workerJob.status === 'running' || workerJob.status === 'pending') && (
+                                {(workerJob.status === 'running' || workerJob.status === 'pending') && (
                                     <span className="text-sm font-bold flex items-center gap-2">
-                                        Kalan: <span className="text-amber-400">
+                                        <Clock className="h-4 w-4 text-amber-400" />
+                                        Tahmini: <span className="text-amber-400">
                                             {(() => {
-                                                const remaining = Math.max(0, Math.round(workerEstimatedSeconds - workerElapsedSeconds))
+                                                const est = workerEstimatedSeconds ?? 120
+                                                const remaining = Math.max(0, Math.round(est - workerElapsedSeconds))
                                                 return remaining >= 60 ? `${Math.floor(remaining / 60)}dk ${remaining % 60}sn` : `${remaining}sn`
                                             })()}
                                         </span>

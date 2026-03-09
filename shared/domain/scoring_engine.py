@@ -214,8 +214,12 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
         state_filter = 4 if all_loss_zero else None  # 4=Won, None=Won+Lost
         import time
         t_start = time.perf_counter()
-        logger.info(f"[Worker] GetBetReport başlatılıyor | Tarih: {start_str} - {end_str} | State: {'Won only' if all_loss_zero else 'Won+Lost'} | Katılımcı: {len(participants)}")
-        bet_report_data = await fetch_bet_report(start_str, end_str, include_selections=True, state_filter=state_filter)
+        # Manuel worker (scan_hours > 24): 72 saat tarama 504 riski → MaxRows=500 + 4sn sayfa arası
+        use_pagination = scan_hours > 24
+        max_rows = 500 if use_pagination else 0
+        page_delay = 4.0 if use_pagination else 0
+        logger.info(f"[Worker] GetBetReport başlatılıyor | Tarih: {start_str} - {end_str} | State: {'Won only' if all_loss_zero else 'Won+Lost'} | Katılımcı: {len(participants)} | Pagination: {max_rows or 'off'}")
+        bet_report_data = await fetch_bet_report(start_str, end_str, include_selections=True, state_filter=state_filter, max_rows=max_rows, page_delay_seconds=page_delay)
         t_api = time.perf_counter() - t_start
         bets = bet_report_data.get("Bets", []) or []
         enrolled_count = len(enrolled_client_ids)

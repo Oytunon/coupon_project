@@ -195,9 +195,13 @@ async def fetch_bet_report(
     include_selections: bool = True,
     state_filter: Optional[int] = None,
     max_retries: int = 4,
+    max_rows: int = 0,
+    page_delay_seconds: float = 0,
 ) -> Dict[str, Any]:
     """
-    GetBetReport API - Tek istekle tüm kuponları çeker (tüm kullanıcılar).
+    GetBetReport API - Kuponları çeker (tüm kullanıcılar).
+    max_rows=0: Tek istek, tüm kayıtlar (504 riski büyük aralıklarda).
+    max_rows=500: Sayfalama ile çek, sayfalar arası page_delay_seconds bekler (manuel worker için).
     State=4 sadece Won, State=3 sadece Lost.
     """
     try:
@@ -252,7 +256,7 @@ async def fetch_bet_report(
             "IsSuperBet": None,
             "IsTest": False,
             "IsWithSelections": include_selections,
-            "MaxRows": 0,
+            "MaxRows": max_rows if max_rows > 0 else 0,
             "MaxSelectionCount": None,
             "MinSelectionCount": None,
             "Number": None,
@@ -272,39 +276,57 @@ async def fetch_bet_report(
         "matchFilter": {"currentSport": None, "currentRegion": None, "currentCompetition": None, "currentMatch": None},
     }
 
-    # MaxRows=0 denemesi - tüm kayıtlar tek istekte (504 riski var)
     body["filterBet"]["SkeepRows"] = 0
     all_bets = []
     states_to_fetch = [4, 3] if state_filter is None else [state_filter]
+    use_pagination = max_rows > 0
+    page_size = max_rows if use_pagination else 0
+
     for st in states_to_fetch:
         body["filterBet"]["State"] = st
-        for attempt in range(max_retries + 1):
-            try:
-                await _wait_if_rate_limited()
-                async with httpx.AsyncClient(timeout=180) as client:
-                    r = await client.post(settings.BAPI_BET_REPORT_URL, headers=get_report_headers(), json=body)
-                if _is_rate_limited_response(r):
-                    await _set_rate_limit_cooldown()
+        skip_rows = 0
+        batch = []
+        while True:
+            if use_pagination:
+                body["filterBet"]["SkeepRows"] = skip_rows
+            for attempt in range(max_retries + 1):
+                try:
+                    await _wait_if_rate_limited()
+                    async with httpx.AsyncClient(timeout=180) as client:
+                        r = await client.post(settings.BAPI_BET_REPORT_URL, headers=get_report_headers(), json=body)
+                    if _is_rate_limited_response(r):
+                        await _set_rate_limit_cooldown()
+                        if attempt < max_retries:
+                            await _wait_if_rate_limited()
+                            continue
+                        break
+                    r.raise_for_status()
+                    data = r.json()
+                    if data.get("HasError"):
+                        logger.error(f"GetBetReport API error (State={st}): {data.get('AlertMessage', '')}")
+                        break
+                    bd = data.get("Data", {}) or {}
+                    if isinstance(bd, dict) and "BetData" in bd:
+                        batch = bd["BetData"].get("Objects", []) or []
+                        all_bets.extend(batch)
+                        if use_pagination and len(batch) < page_size:
+                            break
+                        if use_pagination and batch:
+                            skip_rows += page_size
+                            if page_delay_seconds > 0:
+                                await _interruptible_sleep(page_delay_seconds)
+                        break
+                    batch = []
+                    break
+                except Exception as e:
                     if attempt < max_retries:
-                        await _wait_if_rate_limited()
+                        logger.warning(f"GetBetReport error State={st} (retry {attempt + 1}/{max_retries}): {e}")
+                        await _interruptible_sleep(2.0)
                         continue
+                    logger.error(f"GetBetReport failed State={st}: {e}")
+                    batch = []
                     break
-                r.raise_for_status()
-                data = r.json()
-                if data.get("HasError"):
-                    logger.error(f"GetBetReport API error (State={st}): {data.get('AlertMessage', '')}")
-                    break
-                bd = data.get("Data", {}) or {}
-                if isinstance(bd, dict) and "BetData" in bd:
-                    batch = bd["BetData"].get("Objects", []) or []
-                    all_bets.extend(batch)
-                break
-            except Exception as e:
-                if attempt < max_retries:
-                    logger.warning(f"GetBetReport error State={st} (retry {attempt + 1}/{max_retries}): {e}")
-                    await _interruptible_sleep(2.0)
-                    continue
-                logger.error(f"GetBetReport failed State={st}: {e}")
+            if not use_pagination or not batch or len(batch) < page_size:
                 break
         if len(states_to_fetch) > 1 and all_bets:
             await _interruptible_sleep(1.0)
