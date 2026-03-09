@@ -104,9 +104,9 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
             log_db.close()
 
     try:
-        # 24 saatten eski excluded_bet_cache kayıtlarını temizle
+        # 72 saatten eski excluded_bet_cache kayıtlarını temizle
         try:
-            cutoff = datetime.utcnow() - timedelta(hours=24)
+            cutoff = datetime.utcnow() - timedelta(hours=72)
             deleted_count = db.query(ExcludedBetCache).filter(ExcludedBetCache.created_at < cutoff).delete()
             if deleted_count > 0:
                 db.commit()
