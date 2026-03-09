@@ -2618,23 +2618,28 @@ export default function AdminPage() {
                                 </div>
                             </div>
 
-                            {/* Progress Bar + Geçen süre */}
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-xs font-bold flex-wrap gap-1">
-                                    <span>İlerleme: {workerJob.status === 'completed' || workerJob.status === 'failed' || workerJob.status === 'cancelled' ? '%100' : 'İşleniyor...'}</span>
-                                    {workerStartTime && (
-                                        <span className="text-primary flex items-center gap-1">
-                                            <Timer className="h-3 w-3" /> Geçen süre: {workerElapsedSeconds >= 60 ? `${Math.floor(workerElapsedSeconds / 60)}dk ${workerElapsedSeconds % 60}sn` : `${workerElapsedSeconds}sn`}
-                                        </span>
-                                    )}
-                                    {workerEstimatedSeconds != null && (workerJob.status === 'running' || workerJob.status === 'pending') && (
-                                        <span className="text-amber-400 flex items-center gap-1 font-bold">
-                                            Kalan: {(() => {
+                            {/* Süre - her zaman görünür */}
+                            <div className="flex flex-wrap gap-4 items-center p-3 bg-white/5 rounded-lg border border-white/5">
+                                <span className="text-sm font-bold flex items-center gap-2">
+                                    <Timer className="h-4 w-4 text-primary" />
+                                    Geçen süre: <span className="text-primary">{workerStartTime ? (workerElapsedSeconds >= 60 ? `${Math.floor(workerElapsedSeconds / 60)}dk ${workerElapsedSeconds % 60}sn` : `${workerElapsedSeconds}sn`) : '—'}</span>
+                                </span>
+                                {workerEstimatedSeconds != null && (workerJob.status === 'running' || workerJob.status === 'pending') && (
+                                    <span className="text-sm font-bold flex items-center gap-2">
+                                        Kalan: <span className="text-amber-400">
+                                            {(() => {
                                                 const remaining = Math.max(0, Math.round(workerEstimatedSeconds - workerElapsedSeconds))
                                                 return remaining >= 60 ? `${Math.floor(remaining / 60)}dk ${remaining % 60}sn` : `${remaining}sn`
                                             })()}
                                         </span>
-                                    )}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Progress Bar */}
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-xs font-bold">
+                                    <span>İlerleme: {workerJob.status === 'completed' || workerJob.status === 'failed' || workerJob.status === 'cancelled' ? '%100' : 'İşleniyor...'}</span>
                                 </div>
                                 <div className="h-3 bg-black/40 rounded-full overflow-hidden border border-white/5 shadow-inner">
                                     <div
