@@ -392,8 +392,7 @@ export default function AdminPage() {
 
     const [eventFilter, setEventFilter] = useState<'active' | 'past' | 'archived'>('active')
 
-    const [showAddEvent, setShowAddEvent] = useState(false)
-    const [newEvent, setNewEvent] = useState({
+    const DEFAULT_NEW_EVENT = {
         name: "",
         slug: "",
         description: "",
@@ -409,12 +408,14 @@ export default function AdminPage() {
             min_combination: 2,
             max_combination: null as number | null,
             allowed_league_ids: [] as number[],
-            scoring_formula: "stake_times_odds_raw",
+            scoring_formula: "stake_times_odds_raw" as const,
             min_deposit: 0,
             rewards: [] as any[]
         },
         content_rules: [] as { title: string; content: string; icon: string }[]
-    })
+    }
+    const [showAddEvent, setShowAddEvent] = useState(false)
+    const [newEvent, setNewEvent] = useState(DEFAULT_NEW_EVENT)
     const [leagueIdsInput, setLeagueIdsInput] = useState("")
     const [modalTab, setModalTab] = useState<"general" | "rules" | "rewards" | "content_rules">("general")
     const [rewardHistory, setRewardHistory] = useState<any[]>([])
@@ -628,6 +629,7 @@ export default function AdminPage() {
                 description: "Kampanya taslağı oluşturuldu.",
             })
             setShowAddEvent(false)
+            setNewEvent(DEFAULT_NEW_EVENT)
             setTempImageFile(null)
             const eList = await fetchEvents()
             setEvents(eList)
@@ -1234,7 +1236,7 @@ export default function AdminPage() {
                                 </button>
                             </div>
                             {adminRole !== 'moderator' && (
-                                <Button onClick={() => { setLeagueIdsInput(""); setShowAddEvent(true); }} className="gap-2 bg-primary hover:bg-primary/90 font-bold">
+                                <Button onClick={() => { setLeagueIdsInput(""); setNewEvent(DEFAULT_NEW_EVENT); setModalTab("general"); setShowAddEvent(true); }} className="gap-2 bg-primary hover:bg-primary/90 font-bold">
                                     <Plus className="h-4 w-4" /> Yeni Kampanya
                                 </Button>
                             )}
