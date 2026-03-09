@@ -197,7 +197,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
         event_starts_utc = [e.start_date - tr_offset for e in active_events]
         earliest_event_utc = min(event_starts_utc) if event_starts_utc else now_utc
         scan_start_utc = max(earliest_event_utc - timedelta(hours=1), scan_limit_ago_utc)
-        bc_offset = timedelta(hours=4)
+        bc_offset = timedelta(hours=3)  # Betconstruct Local = Turkey UTC+3
         start_str = (scan_start_utc + bc_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
         end_str = (now_utc + bc_offset + timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
 

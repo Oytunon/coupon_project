@@ -18,11 +18,12 @@ def start_scheduler():
     scheduler = AsyncIOScheduler(event_loop=loop)
     from shared.domain.cleanup import cleanup_expired_magic_tokens, auto_expire_events
     
-    # TR saatiyle 02:00, 06:00, 10:00, 14:00, 18:00, 22:00 kuponları işle
+    # Her 15 dakikada bir son 1 saati tara (katılımdan sonra kupon kaçırma riski min)
     scheduler.add_job(
         process_coupons,
-        trigger=CronTrigger(hour='2,6,10,14,18,22', minute=0, timezone='Europe/Istanbul'),
+        trigger=CronTrigger(minute='*/15', timezone='Europe/Istanbul'),
         id='process_coupons',
+        kwargs={"scan_hours": 1},
         replace_existing=True
     )
 
@@ -43,7 +44,7 @@ def start_scheduler():
     )
     
     scheduler.start()
-    logger.info("Worker scheduler her 4 saatte bir çalışacak şekilde başlatıldı.")
+    logger.info("Worker scheduler her 15 dk'da bir (son 1 saat) çalışacak şekilde başlatıldı.")
     return scheduler
 
 
@@ -68,7 +69,7 @@ if __name__ == "__main__":
         
         try:
             # Scheduler'ı çalışır durumda tut
-            logger.info("⏳ Scheduler çalışıyor, her 4 saatte bir otomatik çalışacak. Çıkmak için Ctrl+C...")
+            logger.info("⏳ Scheduler çalışıyor, her 15 dk'da bir otomatik çalışacak. Çıkmak için Ctrl+C...")
             asyncio.get_event_loop().run_forever()
         except (KeyboardInterrupt, SystemExit):
             pass
