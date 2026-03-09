@@ -409,7 +409,7 @@ export default function AdminPage() {
             min_combination: 2,
             max_combination: null as number | null,
             allowed_league_ids: [] as number[],
-            scoring_formula: "stake_times_odds",
+            scoring_formula: "stake_times_odds_raw",
             min_deposit: 0,
             rewards: [] as any[]
         },
