@@ -448,7 +448,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     if bet_ids_needing_fetch:
                         logger.info(f"User {user.username}: Batch fetching {len(bet_ids_needing_fetch)} bet selections (skipped {len(eligible_bets) - len(bet_ids_needing_fetch)} cached)")
                         api_calls_made = True
-                        await _interruptible_sleep(2.0)  # History -> Selection arası 2sn (rate limit)
+                        await _interruptible_sleep(1.0)  # History -> Selection arası 1sn (rate limit)
                         async with httpx.AsyncClient(timeout=30) as http_client:
                             fetched = await fetch_bet_selections_batch(
                                 bet_ids_needing_fetch, http_client
