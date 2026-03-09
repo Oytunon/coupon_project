@@ -239,7 +239,7 @@ async def fetch_bet_selections_batch(
 ) -> Dict[str, Dict]:
     """
     Bet selection detaylarını sıralı çeker.
-    Her 10 istekte 7.5sn, arada 0.7sn bekleme (rate limit koruması).
+    Her 10 istekte 10sn, arada 1sn bekleme (rate limit koruması).
     Rate limit olursa cooldown + retry.
     
     Returns: {bet_id: {Selections: [...]}, ...}
@@ -272,12 +272,12 @@ async def fetch_bet_selections_batch(
     
     for i, bid in enumerate(bet_ids):
         await fetch_one(bid)
-        # Chunk delay: her 10'da 7.5sn, arada 0.7sn (limit yememek için orta yol)
+        # Chunk delay: her 10'da 10sn, arada 1sn (2dk pencerede limit ~25-30)
         if i + 1 < len(bet_ids):
             if (i + 1) % 10 == 0:
-                await _interruptible_sleep(7.5)
+                await _interruptible_sleep(10.0)
             else:
-                await _interruptible_sleep(0.7)
+                await _interruptible_sleep(1.0)
             
     logger.info(f"Batch fetch complete: {len(results)}/{len(bet_ids)} selections retrieved")
     return results
