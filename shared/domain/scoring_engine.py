@@ -10,7 +10,7 @@ from shared.database import SessionLocal
 from shared.models.coupon import Coupon
 from shared.models.participant import Participant
 from shared.models.enrollment import EventParticipant
-from shared.services.betconstruct import fetch_bet_history, fetch_bet_selections, fetch_bet_selections_batch, WorkerCancelledException, set_active_cancel_event
+from shared.services.betconstruct import fetch_bet_history, fetch_bet_selections, fetch_bet_selections_batch, WorkerCancelledException, set_active_cancel_event, _interruptible_sleep
 from shared.models.worker_log import WorkerLog
 from shared.models.event import Event
 from shared.models.coupon_event_result import CouponEventResult
@@ -448,6 +448,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     if bet_ids_needing_fetch:
                         logger.info(f"User {user.username}: Batch fetching {len(bet_ids_needing_fetch)} bet selections (skipped {len(eligible_bets) - len(bet_ids_needing_fetch)} cached)")
                         api_calls_made = True
+                        await _interruptible_sleep(2.0)  # History -> Selection arası 2sn (rate limit)
                         async with httpx.AsyncClient(timeout=30) as http_client:
                             fetched = await fetch_bet_selections_batch(
                                 bet_ids_needing_fetch, http_client
