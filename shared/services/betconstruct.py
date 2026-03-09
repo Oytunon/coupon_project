@@ -66,8 +66,8 @@ async def _wait_if_rate_limited():
             await _interruptible_sleep(wait_seconds)
 
 
-async def _set_rate_limit_cooldown(seconds: int = 120):
-    """Rate limit cooldown ayarla (varsayılan 2 dakika - Betconstruct 2dk bekle diyor)."""
+async def _set_rate_limit_cooldown(seconds: int = 240):
+    """Rate limit cooldown ayarla (4 dk - API mesajı 2dk diyor ama gerçekte ~4dk sürüyor)."""
     global _rate_limit_until
     _rate_limit_until = datetime.utcnow() + timedelta(seconds=seconds)
     logger.warning(f"🚫 Rate limited! {seconds}s cooldown başlatıldı.")
@@ -206,7 +206,7 @@ async def fetch_bet_selections(bet_id: str, http_client: httpx.AsyncClient = Non
         
         # Rate limit kontrolü
         if _is_rate_limited_response(r):
-            await _set_rate_limit_cooldown(60)
+            await _set_rate_limit_cooldown(240)
             raise httpx.HTTPStatusError(
                 "Rate limited", request=r.request, response=r
             )
