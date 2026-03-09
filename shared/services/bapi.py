@@ -35,7 +35,7 @@ async def fetch_client_id_by_login(login: str) -> Optional[int]:
     args = body
     
     async with httpx.AsyncClient(timeout=20) as client:
-        print(f"DEBUG_BAPI_ENV: URL={settings.BAPI_CLIENT_INFO_URL} TOKEN_START={settings.BAPI_TOKEN[:5] if settings.BAPI_TOKEN else 'None'}")
+        print(f"DEBUG_BAPI_ENV: URL={settings.BAPI_CLIENT_INFO_URL} TOKEN={'***' if settings.BAPI_TOKEN else 'None'}")
         r = await client.post(settings.BAPI_CLIENT_INFO_URL, headers=get_headers(), json=body)
         r.raise_for_status()
         data = r.json()

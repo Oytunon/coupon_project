@@ -85,10 +85,15 @@ def get_db_session():
            db.rollback()
         raise
     except Exception as e:
-        # Gerçek DB hataları
-        import sys
-        print(f"CRITICAL_DB_ERROR: {e} | URL={settings.DATABASE_URL}", file=sys.stderr)
-        logger.error(f"Database session error: {e}")
+        err_str = str(e)
+        if "429" in err_str or "rate" in err_str.lower() or "per minute" in err_str.lower():
+            if db:
+                db.rollback()
+            raise
+        _url = settings.DATABASE_URL
+        if "@" in _url:
+            _url = _url.split("@")[-1]
+        logger.error(f"Database session error: {e} | host={_url}")
         if db:
             db.rollback()
         raise

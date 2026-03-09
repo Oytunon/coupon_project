@@ -219,7 +219,10 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
         t_api = time.perf_counter() - t_start
         bets = bet_report_data.get("Bets", []) or []
         enrolled_count = len(enrolled_client_ids)
-        logger.info(f"[Worker] GetBetReport tamamlandı | API: {len(bets)} kupon ({t_api:.1f}s) | {enrolled_count} katılımcıya filtre uygulanıyor")
+        single_count = sum(1 for b in bets if b.get("Type") == 1 or (str(b.get("TypeName", "")).lower() == "single"))
+        multi_count = sum(1 for b in bets if b.get("Type") in (2, 3) or (str(b.get("TypeName", "")).lower() in ("multiple", "combo", "accumulator", "kombine", "parlay")))
+        other_count = len(bets) - single_count - multi_count
+        logger.info(f"[Worker] GetBetReport tamamlandı | API: {len(bets)} kupon ({t_api:.1f}s) | Single: {single_count} | Multi: {multi_count} | Diğer: {other_count}")
 
         total_saved = 0
         eligible_bets = []
@@ -268,12 +271,13 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                     continue
                 type_val = bet_history.get("Type", 1)
                 type_name = str(bet_history.get("TypeName", "")).lower()
-                allowed_int_types = [1, 2]
-                allowed_str_types = ["single", "multiple"]
+                # 1=Single, 2=Multiple, 3=Accumulator/Kombine - Betconstruct farklı değerler kullanabilir
+                allowed_int_types = [1, 2, 3]
+                allowed_str_types = ["single", "multiple", "combo", "accumulator", "kombine", "parlay"]
                 if isinstance(type_val, int) and type_val not in allowed_int_types:
                     continue
                 if isinstance(type_val, str):
-                    if type_val.lower() not in allowed_str_types and type_val not in ["1", "2"]:
+                    if type_val.lower() not in allowed_str_types and type_val not in ["1", "2", "3"]:
                         continue
                 if type_name and type_name not in allowed_str_types:
                     continue
@@ -343,7 +347,8 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
             except Exception as bet_err:
                 logger.warning(f"[Worker] Bet işleme hatası bet_id={bet_history.get('BetId') or bet_history.get('Id')}: {bet_err}")
 
-        logger.info(f"[Worker] Filtre sonucu | Katılımcı eşleşen: {matched_count} | Uygun kupon: {len(eligible_bets)}")
+        eligible_multi = sum(1 for t in eligible_bets if t[4] > 1) if eligible_bets else 0  # t[4] = sel_count
+        logger.info(f"[Worker] Filtre sonucu | Katılımcı eşleşen: {matched_count} | Uygun: {len(eligible_bets)} (multi: {eligible_multi})")
 
         # Phase 2: Selections - GetBetReport zaten dahil etti; eksik olanlar için DB/fetch
         import collections

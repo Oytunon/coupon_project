@@ -142,8 +142,6 @@ async def create_event(
 ):
     """Yeni event oluştur."""
     try:
-        print(f"DEBUG_CREATE_EVENT: Data={event_data.dict()}")
-
         # Date validation
         if event_data.end_date <= event_data.start_date:
             raise HTTPException(400, "End date must be after start date")
@@ -204,9 +202,6 @@ async def create_event(
         
         return event
     except Exception as e:
-        print(f"DEBUG_CREATE_EVENT_ERROR: {str(e)}")
-        import traceback
-        traceback.print_exc()
         raise e
 
 
