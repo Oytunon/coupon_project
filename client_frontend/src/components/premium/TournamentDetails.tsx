@@ -262,9 +262,9 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                         <div className="relative">
                             <div className="flex flex-col md:flex-row items-start md:items-stretch gap-0">
                                 {/* Image */}
-                                <div className="shrink-0 w-full md:w-[300px] border-b-2 md:border-b-0 md:border-r-2 border-[#D9B648]">
+                                <div className="shrink-0 w-full md:w-[300px] border-b-2 md:border-b-0 md:border-r-2 border-[#D9B648] bg-black flex items-center justify-center min-h-[12rem] md:min-h-[16rem]">
                                     {event.image_url ? (
-                                        <img src={`${baseUrl}${event.image_url}`} alt={event.name} className="w-full h-48 md:h-full object-cover" />
+                                        <img src={`${baseUrl}${event.image_url}`} alt={event.name} className="w-full h-48 md:h-full object-contain" />
                                     ) : (
                                         <div className="w-full h-48 md:h-full flex items-center justify-center bg-zinc-900">
                                             <Trophy className="w-16 h-16 text-[#D9B648]/20" />
@@ -1175,8 +1175,10 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
 
                                             {activeRule === rule.id && (
                                                 <div className="px-4 md:px-5 pb-4 md:pb-5 animate-in slide-in-from-top-2">
-                                                    <div className="bg-black/50 rounded-lg p-4 md:p-5 border-l-4 border-[#D9B648]">
-                                                        <p className="text-gray-300 leading-relaxed text-xs md:text-sm">{rule.content}</p>
+                                                    <div className="bg-black/50 rounded-lg p-4 md:p-5 border-l-4 border-[#D9B648] max-h-[50vh] overflow-y-auto pr-2">
+                                                        <div className="text-gray-300 text-xs md:text-sm whitespace-pre-line leading-7">
+                                                            {rule.content}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             )}

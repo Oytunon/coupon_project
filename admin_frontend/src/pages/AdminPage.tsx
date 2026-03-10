@@ -1455,7 +1455,7 @@ export default function AdminPage() {
                                                 Henüz ödül tanımlanmamış.
                                             </div>
                                         ) : (
-                                            <div className="space-y-2">
+                                            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
                                                 {(rewardPoolEvent.rules.rewards || []).map((rule: any, idx: number) => (
                                                     <div key={idx} className="flex items-center gap-4 p-3 bg-white/5 rounded-lg border border-white/5">
                                                         <Badge variant="outline" className="h-8 w-8 rounded-full flex items-center justify-center border-primary/50 bg-primary/10 text-primary font-bold shrink-0">
@@ -1573,7 +1573,7 @@ export default function AdminPage() {
                                                                     {tempImageFile ? "Resmi Değiştir" : "Resim Seç"}
                                                                 </Button>
                                                                 <p className="text-[10px] text-muted-foreground italic">
-                                                                    {tempImageFile ? tempImageFile.name : "Banner veya logo (Önerilen: 800x400)"}
+                                                                    {tempImageFile ? tempImageFile.name : "Banner (Önerilen: 1200x600, oran 2:1)"}
                                                                 </p>
                                                             </div>
                                                         </div>
@@ -1814,7 +1814,7 @@ export default function AdminPage() {
                                                                     {imageUploadLoading ? "Yükleniyor..." : (editingEvent.image_url ? "Resmi Güncelle" : "Resim Yükle")}
                                                                 </Button>
                                                                 <p className="text-[10px] text-muted-foreground italic">
-                                                                    Tavsiye edilen oran 2:1 (Örn: 800x400)
+                                                                    Önerilen: 1200x600 px (oran 2:1) — client'ta tam görünür
                                                                 </p>
                                                             </div>
                                                         </div>
