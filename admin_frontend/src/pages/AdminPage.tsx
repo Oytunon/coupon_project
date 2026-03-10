@@ -1576,7 +1576,7 @@ export default function AdminPage() {
                                                                     {tempImageFile ? "Resmi Değiştir" : "Resim Seç"}
                                                                 </Button>
                                                                 <p className="text-[10px] text-muted-foreground italic">
-                                                                    {tempImageFile ? tempImageFile.name : "Banner (Önerilen: 1200x600, oran 2:1)"}
+                                                                    {tempImageFile ? tempImageFile.name : "Banner (Önerilen: 1080x1080 px)"}
                                                                 </p>
                                                             </div>
                                                         </div>
@@ -1817,7 +1817,7 @@ export default function AdminPage() {
                                                                     {imageUploadLoading ? "Yükleniyor..." : (editingEvent.image_url ? "Resmi Güncelle" : "Resim Yükle")}
                                                                 </Button>
                                                                 <p className="text-[10px] text-muted-foreground italic">
-                                                                    Önerilen: 1200x600 px (oran 2:1) — client'ta tam görünür
+                                                                    Önerilen: 1080x1080 px (kare)
                                                                 </p>
                                                             </div>
                                                         </div>
