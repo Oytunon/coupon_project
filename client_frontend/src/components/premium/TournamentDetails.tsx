@@ -1041,7 +1041,6 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                 <Gift className="md:w-7 md:h-7 text-[#D9B648]" />
                                 <div>
                                     <h2 className="text-xl md:text-2xl font-bold">Ödüller</h2>
-                                    <p className="text-gray-400 text-xs md:text-sm">Turnuva ödül havuzu ve dağılımı</p>
                                 </div>
                             </div>
                             <div className="bg-black rounded-2xl p-6 md:p-8 mb-6 md:mb-8 text-center border-2 border-[#D9B648]">
