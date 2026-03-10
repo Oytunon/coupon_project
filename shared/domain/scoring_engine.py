@@ -42,7 +42,8 @@ def calculate_points_for_event(
     else:
         multiplier = 0.0
     
-    truncated_odds = math.floor(coupon.odds * 100) / 100.0
+    # round kullan: float precision (2.26 → 2.259999...) floor ile 2.25 oluyordu
+    truncated_odds = round(coupon.odds, 2)
     
     base_points = truncated_odds
     formula_str = "odds"
