@@ -568,7 +568,6 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
             update_job_status("failed", error=str(e))
         err_str = str(e).lower()
         if "rate" in err_str or "request lim" in err_str or "429" in err_str:
-            global _stale_cooldown_until
             _stale_cooldown_until = datetime.utcnow() + timedelta(minutes=5)
             logger.warning(f"⏳ Rate limit hatası tespit edildi. 5 dk cooldown başlatıldı.")
     finally:
