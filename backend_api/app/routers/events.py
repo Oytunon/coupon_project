@@ -589,7 +589,13 @@ async def run_event_worker(
     # Eşzamanlılık kilidi: Başka bir worker çalışıyor mu?
     running_job = db.query(WorkerLog).filter(WorkerLog.status.in_(["running", "pending"])).first()
     if running_job:
-        raise HTTPException(409, f"Başka bir worker zaten çalışıyor veya bekliyor (Job ID: {running_job.id}). Lütfen tamamlanmasını bekleyin.")
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": f"Başka bir worker zaten çalışıyor veya bekliyor (Job ID: {running_job.id}). Lütfen tamamlanmasını bekleyin.",
+                "running_job_id": running_job.id,
+            }
+        )
     
     job = WorkerLog(event_id=event_id, status="pending")
     db.add(job)

@@ -310,6 +310,7 @@ export default function AdminPage() {
     // Worker Progress Modal states
     const [workerJob, setWorkerJob] = useState<any | null>(null)
     const [showWorkerModal, setShowWorkerModal] = useState(false)
+    const [workerConflict, setWorkerConflict] = useState<{ jobId: number; event: any } | null>(null)
     const [workerStartTime, setWorkerStartTime] = useState<number | null>(null)
     const [workerElapsedSeconds, setWorkerElapsedSeconds] = useState(0)
     const [workerEstimatedSeconds, setWorkerEstimatedSeconds] = useState<number | null>(null)
@@ -709,6 +710,20 @@ export default function AdminPage() {
         }
     }
 
+    const handleCancelAndRetry = async () => {
+        if (!workerConflict) return
+        const { jobId, event } = workerConflict
+        setWorkerConflict(null)
+        try {
+            await apiClient.post(`/admin/worker-jobs/${jobId}/cancel`)
+            toast({ title: "İptal Edildi", description: "Yeniden başlatılıyor..." })
+            await new Promise(r => setTimeout(r, 500))
+            handleRunWorker(event)
+        } catch (e) {
+            toast({ title: "Hata", description: "İptal edilemedi", variant: "destructive" })
+        }
+    }
+
     const handleRunWorker = async (event: any) => {
         try {
             const res = await runEventWorker(event.id)
@@ -752,12 +767,19 @@ export default function AdminPage() {
 
         } catch (err: any) {
             if (err.response?.status === 409) {
-                toast({
-                    title: "Worker Çalışıyor",
-                    description: err.response?.data?.detail || "Başka bir worker zaten çalışıyor. Lütfen tamamlanmasını bekleyin.",
-                    variant: "destructive",
-                    duration: 5000
-                })
+                const d = err.response?.data?.detail
+                const jobId = typeof d === 'object' && d?.running_job_id ? d.running_job_id : null
+                const msg = typeof d === 'object' ? d?.message : d
+                if (jobId) {
+                    setWorkerConflict({ jobId, event })
+                } else {
+                    toast({
+                        title: "Worker Çalışıyor",
+                        description: msg || "Başka bir worker zaten çalışıyor. Lütfen tamamlanmasını bekleyin.",
+                        variant: "destructive",
+                        duration: 5000
+                    })
+                }
             } else {
                 toast({
                     title: "Hata",
@@ -2584,6 +2606,33 @@ export default function AdminPage() {
                     </div>
                 )
             }
+            {workerConflict && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+                    <Card className="bg-slate-900/95 border-amber-500/50 shadow-2xl w-full max-w-md">
+                        <CardHeader className="border-b border-white/5">
+                            <CardTitle className="flex items-center gap-2 text-amber-400">
+                                <AlertCircle className="h-5 w-5" />
+                                Worker Çalışıyor
+                            </CardTitle>
+                            <CardDescription>
+                                Job #{workerConflict.jobId} zaten çalışıyor veya takılı. İptal edip yeniden başlatmak ister misiniz?
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-6 flex gap-3">
+                            <Button
+                                className="flex-1 border-red-500/50 text-red-500 hover:bg-red-500/10"
+                                variant="outline"
+                                onClick={handleCancelAndRetry}
+                            >
+                                <StopCircle className="h-4 w-4 mr-2" /> İptal Et ve Yeniden Başlat
+                            </Button>
+                            <Button variant="ghost" onClick={() => setWorkerConflict(null)}>
+                                Vazgeç
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
             {showWorkerModal && workerJob && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
                     <Card className="bg-slate-900/90 border-white/10 shadow-2xl w-full max-w-lg overflow-hidden">
