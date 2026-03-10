@@ -1449,13 +1449,13 @@ export default function AdminPage() {
                                         </CardTitle>
                                         <CardDescription>Bu kampanya için tanımlanmış ödüller.</CardDescription>
                                     </CardHeader>
-                                    <CardContent>
+                                    <CardContent className="max-h-[400px] overflow-y-auto overflow-x-hidden p-6 pt-0 pr-4">
                                         {(rewardPoolEvent.rules?.rewards || []).length === 0 ? (
                                             <div className="text-center py-8 bg-white/5 rounded-lg border border-dashed border-white/10 text-muted-foreground text-sm">
                                                 Henüz ödül tanımlanmamış.
                                             </div>
                                         ) : (
-                                            <div className="space-y-2 max-h-[60vh] overflow-y-scroll pr-2 custom-scrollbar">
+                                            <div className="space-y-2">
                                                 {(rewardPoolEvent.rules.rewards || []).map((rule: any, idx: number) => (
                                                     <div key={idx} className="flex items-center gap-4 p-3 bg-white/5 rounded-lg border border-white/5">
                                                         <Badge variant="outline" className="h-8 w-8 rounded-full flex items-center justify-center border-primary/50 bg-primary/10 text-primary font-bold shrink-0">
