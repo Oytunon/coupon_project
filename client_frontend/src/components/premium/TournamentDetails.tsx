@@ -488,16 +488,8 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                         <Trophy className="w-4 h-4 text-[#D9B648]" />
                                         <span className="text-[#D9B648] text-xs md:text-sm font-semibold">Geçerli Bahis Türleri</span>
                                     </div>
-                                    <p className="text-[#F7EBA5] text-xs md:text-sm font-medium">
-                                        {(event.rules?.min_odd || 1.5).toFixed(2)} oran veya üzerinde{' '}
-                                        {(() => {
-                                            const minC = event.rules?.min_combination || 1;
-                                            const maxC = event.rules?.max_combination;
-                                            if (minC <= 1 && !maxC) return 'tekli ya da kombine bahisler';
-                                            if (minC <= 1 && maxC) return `en fazla ${maxC} kombine bahisler`;
-                                            if (minC > 1 && !maxC) return `en az ${minC} kombine bahisler`;
-                                            return `${minC} - ${maxC} kombine bahisler`;
-                                        })()}
+                                    <p className="text-[#F7EBA5] text-xs md:text-sm font-medium leading-relaxed">
+                                        {(event.rules?.min_odd || 1.5).toFixed(2)}+ oranlı tekli veya kombine bahis. Kombinede her maç en az {(event.rules?.min_odd || 1.5).toFixed(2)} olmalıdır.
                                     </p>
                                 </div>
                                 <div className="bg-black/50 border border-[#D9B648]/30 rounded-lg p-3 md:p-4">
