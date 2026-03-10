@@ -12,3 +12,8 @@ class NotFoundException(CouponAppException):
 
 class ValidationException(CouponAppException):
     pass
+
+
+class BAPIRateLimitError(Exception):
+    """Betconstruct API rate limit (403) - 2 dk sonra tekrar deneyin."""
+    pass

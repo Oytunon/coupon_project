@@ -11,7 +11,7 @@ from shared.database import Base, engine
 from shared.settings import settings
 from shared.models import *  # Import all models to ensure they are registered
 from shared.logging_config import setup_logging
-from shared.exceptions import CouponAppException
+from shared.exceptions import CouponAppException, BAPIRateLimitError
 
 from backend_api.app.routers.participation import router as participation_router
 from backend_api.app.routers.admin import router as admin_router
@@ -96,6 +96,13 @@ async def coupon_app_exception_handler(request: Request, exc: CouponAppException
         content={"message": exc.message, "code": exc.code},
     )
 
+@app.exception_handler(BAPIRateLimitError)
+async def bapi_rate_limit_handler(request: Request, exc: BAPIRateLimitError):
+    return JSONResponse(
+        status_code=429,
+        content={"message": "Sunucu Yoğunluğu", "detail": "Lütfen 2 dakika sonra tekrar deneyiniz."},
+    )
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     logger.error(f"422 Validation Error at {request.url}: {exc.errors()}")
@@ -118,8 +125,8 @@ async def global_exception_handler(request: Request, exc: Exception):
     
     error_str = str(exc)
     
-    # Check for BAPI Rate Limit (403)
-    if "403" in error_str and "request limit" in error_str:
+    # Check for BAPI Rate Limit (403) - "request limit" veya "request limti" (API typo)
+    if "403" in error_str and "request lim" in error_str.lower():
         return JSONResponse(
             status_code=429, # Too Many Requests
             content={"message": "Sunucu Yoğunluğu", "detail": "Lütfen daha sonra tekrar deneyiniz."},

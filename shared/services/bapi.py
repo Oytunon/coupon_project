@@ -1,9 +1,25 @@
 import httpx
-from datetime import date
+from datetime import date, datetime, timedelta
 from calendar import monthrange
 from typing import Optional
 from shared.settings import settings
+from shared.exceptions import BAPIRateLimitError
 
+# GetClients rate limit cooldown (Betconstruct: "try after 2min")
+_get_clients_cooldown_until = None
+
+
+def _is_get_clients_rate_limited() -> bool:
+    global _get_clients_cooldown_until
+    if _get_clients_cooldown_until and datetime.utcnow() < _get_clients_cooldown_until:
+        return True
+    return False
+
+
+def _set_get_clients_cooldown(seconds: int = 130):
+    """2 dk cooldown (API 2min diyor, biraz fazla tutuyoruz)."""
+    global _get_clients_cooldown_until
+    _get_clients_cooldown_until = datetime.utcnow() + timedelta(seconds=seconds)
 
 
 def get_headers():
@@ -22,34 +38,30 @@ def get_headers():
 async def fetch_client_id_by_login(login: str) -> Optional[int]:
     """
     Kullanıcı adını (login) kullanarak Betconstruct'tan client ID çeker.
+    Rate limit (403) gelirse BAPIRateLimitError fırlatır.
     
     Returns:
         Client ID bulunursa int, bulunamazsa None
     """
-    body = {
-        "Login": login,
-        "MaxRows": 1
-    }
+    if _is_get_clients_rate_limited():
+        raise BAPIRateLimitError()
 
-    args = body
-    args = body
-    
+    body = {"Login": login, "MaxRows": 1}
+
     async with httpx.AsyncClient(timeout=20) as client:
-        print(f"DEBUG_BAPI_ENV: URL={settings.BAPI_CLIENT_INFO_URL} TOKEN={'***' if settings.BAPI_TOKEN else 'None'}")
         r = await client.post(settings.BAPI_CLIENT_INFO_URL, headers=get_headers(), json=body)
+        if r.status_code == 403 and ("request limit" in r.text.lower() or "request limti" in r.text.lower()):
+            _set_get_clients_cooldown(130)
+            raise BAPIRateLimitError()
         r.raise_for_status()
         data = r.json()
-        print(f"DEBUG_BAPI_RESPONSE for {login}: {data}")
 
     data_field = data.get("Data") or {}
     users = data_field.get("Objects") or []
     if not users:
-        print(f"DEBUG_BAPI_USERS for {login}: Users list is empty")
         return None
 
-    client_id = users[0].get("Id")
-    print(f"DEBUG_BAPI_ID for {login}: {client_id}")
-    return client_id
+    return users[0].get("Id")
 
 
 def get_current_month_range():

@@ -66,11 +66,21 @@ async def get_my_coupons(
     from shared.services.bapi import fetch_client_id_by_login
     
     from shared.models.participant import Participant
+    from datetime import datetime
     existing_p = db.query(Participant).filter(Participant.username == username).first()
     if existing_p:
-            client_id = existing_p.client_id
+        client_id = existing_p.client_id
     else:
-            client_id = await fetch_client_id_by_login(username)
+        client_id = await fetch_client_id_by_login(username)
+        # Cache: Yeni kullanıcıyı Participant'a kaydet, bir sonraki istekte GetClients çağrılmasın
+        if client_id:
+            try:
+                new_p = Participant(client_id=client_id, username=username, joined_at=datetime.utcnow())
+                db.add(new_p)
+                db.commit()
+            except Exception:
+                db.rollback()
+                # Eşzamanlı istekte zaten eklenmiş olabilir, client_id kullanılmaya devam
 
     if not client_id:
         return []
