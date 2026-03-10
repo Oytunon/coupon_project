@@ -122,16 +122,25 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
             db.rollback()
 
         # Eşzamanlılık kilidi: Başka bir worker çalışıyor mu kontrol et
+        STALE_JOB_HOURS = 1.5  # 1.5 saatten uzun running/pending = takılı (rate limit/crash)
         running_query = db.query(WorkerLog).filter(WorkerLog.status.in_(["running", "pending"]))
         if job_id:
             running_query = running_query.filter(WorkerLog.id != job_id)
-            
+
         running_job = running_query.first()
         if running_job:
-            logger.warning(f"⚠️ Başka bir worker zaten çalışıyor (job_id={running_job.id}). Atlanıyor.")
-            if job_id:
-                update_job_status("failed", error=f"Başka bir worker zaten çalışıyor (ID: {running_job.id})")
-            return
+            job_age = (datetime.utcnow() - (running_job.created_at or datetime.utcnow())).total_seconds() / 3600
+            if job_age >= STALE_JOB_HOURS:
+                logger.warning(f"⚠️ Job {running_job.id} {job_age:.1f} saattir takılı. failed olarak işaretleniyor, yeni run devam ediyor.")
+                running_job.status = "failed"
+                running_job.completed_at = datetime.utcnow()
+                running_job.error_message = (running_job.error_message or "") + f" [Stale: {job_age:.1f}h]"
+                db.commit()
+            else:
+                logger.warning(f"⚠️ Başka bir worker zaten çalışıyor (job_id={running_job.id}). Atlanıyor.")
+                if job_id:
+                    update_job_status("failed", error=f"Başka bir worker zaten çalışıyor (ID: {running_job.id})")
+                return
 
         # Cron çağrısında (job_id=None) otomatik WorkerLog oluştur
         if not job_id:
