@@ -50,10 +50,16 @@ async def fetch_client_id_by_login(login: str) -> Optional[int]:
 
     async with httpx.AsyncClient(timeout=20) as client:
         r = await client.post(settings.BAPI_CLIENT_INFO_URL, headers=get_headers(), json=body)
-        if r.status_code == 403 and ("request limit" in r.text.lower() or "request limti" in r.text.lower()):
+        if r.status_code == 403:
             _set_get_clients_cooldown(130)
             raise BAPIRateLimitError()
-        r.raise_for_status()
+        try:
+            r.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 403:
+                _set_get_clients_cooldown(130)
+                raise BAPIRateLimitError() from e
+            raise
         data = r.json()
 
     data_field = data.get("Data") or {}
