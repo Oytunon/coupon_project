@@ -418,7 +418,7 @@ export default function AdminPage() {
             min_combination: 2,
             max_combination: null as number | null,
             allowed_league_ids: [] as number[],
-            scoring_formula: "stake_times_odds_raw" as const,
+            scoring_formula: "stake_times_odds_raw" as "simple" | "stake_times_odds" | "stake_times_odds_raw" | "net_profit_multiplier",
             min_deposit: 0,
             rewards: [] as any[]
         },
@@ -1449,13 +1449,16 @@ export default function AdminPage() {
                                         </CardTitle>
                                         <CardDescription>Bu kampanya için tanımlanmış ödüller.</CardDescription>
                                     </CardHeader>
-                                    <CardContent className="max-h-[400px] overflow-y-auto overflow-x-hidden p-6 pt-0 pr-4">
+                                    <CardContent className="p-6 pt-0">
                                         {(rewardPoolEvent.rules?.rewards || []).length === 0 ? (
                                             <div className="text-center py-8 bg-white/5 rounded-lg border border-dashed border-white/10 text-muted-foreground text-sm">
                                                 Henüz ödül tanımlanmamış.
                                             </div>
                                         ) : (
-                                            <div className="space-y-2">
+                                            <div
+                                                className="space-y-2 pr-2"
+                                                style={{ height: 400, overflowY: 'scroll', overflowX: 'hidden' }}
+                                            >
                                                 {(rewardPoolEvent.rules.rewards || []).map((rule: any, idx: number) => (
                                                     <div key={idx} className="flex items-center gap-4 p-3 bg-white/5 rounded-lg border border-white/5">
                                                         <Badge variant="outline" className="h-8 w-8 rounded-full flex items-center justify-center border-primary/50 bg-primary/10 text-primary font-bold shrink-0">
@@ -1627,7 +1630,7 @@ export default function AdminPage() {
                                                                 value={newEvent.rules.scoring_formula}
                                                                 onValueChange={(val) => setNewEvent({
                                                                     ...newEvent,
-                                                                    rules: { ...newEvent.rules, scoring_formula: val },
+                                                                    rules: { ...newEvent.rules, scoring_formula: val as "simple" | "stake_times_odds" | "stake_times_odds_raw" | "net_profit_multiplier" },
                                                                     ...(val === 'stake_times_odds_raw' ? { won_point_multiplier: 1, loss_point_multiplier: 0 } : {})
                                                                 })}
                                                             >
@@ -1868,7 +1871,7 @@ export default function AdminPage() {
                                                                 value={editingEvent.rules.scoring_formula || "simple"}
                                                                 onValueChange={(val) => setEditingEvent({
                                                                     ...editingEvent,
-                                                                    rules: { ...editingEvent.rules, scoring_formula: val },
+                                                                    rules: { ...editingEvent.rules, scoring_formula: val as "simple" | "stake_times_odds" | "stake_times_odds_raw" | "net_profit_multiplier" },
                                                                     ...(val === 'stake_times_odds_raw' ? { won_point_multiplier: 1, loss_point_multiplier: 0 } : {})
                                                                 })}
                                                             >
