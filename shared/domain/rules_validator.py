@@ -84,9 +84,11 @@ def is_valid_for_event(bet_history: dict, selections_data: dict, event: Event) -
             return False
         
         # Lig kontrolü (eğer allowed_league_ids boş değilse)
+        # String karşılaştırma: API int/string dönebilir, allowed_league_ids int
         if allowed_league_ids:
             competition_id = selection.get("CompetitionId")
-            if competition_id is None or competition_id not in allowed_league_ids:
+            allowed_str = [str(lid) for lid in allowed_league_ids]
+            if competition_id is None or str(competition_id) not in allowed_str:
                 return False
     
     return True
@@ -103,8 +105,5 @@ def get_eligible_events_for_coupon(bet_history: dict, selections_data: dict, db:
         if is_valid_for_event(bet_history, selections_data, event):
             eligible_events.append(event)
     
-    return eligible_events
-
-
     return eligible_events
 
