@@ -48,11 +48,10 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
                     </div>
                 </div>
 
-                {/* Mobile/Tablet Layout (smaller than lg) */}
-                <div className="lg:hidden flex flex-col">
-                    {/* Navigation - Single row, NO SCROLL, shrinking proportionally */}
-                    <div className="flex items-center justify-center gap-1 px-1.5 py-2 bg-black overflow-hidden">
-                        {navItems.map((item) => {
+                {/* Mobile/Tablet Layout (smaller than lg) - 2 rows, 3 buttons each */}
+                <div className="lg:hidden flex flex-col gap-1.5 px-2 py-2 bg-black">
+                    <div className="flex items-center justify-center gap-1.5">
+                        {navItems.slice(0, 3).map((item) => {
                             const Icon = item.icon
                             const isActive = activeCategory === item.id
                             return (
@@ -60,15 +59,39 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
                                     key={item.id}
                                     onClick={() => onCategoryChange?.(item.id)}
                                     className={`
-                                        flex-1 flex items-center justify-center gap-1.5 rounded-lg transition-all duration-300
-                                        h-10 px-1 min-w-0
+                                        flex-1 flex items-center justify-center gap-2 rounded-lg transition-all duration-300
+                                        h-10 px-2 min-w-0
                                         ${isActive
                                             ? 'bg-primary text-black shadow-[0_0_8px_rgba(255,184,0,0.4)]'
                                             : 'text-[#F7EBA5]/90 border border-primary/60 bg-primary/[0.03]'}
                                     `}
                                 >
                                     <Icon className="flex-shrink-0" size={14} />
-                                    <span className="font-black text-[8px] uppercase leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+                                    <span className="font-black text-[9px] uppercase leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+                                        {item.label}
+                                    </span>
+                                </button>
+                            )
+                        })}
+                    </div>
+                    <div className="flex items-center justify-center gap-1.5">
+                        {navItems.slice(3, 6).map((item) => {
+                            const Icon = item.icon
+                            const isActive = activeCategory === item.id
+                            return (
+                                <button
+                                    key={item.id}
+                                    onClick={() => onCategoryChange?.(item.id)}
+                                    className={`
+                                        flex-1 flex items-center justify-center gap-2 rounded-lg transition-all duration-300
+                                        h-10 px-2 min-w-0
+                                        ${isActive
+                                            ? 'bg-primary text-black shadow-[0_0_8px_rgba(255,184,0,0.4)]'
+                                            : 'text-[#F7EBA5]/90 border border-primary/60 bg-primary/[0.03]'}
+                                    `}
+                                >
+                                    <Icon className="flex-shrink-0" size={14} />
+                                    <span className="font-black text-[9px] uppercase leading-none whitespace-nowrap overflow-hidden text-ellipsis">
                                         {item.label}
                                     </span>
                                 </button>
