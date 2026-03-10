@@ -107,8 +107,9 @@ export default function UserDashboard() {
             await joinCampaign(username, id)
             toast({ title: "Başarılı", description: "Turnuvaya başarıyla katıldınız!" })
             fetchData()
-        } catch (e) {
-            toast({ title: "Hata", description: "Katılım başarısız oldu.", variant: "destructive" })
+        } catch (e: any) {
+            const msg = e?.response?.data?.detail || e?.response?.data?.message || "Katılım başarısız oldu."
+            toast({ title: "Hata", description: msg, variant: "destructive" })
         }
     }
 
