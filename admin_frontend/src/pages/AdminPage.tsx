@@ -1338,7 +1338,7 @@ export default function AdminPage() {
                                                     <RefreshCw className="h-4 w-4" /> Kuponları Çek
                                                 </Button>
                                             )}
-                                            {adminRole === 'superadmin' && (
+                                            {adminRole !== 'moderator' && (
                                                 <Button size="sm" variant="outline" className="border-blue-800 text-blue-500 hover:bg-blue-500/10 gap-2" onClick={async () => {
                                                     try {
                                                         const res = await recalculateEventPoints(event.id)
@@ -1348,7 +1348,7 @@ export default function AdminPage() {
                                                     } catch (e: any) {
                                                         toast({ title: "Hata", description: e?.response?.data?.detail || "Puanlar yeniden hesaplanamadı", variant: "destructive" })
                                                     }
-                                                }} title="Puanları Yeniden Hesapla">
+                                                }} title="Puanları Yeniden Hesapla (sadece superadmin)">
                                                     <RefreshCw className="h-4 w-4" /> Puanları Yeniden Hesapla
                                                 </Button>
                                             )}
