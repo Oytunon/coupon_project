@@ -4,6 +4,7 @@ from sqlalchemy.pool import QueuePool
 from sqlalchemy.exc import DisconnectionError
 from fastapi import HTTPException
 from shared.settings import settings
+from shared.exceptions import BAPIRateLimitError
 import time
 import logging
 
@@ -79,10 +80,10 @@ def get_db_session():
         # Bağlantı testi (Opsiyonel, zaten pool ping yapıyor)
         # db.execute(text("SELECT 1")) 
         yield db
-    except HTTPException:
-        # Business logic hatası (403, 404 vb) - Direkt fırlat, DB hatası değil
+    except (HTTPException, BAPIRateLimitError):
+        # Business logic / rate limit - DB hatası değil, loglama
         if db:
-           db.rollback()
+            db.rollback()
         raise
     except Exception as e:
         err_str = str(e)
