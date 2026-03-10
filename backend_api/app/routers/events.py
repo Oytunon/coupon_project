@@ -541,8 +541,6 @@ async def recalculate_event_points(
     current_admin: AdminUser = Depends(get_require_full_admin)
 ):
     """Event'in tüm puanlarını yeniden hesapla."""
-    if current_admin.role != "superadmin":
-        raise HTTPException(403, "Only superadmin can recalculate points")
     
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
