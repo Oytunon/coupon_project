@@ -118,7 +118,8 @@ export default function UserDashboard() {
             const status = e?.response?.status
             const msg = e?.response?.data?.detail || e?.response?.data?.message || "Katılım başarısız oldu."
             if (status === 429) {
-                setJoinCooldownUntil(Date.now() + 130000)
+                const retrySec = e?.response?.data?.retry_after_seconds ?? 130
+                setJoinCooldownUntil(Date.now() + retrySec * 1000)
             }
             toast({ title: "Hata", description: msg, variant: "destructive" })
         }

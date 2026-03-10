@@ -98,9 +98,15 @@ async def coupon_app_exception_handler(request: Request, exc: CouponAppException
 
 @app.exception_handler(BAPIRateLimitError)
 async def bapi_rate_limit_handler(request: Request, exc: BAPIRateLimitError):
+    retry = getattr(exc, "retry_after_seconds", 130)
     return JSONResponse(
         status_code=429,
-        content={"message": "Sunucu Yoğunluğu", "detail": "Lütfen 2 dakika sonra tekrar deneyiniz."},
+        headers={"Retry-After": str(retry)},
+        content={
+            "message": "Sunucu Yoğunluğu",
+            "detail": f"Lütfen {retry} saniye sonra tekrar deneyiniz.",
+            "retry_after_seconds": retry,
+        },
     )
 
 @app.exception_handler(RequestValidationError)

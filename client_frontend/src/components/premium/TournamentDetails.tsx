@@ -495,7 +495,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                 <div className="bg-black/50 border border-[#D9B648]/30 rounded-lg p-3 md:p-4">
                                     <div className="flex items-center gap-2 mb-2">
                                         <Shield className="w-4 h-4 text-[#D9B648]" />
-                                        <span className="text-[#D9B648] text-xs md:text-sm font-semibold">Minimum Yatırım</span>
+                                        <span className="text-[#D9B648] text-xs md:text-sm font-semibold">Yatırım şartı</span>
                                     </div>
                                     <p className="text-[#F7EBA5] text-sm md:text-base font-bold">
                                         {event.rules?.min_deposit != null ? `${Number(event.rules.min_deposit).toLocaleString('tr-TR')} TL` : 'Yok'}
@@ -586,23 +586,22 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                     <div className="flex items-center gap-3 mb-6">
                                         <Trophy className="md:w-7 md:h-7 text-[#D9B648]" />
                                         <div>
-                                            <h3 className="text-xl md:text-2xl font-bold text-[#F7EBA5]">Senin Performansın</h3>
-                                            <p className="text-gray-400 text-xs md:text-sm">Turnuvanın mevcut durumun</p>
+                                            <h3 className="text-xl md:text-2xl font-bold text-[#F7EBA5]">İstatistikler</h3>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
                                         <div className="bg-black rounded-xl p-4 md:p-6 border border-[#D9B648]/30">
                                             <div className="flex items-center gap-2 md:gap-3 mb-2">
                                                 <Crown className="w-5 h-5 md:w-6 md:h-6 text-[#D9B648]" />
-                                                <span className="text-gray-400 text-xs md:text-sm font-semibold uppercase tracking-wide">Sıralaman</span>
+                                                <span className="text-gray-400 text-xs md:text-sm font-semibold uppercase tracking-wide">SIRALAMA</span>
                                             </div>
                                             <div className="text-3xl md:text-5xl font-black text-[#D9B648]">#{userRank}</div>
-                                            <div className="mt-2 text-gray-500 text-xs md:text-sm">{leaderboard.length} oyuncu arasında</div>
+                                            <div className="mt-2 text-gray-500 text-xs md:text-sm">İlk {leaderboard.length} arasında</div>
                                         </div>
                                         <div className="bg-black rounded-xl p-4 md:p-6 border border-[#D9B648]/30">
                                             <div className="flex items-center gap-2 md:gap-3 mb-2">
                                                 <Trophy className="w-5 h-5 md:w-6 md:h-6 text-[#D9B648]" />
-                                                <span className="text-gray-400 text-xs md:text-sm font-semibold uppercase tracking-wide">Toplam Puanın</span>
+                                                <span className="text-gray-400 text-xs md:text-sm font-semibold uppercase tracking-wide">TOPLAM PUAN</span>
                                             </div>
                                             <div className="text-3xl md:text-5xl font-black text-[#F7EBA5]">{(Math.floor(userPoints * 100) / 100).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
                                             <div className="mt-2 text-gray-500 text-xs md:text-sm">Devam ediyor</div>

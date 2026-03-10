@@ -17,6 +17,15 @@ _get_clients_last_request_at: datetime | None = None
 _GET_CLIENTS_MIN_INTERVAL_SEC = 4
 
 
+def _get_remaining_cooldown_seconds() -> int:
+    """Kalan cooldown süresi (sn). 0 ise cooldown yok."""
+    global _get_clients_cooldown_until
+    if not _get_clients_cooldown_until:
+        return 0
+    delta = (_get_clients_cooldown_until - datetime.utcnow()).total_seconds()
+    return max(0, int(delta))
+
+
 def _is_get_clients_rate_limited() -> bool:
     global _get_clients_cooldown_until
     if _get_clients_cooldown_until and datetime.utcnow() < _get_clients_cooldown_until:
@@ -75,10 +84,11 @@ async def fetch_client_id_by_login(login: str) -> Optional[int]:
         del _client_id_cache[login]
 
     if _is_get_clients_rate_limited():
-        raise BAPIRateLimitError()
+        sec = _get_remaining_cooldown_seconds() or 130
+        raise BAPIRateLimitError(retry_after_seconds=sec)
     if not _can_make_get_clients_request():
         _set_get_clients_cooldown(_GET_CLIENTS_MIN_INTERVAL_SEC)
-        raise BAPIRateLimitError()
+        raise BAPIRateLimitError(retry_after_seconds=_GET_CLIENTS_MIN_INTERVAL_SEC)
 
     body = {"Login": login, "MaxRows": 1}
 
@@ -86,13 +96,13 @@ async def fetch_client_id_by_login(login: str) -> Optional[int]:
         r = await client.post(settings.BAPI_CLIENT_INFO_URL, headers=get_headers(), json=body)
         if r.status_code == 403:
             _set_get_clients_cooldown(130)
-            raise BAPIRateLimitError()
+            raise BAPIRateLimitError(retry_after_seconds=130)
         try:
             r.raise_for_status()
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 403:
                 _set_get_clients_cooldown(130)
-                raise BAPIRateLimitError() from e
+                raise BAPIRateLimitError(retry_after_seconds=130) from e
             raise
         data = r.json()
 
