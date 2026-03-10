@@ -80,10 +80,15 @@ def get_db_session():
         # Bağlantı testi (Opsiyonel, zaten pool ping yapıyor)
         # db.execute(text("SELECT 1")) 
         yield db
-    except (HTTPException, BAPIRateLimitError):
-        # Business logic / rate limit - DB hatası değil, loglama
+    except HTTPException:
         if db:
             db.rollback()
+        raise
+    except BAPIRateLimitError:
+        if db:
+            db.rollback()
+        _h = settings.DATABASE_URL.split("@")[-1] if "@" in settings.DATABASE_URL else "db"
+        logger.warning(f"BAPI rate limit (429) | host={_h}")
         raise
     except Exception as e:
         err_str = str(e)

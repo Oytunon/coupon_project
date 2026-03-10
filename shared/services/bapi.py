@@ -8,6 +8,14 @@ from shared.exceptions import BAPIRateLimitError
 # GetClients rate limit cooldown (Betconstruct: "try after 2min")
 _get_clients_cooldown_until = None
 
+# Başarılı sonuç cache: login -> (client_id, expires_at) — aynı kullanıcı tekrar istek atarsa BAPI çağrılmaz
+_client_id_cache: dict[str, tuple[int, datetime]] = {}
+_CLIENT_CACHE_TTL_SEC = 300  # 5 dk
+
+# Proaktif throttling: istekler arası min 4 sn — 403 almadan önce kendimiz sınırlıyoruz
+_get_clients_last_request_at: datetime | None = None
+_GET_CLIENTS_MIN_INTERVAL_SEC = 4
+
 
 def _is_get_clients_rate_limited() -> bool:
     global _get_clients_cooldown_until
@@ -20,6 +28,20 @@ def _set_get_clients_cooldown(seconds: int = 130):
     """2 dk cooldown (API 2min diyor, biraz fazla tutuyoruz)."""
     global _get_clients_cooldown_until
     _get_clients_cooldown_until = datetime.utcnow() + timedelta(seconds=seconds)
+
+
+def _can_make_get_clients_request() -> bool:
+    """Proaktif: son istekten bu yana 4 sn geçmediyse False."""
+    global _get_clients_last_request_at
+    if _get_clients_last_request_at is None:
+        return True
+    elapsed = (datetime.utcnow() - _get_clients_last_request_at).total_seconds()
+    return elapsed >= _GET_CLIENTS_MIN_INTERVAL_SEC
+
+
+def _record_get_clients_request():
+    global _get_clients_last_request_at
+    _get_clients_last_request_at = datetime.utcnow()
 
 
 def get_headers():
@@ -39,11 +61,23 @@ async def fetch_client_id_by_login(login: str) -> Optional[int]:
     """
     Kullanıcı adını (login) kullanarak Betconstruct'tan client ID çeker.
     Rate limit (403) gelirse BAPIRateLimitError fırlatır.
+    Cache + proaktif throttling ile BAPI çağrı sayısı azaltılır.
     
     Returns:
         Client ID bulunursa int, bulunamazsa None
     """
+    # 1. Cache kontrolü — aynı kullanıcı son 5 dk içinde sorgulandıysa BAPI çağrılmaz
+    now = datetime.utcnow()
+    if login in _client_id_cache:
+        cid, expires = _client_id_cache[login]
+        if now < expires:
+            return cid
+        del _client_id_cache[login]
+
     if _is_get_clients_rate_limited():
+        raise BAPIRateLimitError()
+    if not _can_make_get_clients_request():
+        _set_get_clients_cooldown(_GET_CLIENTS_MIN_INTERVAL_SEC)
         raise BAPIRateLimitError()
 
     body = {"Login": login, "MaxRows": 1}
@@ -67,7 +101,11 @@ async def fetch_client_id_by_login(login: str) -> Optional[int]:
     if not users:
         return None
 
-    return users[0].get("Id")
+    client_id = users[0].get("Id")
+    if client_id is not None:
+        _record_get_clients_request()
+        _client_id_cache[login] = (client_id, now + timedelta(seconds=_CLIENT_CACHE_TTL_SEC))
+    return client_id
 
 
 def get_current_month_range():
