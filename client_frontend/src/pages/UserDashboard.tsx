@@ -53,6 +53,7 @@ export default function UserDashboard() {
     const [loadingEnrollments, setLoadingEnrollments] = useState(false)
     const [loadingCoupons, setLoadingCoupons] = useState(false)
     const [loadingRewards, setLoadingRewards] = useState(false)
+    const [joinCooldownUntil, setJoinCooldownUntil] = useState<number | null>(null)
 
     const [username, setUsername] = useState<string | null>(paramUsername || null)
 
@@ -96,6 +97,11 @@ export default function UserDashboard() {
             toast({ title: "Hata", description: "Katılmak için giriş yapmalısınız.", variant: "destructive" })
             return
         }
+        if (joinCooldownUntil && Date.now() < joinCooldownUntil) {
+            const secLeft = Math.ceil((joinCooldownUntil - Date.now()) / 1000)
+            toast({ title: "Lütfen bekleyin", description: `Sunucu yoğun. ${secLeft} saniye sonra tekrar deneyin.`, variant: "destructive" })
+            return
+        }
 
         const event = publicEvents.find(e => e.id === id)
         if (event && new Date() > parseEventDate(event.end_date)) {
@@ -105,10 +111,15 @@ export default function UserDashboard() {
 
         try {
             await joinCampaign(username, id)
+            setJoinCooldownUntil(null)
             toast({ title: "Başarılı", description: "Turnuvaya başarıyla katıldınız!" })
             fetchData()
         } catch (e: any) {
+            const status = e?.response?.status
             const msg = e?.response?.data?.detail || e?.response?.data?.message || "Katılım başarısız oldu."
+            if (status === 429) {
+                setJoinCooldownUntil(Date.now() + 130000)
+            }
             toast({ title: "Hata", description: msg, variant: "destructive" })
         }
     }
