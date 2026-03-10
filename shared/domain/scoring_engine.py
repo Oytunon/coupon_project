@@ -58,7 +58,8 @@ def calculate_points_for_event(
         base_points = max(0.0, (coupon.stake * truncated_odds) - coupon.stake)
         formula_str = "(stake * odds) - stake"
     
-    final_points = math.floor(base_points * multiplier * 100) / 100.0
+    # round: floor ile 1694.999... → 1694.99 oluyordu (750×2.26=1695 olmalı)
+    final_points = round(base_points * multiplier, 2)
     
     return final_points, {
         "formula": formula,
