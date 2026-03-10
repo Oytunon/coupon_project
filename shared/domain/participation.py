@@ -33,34 +33,22 @@ async def check_user_enrollment(
     if target_event.end_date < now_tr:
         return {"can_join": False, "reason": "event_expired"}
 
-    # Resolve Client ID
+    # Resolve Client ID - SADECE DB'den. GetClients SADECE Katıl butonunda (join_event) çağrılır.
     if username:
-        # Optimization: Check DB first
         existing_participant = db.query(Participant).filter(Participant.username == username).first()
         if existing_participant:
             client_id = existing_participant.client_id
+            participant = existing_participant
         else:
-            resolved_client_id = await fetch_client_id_by_login(username)
-            if not resolved_client_id:
-                 return {"can_join": True, "joined": False, "event_name": target_event.name}
-            
-            # Optimization: Persist immediately to prevent repetitive BAPI calls (403 fix)
-            new_p = Participant(client_id=resolved_client_id, username=username, joined_at=datetime.utcnow())
-            db.add(new_p)
-            db.commit()
-            
-            client_id = resolved_client_id
-            existing_participant = new_p # Set for later use
+            # DB'de yok = henüz katılmamış. GetClients ÇAĞIRMIYORUZ (sayfa açılışında rate limit).
+            # Katıl butonuna basınca join_event GetClients yapacak.
+            return {"can_join": True, "joined": False, "event_name": target_event.name}
     elif not client_id:
         return {"can_join": False, "reason": "missing_client_id"}
-
-    if not existing_participant:
-        participant = db.query(Participant).filter_by(client_id=client_id).first()
     else:
-        participant = existing_participant
-
-    if not participant:
-         return {"can_join": True, "joined": False, "event_name": target_event.name}
+        participant = db.query(Participant).filter_by(client_id=client_id).first()
+        if not participant:
+            return {"can_join": True, "joined": False, "event_name": target_event.name}
          
     enrollment = db.query(EventParticipant).filter_by(
         event_id=target_event.id,

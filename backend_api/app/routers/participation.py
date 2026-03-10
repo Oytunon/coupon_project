@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from typing import Optional
 from shared.core.limiter import limiter
-from shared.services.bapi import has_single_deposit, fetch_client_id_by_login
+from shared.services.bapi import has_single_deposit
 from backend_api.app.deps import get_db
 from shared.models.participant import Participant
 from shared.models.event import Event
@@ -61,29 +61,14 @@ async def get_my_coupons(
     db: Session = Depends(get_db)
 ):
     """Kullanıcının kuponlarını getirir."""
-    from shared.domain.participation import check_user_enrollment
     from shared.domain.participants import get_user_coupon_history
-    from shared.services.bapi import fetch_client_id_by_login
-    
     from shared.models.participant import Participant
-    from datetime import datetime
     existing_p = db.query(Participant).filter(Participant.username == username).first()
-    if existing_p:
-        client_id = existing_p.client_id
-    else:
-        client_id = await fetch_client_id_by_login(username)
-        # Cache: Yeni kullanıcıyı Participant'a kaydet, bir sonraki istekte GetClients çağrılmasın
-        if client_id:
-            try:
-                new_p = Participant(client_id=client_id, username=username, joined_at=datetime.utcnow())
-                db.add(new_p)
-                db.commit()
-            except Exception:
-                db.rollback()
-                # Eşzamanlı istekte zaten eklenmiş olabilir, client_id kullanılmaya devam
-
-    if not client_id:
+    if not existing_p:
+        # DB'de yok = henüz katılmamış veya hiç GetClients yapılmamış. GetClients ÇAĞIRMIYORUZ.
+        # Kuponlarım sadece katılan kullanıcılar için - onlar Participant'da olur.
         return []
+    client_id = existing_p.client_id
         
     target_event_id = event_id
     if not event_id and not slug:
