@@ -1,5 +1,4 @@
 import { Trophy, LogOut, LayoutGrid, Zap, Calendar, CheckSquare, BarChart3, Star, CheckCircle2, Award } from "lucide-react"
-import logo from "../../assets/logo.png"
 
 interface ClientHeaderProps {
     username: string | null
@@ -22,11 +21,6 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
             <div className="max-w-[1400px] mx-auto">
                 {/* Desktop Layout (lg and above) */}
                 <div className="hidden lg:flex h-20 items-center justify-between px-4 gap-8">
-                    {/* Logo Section */}
-                    <div className="flex-shrink-0 flex items-center group cursor-pointer" onClick={() => window.location.href = '/'}>
-                        <img src={logo} alt="Extrabet Logo" className="h-12 w-auto transition-transform duration-500 group-hover:scale-105" />
-                    </div>
-
                     {/* Navigation - No scroll, Shrinks proportionally */}
                     <div className="flex-1 flex items-center justify-center gap-2 px-2 overflow-hidden text-[#F7EBA5]">
                         {navItems.map((item) => {
@@ -52,20 +46,11 @@ export function ClientHeader({ username, activeCategory = 'all', onCategoryChang
                             )
                         })}
                     </div>
-
-                    <div className="flex-shrink-0 w-[140px] hidden xl:block" aria-hidden="true" />
                 </div>
 
                 {/* Mobile/Tablet Layout (smaller than lg) */}
                 <div className="lg:hidden flex flex-col">
-                    {/* Row 1: Logo Only (Centered) */}
-                    <div className="h-14 flex items-center justify-center px-3 border-b border-primary/40 relative">
-                        <div className="flex-shrink-0 flex items-center group cursor-pointer" onClick={() => window.location.href = '/'}>
-                            <img src={logo} alt="Extrabet Logo" className="h-7 w-auto" />
-                        </div>
-                    </div>
-
-                    {/* Row 2: Navigation - Single row, NO SCROLL, shrinking proportionally */}
+                    {/* Navigation - Single row, NO SCROLL, shrinking proportionally */}
                     <div className="flex items-center justify-center gap-1 px-1.5 py-2 bg-black overflow-hidden">
                         {navItems.map((item) => {
                             const Icon = item.icon
