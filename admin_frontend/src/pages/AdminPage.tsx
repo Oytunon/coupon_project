@@ -1339,7 +1339,7 @@ export default function AdminPage() {
                                                 </Button>
                                             )}
                                             {adminRole !== 'moderator' && (
-                                                <Button size="sm" variant="outline" className="border-blue-800 text-blue-500 hover:bg-blue-500/10 gap-2" onClick={async () => {
+                                                <Button size="sm" variant="outline" className="border-emerald-800 text-emerald-500 hover:bg-emerald-500/10 gap-2" onClick={async () => {
                                                     try {
                                                         const res = await recalculateEventPoints(event.id)
                                                         toast({ title: "Başarılı", description: res.message || `${res.recalculated_count} kupon yeniden hesaplandı.` })
@@ -1348,7 +1348,7 @@ export default function AdminPage() {
                                                     } catch (e: any) {
                                                         toast({ title: "Hata", description: e?.response?.data?.detail || "Puanlar yeniden hesaplanamadı", variant: "destructive" })
                                                     }
-                                                }} title="Puanları Yeniden Hesapla (sadece superadmin)">
+                                                }} title="Puanları Yeniden Hesapla">
                                                     <RefreshCw className="h-4 w-4" /> Puanları Yeniden Hesapla
                                                 </Button>
                                             )}
