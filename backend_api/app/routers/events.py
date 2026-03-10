@@ -564,7 +564,19 @@ async def recalculate_event_points(
             cer.points_calculation = calculation
             cer.evaluated_at = datetime.now()
             recalculated_count += 1
-    
+
+    # Katılımcı toplam puanlarını güncelle (sıralama için)
+    enrollments = db.query(EventParticipant).filter(EventParticipant.event_id == event_id).all()
+    for ep in enrollments:
+        participant = db.query(Participant).filter(Participant.id == ep.participant_id).first()
+        if participant:
+            total = db.query(func.sum(CouponEventResult.points_earned)).filter(
+                CouponEventResult.event_id == event_id,
+                CouponEventResult.coupon_id.in_(db.query(Coupon.id).filter(Coupon.client_id == participant.client_id)),
+                CouponEventResult.is_eligible == True
+            ).scalar() or 0.0
+            ep.total_points = total
+
     db.commit()
     return {
         "message": f"Recalculated {recalculated_count} coupon points for event {event.name}",

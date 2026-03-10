@@ -1338,6 +1338,20 @@ export default function AdminPage() {
                                                     <RefreshCw className="h-4 w-4" /> Kuponları Çek
                                                 </Button>
                                             )}
+                                            {adminRole === 'superadmin' && (
+                                                <Button size="sm" variant="outline" className="border-blue-800 text-blue-500 hover:bg-blue-500/10 gap-2" onClick={async () => {
+                                                    try {
+                                                        const res = await recalculateEventPoints(event.id)
+                                                        toast({ title: "Başarılı", description: res.message || `${res.recalculated_count} kupon yeniden hesaplandı.` })
+                                                        const eList = await fetchEvents()
+                                                        setEvents(eList)
+                                                    } catch (e: any) {
+                                                        toast({ title: "Hata", description: e?.response?.data?.detail || "Puanlar yeniden hesaplanamadı", variant: "destructive" })
+                                                    }
+                                                }} title="Puanları Yeniden Hesapla">
+                                                    <RefreshCw className="h-4 w-4" /> Puanları Yeniden Hesapla
+                                                </Button>
+                                            )}
 
                                             {adminRole !== 'moderator' && event.reward_status !== 'completed' && (
                                                 <Button size="icon" variant="ghost"
