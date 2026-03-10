@@ -891,7 +891,7 @@ export default function UserDashboard() {
                         <TabsContent value="my-coupons" className="mt-6 animation-in fade-in slide-in-from-bottom-2">
                             <Card className="border-white/5 bg-zinc-950/40 backdrop-blur-xl">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-[#F7EBA5]"><Ticket className="h-5 w-5 text-amber-500" /> Kuponlarım</CardTitle>
+                                    <CardTitle className="flex items-center gap-2 text-[#F7EBA5]"><Ticket className="h-5 w-5 text-amber-500" /> Kuponlar</CardTitle>
                                     <div className="flex items-center gap-4 mt-4">
                                         <Select value={eventId ? eventId.toString() : ""} onValueChange={(val) => {
                                             setEventId(Number(val))

@@ -407,7 +407,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                         className={`flex-1 min-w-[60px] flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-2 md:py-3 rounded-xl font-bold transition-all ${activeTab === 'info' ? 'bg-[#D9B648] text-black shadow-lg' : 'bg-transparent text-gray-400 hover:text-gray-200'}`}
                     >
                         <Info className="w-4 h-4 md:w-[18px] md:h-[18px]" />
-                        <span className="text-[10px] sm:text-xs md:text-sm whitespace-nowrap">BİLGİLENDİRME</span>
+                        <span className="text-[10px] sm:text-xs md:text-sm whitespace-nowrap">BİLGİ</span>
                     </button>
                     <button
                         onClick={() => setActiveTab('leaderboard')}
@@ -422,7 +422,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                             className={`flex-1 min-w-[60px] flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-2 md:py-3 rounded-xl font-bold transition-all ${activeTab === 'coupons' ? 'bg-[#D9B648] text-black shadow-lg' : 'bg-transparent text-gray-400 hover:text-gray-200'}`}
                         >
                             <Ticket className="w-4 h-4 md:w-[18px] md:h-[18px]" />
-                            <span className="text-[10px] sm:text-xs md:text-sm whitespace-nowrap">KUPONLARIM</span>
+                            <span className="text-[10px] sm:text-xs md:text-sm whitespace-nowrap">KUPONLAR</span>
                         </button>
                     )}
                     <button
@@ -823,8 +823,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                     <Ticket className="md:w-6 md:h-6 text-black" />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl md:text-2xl font-bold">Kuponlarım</h2>
-                                    <p className="text-gray-400 text-xs md:text-sm">Turnuva süresince oynadığınız kuponlar</p>
+                                    <h2 className="text-xl md:text-2xl font-bold">Kuponlar</h2>
                                 </div>
                             </div>
                             <div className="mb-6 text-center">
@@ -848,7 +847,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                     />
                                 </div>
                                 <div className="mt-3 text-gray-500 text-xs">
-                                    * Kupon ID veya Bahis Numarasına göre arama yapabilirsiniz.
+                                    * Bahis ID ile arama yapabilirsiniz.
                                 </div>
                             </div>
 
@@ -861,7 +860,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                                 <th className="text-left py-4 px-4 text-gray-400 text-xs md:text-sm font-bold">İşlem No</th>
                                                 <th className="text-left py-4 px-4 text-gray-400 text-xs md:text-sm font-bold">Bahis ID</th>
                                                 <th className="text-center py-4 px-4 text-gray-400 text-xs md:text-sm font-bold hidden md:table-cell">Tarih</th>
-                                                <th className="text-center py-4 px-4 text-gray-400 text-xs md:text-sm font-bold">Bahis Tutarı</th>
+                                                <th className="text-center py-4 px-4 text-gray-400 text-xs md:text-sm font-bold">Bahis Miktarı</th>
                                                 <th className="text-center py-4 px-4 text-gray-400 text-xs md:text-sm font-bold">Oran</th>
                                                 <th className="text-center py-4 px-4 text-gray-400 text-xs md:text-sm font-bold hidden lg:table-cell">Tür</th>
                                                 <th className="text-right py-4 px-4 text-gray-400 text-xs md:text-sm font-bold">Elde Edilen Puan</th>
@@ -1048,7 +1047,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                             <div className="bg-black rounded-2xl p-6 md:p-8 mb-6 md:mb-8 text-center border-2 border-[#D9B648]">
                                 <div className="text-[#D9B648]/80 text-xs md:text-sm mb-2 md:mb-3 uppercase tracking-wide font-semibold">Toplam Ödül Havuzu</div>
                                 <div className="text-3xl md:text-5xl lg:text-6xl font-black text-[#D9B648] drop-shadow-[0_0_12px_rgba(255,184,0,0.4)]">
-                                    <CountUpAnimation target={totalPrize} />₺
+                                    ₺<CountUpAnimation target={totalPrize} />
                                 </div>
                             </div>
 
@@ -1087,9 +1086,6 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                 </div>
                             )}
 
-                            <div className="mt-6 md:mt-8 bg-black border border-[#D9B648]/30 rounded-xl p-4 md:p-6">
-                                <p className="text-gray-400 text-xs md:text-sm leading-relaxed"><strong className="text-[#D9B648]">Not:</strong> Turnuva kurallarında değişiklik hakkı saklıdır. Güncel kurallar için bu sayfayı düzenli olarak kontrol ediniz.</p>
-                            </div>
                         </div>
                     )}
 
@@ -1102,16 +1098,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                 </div>
                                 <div>
                                     <h2 className="text-xl md:text-2xl font-bold">Turnuva Kuralları</h2>
-                                    <p className="text-gray-400 text-xs md:text-sm">Katılım şartları ve detaylı kurallar</p>
-                                </div>
-                            </div>
-                            <div className="mb-6 bg-gradient-to-br from-[#D9B648]/10 via-black to-black border-2 border-[#D9B648]/30 rounded-xl p-4 md:p-5">
-                                <div className="flex items-start gap-3">
-                                    <AlertCircle className="text-[#D9B648] flex-shrink-0 mt-0.5" size={20} />
-                                    <div>
-                                        <h3 className="font-bold text-sm md:text-base text-[#D9B648] mb-1">Önemli Bilgilendirme</h3>
-                                        <p className="text-gray-300 text-xs md:text-sm leading-relaxed">Lütfen turnuvaya katılmadan önce aşağıdaki kuralları dikkatlice okuyunuz. Katılım ile birlikte tüm kuralları kabul etmiş sayılırsınız.</p>
-                                    </div>
+                                    <p className="text-gray-400 text-xs md:text-sm"></p>
                                 </div>
                             </div>
 
@@ -1176,16 +1163,6 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                         </div>
                                     ));
                                 })()}
-                            </div>
-                            <div className="mt-6 bg-black border-2 border-[#D9B648]/30 rounded-xl p-4 md:p-5">
-                                <div className="flex items-start gap-3">
-                                    <div className="w-8 h-8 bg-[#D9B648]/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                                        <AlertCircle className="text-[#D9B648]" size={16} />
-                                    </div>
-                                    <div>
-                                        <p className="text-gray-400 text-xs md:text-sm leading-relaxed"><strong className="text-[#D9B648]">Yasal Uyarı:</strong> Turnuva kurallarında değişiklik yapma hakkı saklıdır. Güncel kurallar için bu sayfayı düzenli olarak kontrol ediniz. Herhangi bir soru veya sorun için müşteri hizmetlerimizle iletişime geçebilirsiniz.</p>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     )}
