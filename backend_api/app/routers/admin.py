@@ -11,6 +11,12 @@ from shared.models.enrollment import EventParticipant
 from backend_api.app.security import get_password_hash, get_require_full_admin
 from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta
+
+# Excel export: DB'deki tarihler UTC; Türkiye saati (UTC+3) olarak göster
+def _utc_to_tr_str(dt):
+    if dt is None:
+        return "-"
+    return (dt + timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
 import openpyxl
 from io import BytesIO
 from fastapi.responses import StreamingResponse
@@ -367,7 +373,7 @@ async def export_event_participants(event_id: int, db: Session = Depends(get_db)
     for p in results:
         ws.append([
             p["id"], p["username"], p["client_id"],
-            p["joined_at"].strftime("%Y-%m-%d %H:%M:%S") if p["joined_at"] else "-",
+            _utc_to_tr_str(p["joined_at"]),
             p["coupon_count"], p["points"]
         ])
         
@@ -409,7 +415,7 @@ async def export_event_coupons(event_id: int, db: Session = Depends(get_db)):
     for c, cer in results:
         ws.append([
             c.id, c.client_id, c.bet_id,
-            c.created_at.strftime("%Y-%m-%d %H:%M:%S") if c.created_at else "-",
+            _utc_to_tr_str(c.created_at),
             c.stake, c.odds, c.state, 
             cer.points_earned, # Use event-specific points
             "YES" if c.is_live else "NO"

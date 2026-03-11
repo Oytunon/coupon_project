@@ -1,5 +1,11 @@
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timedelta
+
+def _utc_to_tr_str(dt):
+    """UTC datetime -> Türkiye saati (UTC+3) string"""
+    if dt is None:
+        return "-"
+    return (dt + timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
 from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -681,7 +687,7 @@ async def export_event_participants(
     for p in results:
         ws.append([
             p["id"], p["username"], p["client_id"],
-            p["joined_at"].strftime("%Y-%m-%d %H:%M:%S") if p["joined_at"] else "-",
+            _utc_to_tr_str(p["joined_at"]),
             p["coupon_count"], p["points"]
         ])
 
@@ -722,7 +728,7 @@ async def export_event_coupons(
     for c in coupons:
         ws.append([
             c.id, c.client_id, c.bet_id,
-            c.created_at.strftime("%Y-%m-%d %H:%M:%S") if c.created_at else "-",
+            _utc_to_tr_str(c.created_at),
             c.stake, c.odds, c.state, c.calculation,
             "YES" if c.is_live else "NO"
         ])
@@ -782,9 +788,15 @@ async def export_reward_history(
                     continue
                     
                 if r.get("status") == "success":
-                    # Robust timestamp parsing
+                    # Timestamp UTC; Türkiye saati (UTC+3) olarak göster
                     ts_raw = r.get("timestamp", "")
-                    ts_display = ts_raw.split(".")[0].replace("T", " ") if ts_raw else "-"
+                    ts_display = "-"
+                    if ts_raw:
+                        try:
+                            dt = datetime.fromisoformat(ts_raw.replace("Z", "+00:00").split(".")[0])
+                            ts_display = (dt + timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
+                        except Exception:
+                            ts_display = ts_raw.split(".")[0].replace("T", " ")
                     
                     rule = r.get("rule", {})
                     ws.append([
