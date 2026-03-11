@@ -46,20 +46,37 @@ def _has_asian_selection(coupon: Coupon) -> bool:
     return False
 
 
+def _has_returned_selection(coupon: Coupon) -> bool:
+    """Kupon iade (Returned) seçim içeriyor mu (State 2)."""
+    bet_data = coupon.bet_data or {}
+    selections = bet_data.get("Selections") or bet_data.get("BetSelections") or []
+    for sel in selections:
+        sel_state = sel.get("State")
+        sel_state_name = str(sel.get("StateName") or "").lower()
+        if sel_state == 2 or "returned" in sel_state_name:
+            return True
+    return False
+
+
 def calculate_points_for_event(
     coupon: Coupon, 
     event: Event
 ) -> Tuple[float, dict]:
     """
     Event'in scoring formula'sına göre puan hesaplar.
-    Multi kuponlarda Asya varsa: puan = WinningAmount.
+    Multi kuponlarda Asya veya iade (Returned) varsa: puan = WinningAmount.
     """
     rules = event.rules or {}
     formula = rules.get("scoring_formula", "simple")
     state = coupon.state.lower()
     
-    # Multi + Asya + kazanç: puan = WinningAmount (WinReturn vb. için doğru ödeme)
-    if state == 'won' and _is_multi_coupon(coupon) and _has_asian_selection(coupon):
+    # Multi + (Asya veya iade) + kazanç: puan = WinningAmount
+    use_winning_amount = (
+        state == 'won'
+        and _is_multi_coupon(coupon)
+        and (_has_asian_selection(coupon) or _has_returned_selection(coupon))
+    )
+    if use_winning_amount:
         winning_amount = coupon.winning or 0.0
         if winning_amount <= 0:
             bet_data = coupon.bet_data or {}
@@ -68,9 +85,10 @@ def calculate_points_for_event(
             ) or 0.0
         if winning_amount > 0:
             final_points = round(winning_amount, 2)
+            formula_str = "WinningAmount (multi+Asian/Returned)"
             return final_points, {
                 "formula": formula,
-                "formula_str": "WinningAmount (multi+Asian)",
+                "formula_str": formula_str,
                 "base_points": round(winning_amount, 4),
                 "multiplier": 1.0,
                 "state": state,
