@@ -496,7 +496,7 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
             skipped_events_due_to_missing_data = set()
             for event in eligible_for_events:
                 rules = event.rules or {}
-                allowed_leagues = rules.get("allowed_league_ids") or []
+                allowed_leagues = list(rules.get("allowed_league_ids") or []) + list(rules.get("yan_bahis_ids") or [])
                 min_odd = float(rules.get("min_odd", 0) or 0)
                 all_valid = True
                 is_missing_selections = False

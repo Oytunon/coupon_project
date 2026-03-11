@@ -75,7 +75,7 @@ def is_valid_for_event(bet_history: dict, selections_data: dict, event: Event) -
         return False
     
     min_odd = rules.get("min_odd", 1.5)
-    allowed_league_ids = rules.get("allowed_league_ids", [])
+    allowed_league_ids = list(rules.get("allowed_league_ids") or []) + list(rules.get("yan_bahis_ids") or [])
     
     for selection in selections:
         # Oran kontrolü

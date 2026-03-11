@@ -48,6 +48,7 @@ class EventRules(BaseModel):
     min_combination: int = 2
     max_combination: Optional[int] = None
     allowed_league_ids: List[int] = []
+    yan_bahis_ids: List[int] = []  # Client'ta gizli, worker'da allowed ile birleşir
     max_coupons_per_user: Optional[int] = None
     scoring_formula: str = "stake_times_odds"  # 'simple', 'stake_times_odds', 'combo_bonus'
     combo_bonus_enabled: bool = False

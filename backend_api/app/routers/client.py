@@ -52,6 +52,8 @@ async def get_public_events(
             EventParticipant.event_id == event.id
         ).scalar()
 
+        rules_for_client = dict(event.rules or {})
+        rules_for_client.pop("yan_bahis_ids", None)
         results.append(PublicEventResponse(
             id=event.id,
             name=event.name,
@@ -62,7 +64,7 @@ async def get_public_events(
             display_until=event.display_until,
             participant_count=p_count or 0,
             image_url=event.image_url,
-            rules=event.rules or {},
+            rules=rules_for_client,
             content_rules=event.content_rules or []
         ))
 

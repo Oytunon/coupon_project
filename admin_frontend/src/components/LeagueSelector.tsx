@@ -24,6 +24,8 @@ function useDebounceValue<T>(value: T, delay: number): T {
 interface LeagueSelectorProps {
     selectedIds: number[]
     onChange: (ids: number[]) => void
+    label?: string
+    buttonLabel?: string
 }
 
 interface League {
@@ -33,7 +35,9 @@ interface League {
 
 export function LeagueSelector({
     selectedIds,
-    onChange
+    onChange,
+    label = "İzin Verilen Ligler",
+    buttonLabel = "Lig Seç / Düzenle"
 }: LeagueSelectorProps) {
     const [open, setOpen] = useState(false)
     const [search, setSearch] = useState("")
@@ -157,7 +161,7 @@ export function LeagueSelector({
     return (
         <div className="space-y-2">
             <div className="flex justify-between items-center">
-                <label className="text-xs font-bold text-muted-foreground">İzin Verilen Ligler</label>
+                <label className="text-xs font-bold text-muted-foreground">{label}</label>
                 <span className="text-[10px] text-muted-foreground">{selectedIds.length} lig seçili</span>
             </div>
 
@@ -190,7 +194,7 @@ export function LeagueSelector({
             >
                 <span className="flex items-center gap-2">
                     <ListFilter className="h-4 w-4 text-muted-foreground" />
-                    Lig Seç / Düzenle
+                    {buttonLabel}
                 </span>
                 <Badge variant="secondary" className="ml-2 font-normal">
                     {selectedIds.length}

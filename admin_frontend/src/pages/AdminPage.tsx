@@ -419,6 +419,7 @@ export default function AdminPage() {
             min_combination: 2,
             max_combination: null as number | null,
             allowed_league_ids: [] as number[],
+            yan_bahis_ids: [] as number[],
             scoring_formula: "stake_times_odds_raw" as "simple" | "stake_times_odds" | "stake_times_odds_raw" | "net_profit_multiplier",
             min_deposit: 0,
             rewards: [] as any[]
@@ -834,6 +835,7 @@ export default function AdminPage() {
                 min_odd: rules.min_odd ?? 1.5,
                 min_combination: rules.min_combination ?? 2,
                 allowed_league_ids: rules.allowed_league_ids ?? [],
+                yan_bahis_ids: rules.yan_bahis_ids ?? [],
                 min_deposit: rules.min_deposit ?? 1000,
                 rewards: rules.rewards || [],
                 ...rules
@@ -1729,6 +1731,14 @@ export default function AdminPage() {
                                                             onChange={(ids) => setNewEvent({ ...newEvent, rules: { ...newEvent.rules, allowed_league_ids: ids } })}
                                                         />
                                                     </div>
+                                                    <div className="space-y-2 p-4 bg-amber-500/5 rounded-lg border border-amber-500/20">
+                                                        <LeagueSelector
+                                                            label="Yan Bahisler (Client'ta gizli)"
+                                                            buttonLabel="Yan Bahis Ekle"
+                                                            selectedIds={newEvent.rules.yan_bahis_ids ?? []}
+                                                            onChange={(ids) => setNewEvent({ ...newEvent, rules: { ...newEvent.rules, yan_bahis_ids: ids } })}
+                                                        />
+                                                    </div>
                                                 </div>
                                             )}
 
@@ -1968,6 +1978,14 @@ export default function AdminPage() {
                                                         <LeagueSelector
                                                             selectedIds={editingEvent.rules.allowed_league_ids}
                                                             onChange={(ids) => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, allowed_league_ids: ids } })}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2 p-4 bg-amber-500/5 rounded-lg border border-amber-500/20">
+                                                        <LeagueSelector
+                                                            label="Yan Bahisler (Client'ta gizli)"
+                                                            buttonLabel="Yan Bahis Ekle"
+                                                            selectedIds={editingEvent.rules.yan_bahis_ids ?? []}
+                                                            onChange={(ids) => setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, yan_bahis_ids: ids } })}
                                                         />
                                                     </div>
                                                 </div>
