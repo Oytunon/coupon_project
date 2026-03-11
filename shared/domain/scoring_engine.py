@@ -21,16 +21,62 @@ logger = logging.getLogger(__name__)
 # Stale job sonrası cooldown - rate limit toparlanması için yeni job hemen başlamasın
 _stale_cooldown_until = None
 
+def _is_multi_coupon(coupon: Coupon) -> bool:
+    """Kupon multi/kombine mi kontrol eder."""
+    if (coupon.combination_count or 0) > 1:
+        return True
+    bet_data = coupon.bet_data or {}
+    type_val = bet_data.get("Type", 1)
+    type_name = str(bet_data.get("TypeName", "")).lower()
+    if type_val in (2, 3):
+        return True
+    if type_name in ("multiple", "combo", "accumulator", "kombine", "parlay"):
+        return True
+    return False
+
+
+def _has_asian_selection(coupon: Coupon) -> bool:
+    """Kupon Asya bahis seçimi içeriyor mu (Total Goals Asian vb.)."""
+    bet_data = coupon.bet_data or {}
+    selections = bet_data.get("Selections") or bet_data.get("BetSelections") or []
+    for sel in selections:
+        market = str(sel.get("MarketName") or sel.get("DisplayMarketName") or "").lower()
+        if "asian" in market:
+            return True
+    return False
+
+
 def calculate_points_for_event(
     coupon: Coupon, 
     event: Event
 ) -> Tuple[float, dict]:
     """
     Event'in scoring formula'sına göre puan hesaplar.
+    Multi kuponlarda Asya varsa: puan = WinningAmount.
     """
     rules = event.rules or {}
     formula = rules.get("scoring_formula", "simple")
     state = coupon.state.lower()
+    
+    # Multi + Asya + kazanç: puan = WinningAmount (WinReturn vb. için doğru ödeme)
+    if state == 'won' and _is_multi_coupon(coupon) and _has_asian_selection(coupon):
+        winning_amount = coupon.winning or 0.0
+        if winning_amount <= 0:
+            bet_data = coupon.bet_data or {}
+            winning_amount = float(
+                bet_data.get("WinningAmount") or bet_data.get("WinAmount") or bet_data.get("Payout") or 0
+            ) or 0.0
+        if winning_amount > 0:
+            final_points = round(winning_amount, 2)
+            return final_points, {
+                "formula": formula,
+                "formula_str": "WinningAmount (multi+Asian)",
+                "base_points": round(winning_amount, 4),
+                "multiplier": 1.0,
+                "state": state,
+                "final_points": final_points,
+                "truncated_odds": round(coupon.odds, 3),
+            }
     
     # stake_times_odds_raw: çarpanlar sabit (kazanan=1, kaybeden=0)
     if formula == "stake_times_odds_raw":
