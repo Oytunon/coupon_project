@@ -42,8 +42,8 @@ def calculate_points_for_event(
     else:
         multiplier = 0.0
     
-    # round kullan: float precision (2.26 → 2.259999...) floor ile 2.25 oluyordu
-    truncated_odds = round(coupon.odds, 2)
+    # round 3 hane: kombine oranlar 9.072 gibi 3 hane olabiliyor, 2'ye yuvarlayınca 9.07→9070 (9072 olmalı)
+    truncated_odds = round(coupon.odds, 3)
     
     base_points = truncated_odds
     formula_str = "odds"
