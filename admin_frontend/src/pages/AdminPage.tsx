@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import { useAuth } from "@/context/AuthContext"
 import { AdminLayout } from "@/components/layout/AdminLayout"
 import {
@@ -2145,8 +2146,8 @@ export default function AdminPage() {
                             </div>
                         )}
 
-                        {showManualCouponModal && viewEventId && (
-                            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => { setShowManualCouponModal(false); setManualCouponBetId(""); }}>
+                        {showManualCouponModal && viewEventId && createPortal(
+                            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => { setShowManualCouponModal(false); setManualCouponBetId(""); }}>
                                 <Card className="bg-slate-900/95 border-white/10 shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
                                     <CardHeader className="flex flex-row items-center justify-between">
                                         <CardTitle>Manuel Kupon Ekle</CardTitle>
@@ -2176,7 +2177,8 @@ export default function AdminPage() {
                                         </Button>
                                     </div>
                                 </Card>
-                            </div>
+                            </div>,
+                            document.body
                         )}
 
                         {showEditEvent && <div className="fixed inset-0 bg-black/80 z-40" onClick={() => setShowEditEvent(false)} />}
