@@ -541,6 +541,34 @@ async def get_event_stats(
     )
 
 
+class ManualCouponRequest(BaseModel):
+    bet_id: str = Field(..., min_length=1, description="Bet ID (Kupon ID)")
+
+
+@router.post("/{event_id}/coupons/manual")
+async def add_manual_coupon_endpoint(
+    event_id: int,
+    body: ManualCouponRequest,
+    db: Session = Depends(get_db_session),
+    _: AdminUser = Depends(get_require_full_admin),
+):
+    """Manuel kupon ekleme - Bet ID ile GetBetReport'tan çekip kaydeder."""
+    from shared.domain.manual_coupon import add_manual_coupon
+
+    success, result = await add_manual_coupon(db, event_id, body.bet_id)
+    if success:
+        return {
+            "success": True,
+            "message": result["message"],
+            "coupon_id": result["coupon_id"],
+            "points_earned": result["points_earned"],
+            "client_login": result["client_login"],
+        }
+    code = result.get("code", "UNKNOWN")
+    detail = result.get("detail", "Bilinmeyen hata.")
+    raise HTTPException(status_code=400, detail={"message": detail, "code": code})
+
+
 @router.post("/{event_id}/recalculate", status_code=202)
 async def recalculate_event_points(
     event_id: int,

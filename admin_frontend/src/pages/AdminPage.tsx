@@ -150,6 +150,11 @@ const fetchRewardHistory = async (eventId: number) => {
     return res.data
 }
 
+const addManualCoupon = async (eventId: number, betId: string) => {
+    const res = await apiClient.post(`/admin/events/${eventId}/coupons/manual`, { bet_id: betId })
+    return res.data
+}
+
 
 const createLeague = async (data: any) => {
     const res = await apiClient.post('/leagues/', data)
@@ -441,6 +446,9 @@ export default function AdminPage() {
 
     const [viewEventId, setViewEventId] = useState<number | null>(null)
     const [eventStats, setEventStats] = useState<any>(null)
+    const [showManualCouponModal, setShowManualCouponModal] = useState(false)
+    const [manualCouponBetId, setManualCouponBetId] = useState("")
+    const [manualCouponLoading, setManualCouponLoading] = useState(false)
 
     const [imageUploadLoading, setImageUploadLoading] = useState(false)
     const [tempImageFile, setTempImageFile] = useState<File | null>(null)
@@ -522,6 +530,36 @@ export default function AdminPage() {
                 description: "Excel indirilemedi.",
                 variant: "destructive"
             });
+        }
+    };
+
+    const handleManualCouponSubmit = async () => {
+        if (!viewEventId || !manualCouponBetId.trim()) return
+        setManualCouponLoading(true)
+        try {
+            const res = await addManualCoupon(viewEventId, manualCouponBetId.trim())
+            toast({
+                title: "Başarılı",
+                description: res.message || `Kupon eklendi. Kullanıcı: ${res.client_login || ""}`,
+            })
+            setShowManualCouponModal(false)
+            setManualCouponBetId("")
+            const [stats, partsData] = await Promise.all([
+                getEventStats(viewEventId),
+                fetchEventParticipants(viewEventId)
+            ])
+            setEventStats(stats)
+            setParticipants(partsData.items || [])
+        } catch (err: any) {
+            const detail = err?.response?.data?.detail
+            const msg = (typeof detail === "string" ? detail : detail?.message || detail?.detail) || "Kupon eklenemedi."
+            toast({
+                title: "Hata",
+                description: msg,
+                variant: "destructive"
+            })
+        } finally {
+            setManualCouponLoading(false)
         }
     };
 
@@ -1217,6 +1255,9 @@ export default function AdminPage() {
                                 <CardTitle className="flex justify-between items-center">
                                     <span>Etkinlik Liderlik Tablosu</span>
                                     <div className="flex gap-2">
+                                        <Button variant="outline" size="sm" onClick={() => setShowManualCouponModal(true)} className="gap-2">
+                                            <Plus className="h-4 w-4" /> Manuel Kupon Ekle
+                                        </Button>
                                         <Button variant="outline" size="sm" onClick={() => handleExportExcel(viewEventId)} className="gap-2">
                                             <Download className="h-4 w-4" /> Excel İndir
                                         </Button>
@@ -2099,6 +2140,40 @@ export default function AdminPage() {
                                             <Download className="h-4 w-4" /> Excel'e Aktar
                                         </Button>
                                         <Button variant="outline" onClick={() => setShowHistoryModal(false)}>Kapat</Button>
+                                    </div>
+                                </Card>
+                            </div>
+                        )}
+
+                        {showManualCouponModal && viewEventId && (
+                            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => { setShowManualCouponModal(false); setManualCouponBetId(""); }}>
+                                <Card className="bg-slate-900/95 border-white/10 shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+                                    <CardHeader className="flex flex-row items-center justify-between">
+                                        <CardTitle>Manuel Kupon Ekle</CardTitle>
+                                        <Button variant="ghost" size="icon" onClick={() => { setShowManualCouponModal(false); setManualCouponBetId(""); }}>
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div>
+                                            <label className="text-sm font-bold text-muted-foreground">Bet ID (Kupon ID)</label>
+                                            <Input
+                                                placeholder="örn. 6139043932"
+                                                value={manualCouponBetId}
+                                                onChange={(e) => setManualCouponBetId(e.target.value)}
+                                                className="mt-2"
+                                                disabled={manualCouponLoading}
+                                            />
+                                            <p className="text-xs text-muted-foreground mt-1">GetBetReport ile son 30 gün içinde aranır.</p>
+                                        </div>
+                                    </CardContent>
+                                    <div className="p-4 border-t border-white/5 flex justify-end gap-2">
+                                        <Button variant="outline" onClick={() => { setShowManualCouponModal(false); setManualCouponBetId(""); }} disabled={manualCouponLoading}>
+                                            İptal
+                                        </Button>
+                                        <Button onClick={handleManualCouponSubmit} disabled={manualCouponLoading || !manualCouponBetId.trim()}>
+                                            {manualCouponLoading ? "Ekleniyor..." : "Ekle"}
+                                        </Button>
                                     </div>
                                 </Card>
                             </div>
