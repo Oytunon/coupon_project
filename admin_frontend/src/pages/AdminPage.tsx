@@ -1230,7 +1230,8 @@ export default function AdminPage() {
             )}
 
             {activeTab === 'events' && (
-                viewEventId && eventStats ? (
+                <>
+                {viewEventId && eventStats ? (
                     <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
                         <div className="flex items-center justify-between">
                             <Button variant="outline" onClick={handleBackToEvents} className="gap-2">
@@ -1256,7 +1257,7 @@ export default function AdminPage() {
                                 <CardTitle className="flex justify-between items-center">
                                     <span>Etkinlik Liderlik Tablosu</span>
                                     <div className="flex gap-2">
-                                        <Button variant="outline" size="sm" onClick={() => setShowManualCouponModal(true)} className="gap-2">
+                                        <Button type="button" variant="outline" size="sm" onClick={() => setShowManualCouponModal(true)} className="gap-2">
                                             <Plus className="h-4 w-4" /> Manuel Kupon Ekle
                                         </Button>
                                         <Button variant="outline" size="sm" onClick={() => handleExportExcel(viewEventId)} className="gap-2">
@@ -2146,47 +2147,47 @@ export default function AdminPage() {
                             </div>
                         )}
 
-                        {showManualCouponModal && viewEventId && createPortal(
-                            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => { setShowManualCouponModal(false); setManualCouponBetId(""); }}>
-                                <Card className="bg-slate-900/95 border-white/10 shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-                                    <CardHeader className="flex flex-row items-center justify-between">
-                                        <CardTitle>Manuel Kupon Ekle</CardTitle>
-                                        <Button variant="ghost" size="icon" onClick={() => { setShowManualCouponModal(false); setManualCouponBetId(""); }}>
-                                            <X className="h-4 w-4" />
-                                        </Button>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div>
-                                            <label className="text-sm font-bold text-muted-foreground">Bet ID (Kupon ID)</label>
-                                            <Input
-                                                placeholder="örn. 6139043932"
-                                                value={manualCouponBetId}
-                                                onChange={(e) => setManualCouponBetId(e.target.value)}
-                                                className="mt-2"
-                                                disabled={manualCouponLoading}
-                                            />
-                                            <p className="text-xs text-muted-foreground mt-1">GetBetReport ile son 30 gün içinde aranır.</p>
-                                        </div>
-                                    </CardContent>
-                                    <div className="p-4 border-t border-white/5 flex justify-end gap-2">
-                                        <Button variant="outline" onClick={() => { setShowManualCouponModal(false); setManualCouponBetId(""); }} disabled={manualCouponLoading}>
-                                            İptal
-                                        </Button>
-                                        <Button onClick={handleManualCouponSubmit} disabled={manualCouponLoading || !manualCouponBetId.trim()}>
-                                            {manualCouponLoading ? "Ekleniyor..." : "Ekle"}
-                                        </Button>
-                                    </div>
-                                </Card>
-                            </div>,
-                            document.body
-                        )}
-
                         {showEditEvent && <div className="fixed inset-0 bg-black/80 z-40" onClick={() => setShowEditEvent(false)} />}
                         {showHistoryModal && <div className="fixed inset-0 bg-black/80 z-40" onClick={() => setShowHistoryModal(false)} />}
                     </div >
                 )
-            )
-            }
+            )}
+            {showManualCouponModal && viewEventId && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => { setShowManualCouponModal(false); setManualCouponBetId(""); }}>
+                    <Card className="bg-slate-900/95 border-white/10 shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle>Manuel Kupon Ekle</CardTitle>
+                            <Button variant="ghost" size="icon" onClick={() => { setShowManualCouponModal(false); setManualCouponBetId(""); }}>
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <label className="text-sm font-bold text-muted-foreground">Bet ID (Kupon ID)</label>
+                                <Input
+                                    placeholder="örn. 6139043932"
+                                    value={manualCouponBetId}
+                                    onChange={(e) => setManualCouponBetId(e.target.value)}
+                                    className="mt-2"
+                                    disabled={manualCouponLoading}
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">GetBetReport ile son 30 gün içinde aranır.</p>
+                            </div>
+                        </CardContent>
+                        <div className="p-4 border-t border-white/5 flex justify-end gap-2">
+                            <Button variant="outline" onClick={() => { setShowManualCouponModal(false); setManualCouponBetId(""); }} disabled={manualCouponLoading}>
+                                İptal
+                            </Button>
+                            <Button onClick={handleManualCouponSubmit} disabled={manualCouponLoading || !manualCouponBetId.trim()}>
+                                {manualCouponLoading ? "Ekleniyor..." : "Ekle"}
+                            </Button>
+                        </div>
+                    </Card>
+                </div>,
+                document.body
+            )}
+            </>
+            )}
 
             {
                 activeTab === 'participants' && !selectedParticipant && (
