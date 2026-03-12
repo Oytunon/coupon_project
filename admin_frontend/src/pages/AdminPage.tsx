@@ -1439,8 +1439,8 @@ export default function AdminPage() {
                                                 <Eye className="h-4 w-4 text-purple-400" />
                                             </Button>
                                             {adminRole !== 'moderator' && (
-                                                <Button size="icon" variant="ghost" onClick={() => { setManualCouponEventId(event.id); setShowManualCouponModal(true); setManualCouponBetId(""); }} title="Manuel Kupon Ekle" className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10">
-                                                    <Plus className="h-4 w-4" />
+                                                <Button size="sm" variant="outline" onClick={() => { setManualCouponEventId(event.id); setShowManualCouponModal(true); setManualCouponBetId(""); }} className="gap-2 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10" title="Manuel kupon ekleme">
+                                                    <Plus className="h-4 w-4" /> Manuel kupon ekleme
                                                 </Button>
                                             )}
                                             <Button size="icon" variant="ghost" onClick={() => { setHistoryEvent(event); setShowHistoryModal(true); handleLoadRewardHistory(event.id); }} title="Ödül Geçmişi">
