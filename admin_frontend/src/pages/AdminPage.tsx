@@ -2170,9 +2170,9 @@ export default function AdminPage() {
 
                         {showEditEvent && <div className="fixed inset-0 bg-black/80 z-40" onClick={() => setShowEditEvent(false)} />}
                         {showHistoryModal && <div className="fixed inset-0 bg-black/80 z-40" onClick={() => setShowHistoryModal(false)} />}
-                    </div >
+                    </div>
                 )
-            )}
+            }
             {showManualCouponModal && manualCouponEventId && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => { setShowManualCouponModal(false); setManualCouponEventId(null); setManualCouponBetId(""); }}>
                     <Card className="bg-slate-900/95 border-white/10 shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
