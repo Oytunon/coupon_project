@@ -2194,7 +2194,7 @@ export default function AdminPage() {
                                     className="mt-2"
                                     disabled={manualCouponLoading}
                                 />
-                                <p className="text-xs text-muted-foreground mt-1">GetBetReport ile son 30 gün içinde aranır.</p>
+                                <p className="text-xs text-muted-foreground mt-1">30 gün geriye dönük sorgulanır.</p>
                             </div>
                         </CardContent>
                         <div className="p-4 border-t border-white/5 flex justify-end gap-2">
