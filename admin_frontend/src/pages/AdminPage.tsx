@@ -2176,7 +2176,7 @@ export default function AdminPage() {
                 )
             }
             {showManualCouponModal && manualCouponEventId && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => { setShowManualCouponModal(false); setManualCouponEventId(null); setManualCouponBetId(""); }}>
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md p-4" onClick={() => { setShowManualCouponModal(false); setManualCouponEventId(null); setManualCouponBetId(""); }}>
                     <Card className="bg-slate-900/95 border-white/10 shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle>Manuel Kupon Ekle</CardTitle>
