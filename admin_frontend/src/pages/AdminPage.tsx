@@ -448,8 +448,10 @@ export default function AdminPage() {
     const [viewEventId, setViewEventId] = useState<number | null>(null)
     const [eventStats, setEventStats] = useState<any>(null)
     const [showManualCouponModal, setShowManualCouponModal] = useState(false)
+    const [manualCouponEventId, setManualCouponEventId] = useState<number | null>(null)
     const [manualCouponBetId, setManualCouponBetId] = useState("")
     const [manualCouponLoading, setManualCouponLoading] = useState(false)
+    const [loadingEventDetail, setLoadingEventDetail] = useState(false)
 
     const [imageUploadLoading, setImageUploadLoading] = useState(false)
     const [tempImageFile, setTempImageFile] = useState<File | null>(null)
@@ -535,22 +537,28 @@ export default function AdminPage() {
     };
 
     const handleManualCouponSubmit = async () => {
-        if (!viewEventId || !manualCouponBetId.trim()) return
+        if (!manualCouponEventId || !manualCouponBetId.trim()) return
         setManualCouponLoading(true)
         try {
-            const res = await addManualCoupon(viewEventId, manualCouponBetId.trim())
+            const res = await addManualCoupon(manualCouponEventId, manualCouponBetId.trim())
             toast({
                 title: "Başarılı",
                 description: res.message || `Kupon eklendi. Kullanıcı: ${res.client_login || ""}`,
             })
             setShowManualCouponModal(false)
+            setManualCouponEventId(null)
             setManualCouponBetId("")
-            const [stats, partsData] = await Promise.all([
-                getEventStats(viewEventId),
-                fetchEventParticipants(viewEventId)
-            ])
-            setEventStats(stats)
-            setParticipants(partsData.items || [])
+            if (viewEventId === manualCouponEventId) {
+                const [stats, partsData] = await Promise.all([
+                    getEventStats(manualCouponEventId),
+                    fetchEventParticipants(manualCouponEventId)
+                ])
+                setEventStats(stats)
+                setParticipants(partsData.items || [])
+            } else {
+                const eList = await fetchEvents()
+                setEvents(eList)
+            }
         } catch (err: any) {
             const detail = err?.response?.data?.detail
             const msg = (typeof detail === "string" ? detail : detail?.message || detail?.detail) || "Kupon eklenemedi."
@@ -1014,26 +1022,29 @@ export default function AdminPage() {
     // ... existing code ...
 
     const handleViewDetails = async (event: any) => {
-        setLoading(true)
+        setViewEventId(event.id)
+        setLoadingEventDetail(true)
         try {
-            const stats = await getEventStats(event.id)
+            const [stats, partsData] = await Promise.all([
+                getEventStats(event.id),
+                fetchEventParticipants(event.id)
+            ])
             setEventStats(stats)
-            setViewEventId(event.id)
-            const partsData = await fetchEventParticipants(event.id)
-            if (partsData.items) {
+            if (partsData?.items) {
                 setParticipants(partsData.items)
             } else {
-                setParticipants(partsData)
+                setParticipants(Array.isArray(partsData) ? partsData : [])
             }
         } catch (e) {
             console.error(e)
+            setViewEventId(null)
             toast({
                 title: "Hata",
                 description: "Detaylar yüklenemedi.",
                 variant: "destructive"
             })
         } finally {
-            setLoading(false)
+            setLoadingEventDetail(false)
         }
     }
 
@@ -1231,25 +1242,33 @@ export default function AdminPage() {
 
             {activeTab === 'events' && (
                 <>
-                {viewEventId && eventStats ? (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
+                {viewEventId && (eventStats || loadingEventDetail) ? (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 relative">
+                        {loadingEventDetail && (
+                            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl min-h-[200px]">
+                                <div className="flex flex-col items-center gap-3">
+                                    <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent" />
+                                    <span className="text-sm text-muted-foreground">Detaylar yükleniyor...</span>
+                                </div>
+                            </div>
+                        )}
                         <div className="flex items-center justify-between">
                             <Button variant="outline" onClick={handleBackToEvents} className="gap-2">
                                 <ArrowLeft className="h-4 w-4" /> Kampanyalara Dön
                             </Button>
                             <div className="flex items-center gap-3">
                                 <Badge variant="outline" className="text-lg py-1 px-4 border-primary/20 bg-primary/10 text-primary uppercase tracking-widest font-black italic">
-                                    {eventStats.event_name}
+                                    {eventStats?.event_name || "—"}
                                 </Badge>
-                                <Badge variant="secondary" className="uppercase">{eventStats.status}</Badge>
+                                <Badge variant="secondary" className="uppercase">{eventStats?.status || "—"}</Badge>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <StatCard title="Katılımcı" value={eventStats.total_participants} icon={Users} color="text-blue-500" />
-                            <StatCard title="Toplam Kupon" value={eventStats.total_coupons} icon={FileText} color="text-purple-500" />
-                            <StatCard title="Toplam Bahis" value={`₺${eventStats.total_stake}`} icon={History} color="text-green-500" />
-                            <StatCard title="Dağıtılan Puan" value={eventStats.total_points_distributed} icon={Trophy} color="text-yellow-500" />
+                            <StatCard title="Katılımcı" value={eventStats?.total_participants ?? 0} icon={Users} color="text-blue-500" />
+                            <StatCard title="Toplam Kupon" value={eventStats?.total_coupons ?? 0} icon={FileText} color="text-purple-500" />
+                            <StatCard title="Toplam Bahis" value={`₺${eventStats?.total_stake ?? 0}`} icon={History} color="text-green-500" />
+                            <StatCard title="Dağıtılan Puan" value={eventStats?.total_points_distributed ?? 0} icon={Trophy} color="text-yellow-500" />
                         </div>
 
                         <Card className="bg-card/50 border-white/5 backdrop-blur-xl">
@@ -1257,9 +1276,6 @@ export default function AdminPage() {
                                 <CardTitle className="flex justify-between items-center">
                                     <span>Etkinlik Liderlik Tablosu</span>
                                     <div className="flex gap-2">
-                                        <Button type="button" variant="outline" size="sm" onClick={() => setShowManualCouponModal(true)} className="gap-2">
-                                            <Plus className="h-4 w-4" /> Manuel Kupon Ekle
-                                        </Button>
                                         <Button variant="outline" size="sm" onClick={() => handleExportExcel(viewEventId)} className="gap-2">
                                             <Download className="h-4 w-4" /> Excel İndir
                                         </Button>
@@ -1422,6 +1438,11 @@ export default function AdminPage() {
                                             <Button size="icon" variant="ghost" onClick={() => handleViewDetails(event)} title="Detaylar">
                                                 <Eye className="h-4 w-4 text-purple-400" />
                                             </Button>
+                                            {adminRole !== 'moderator' && (
+                                                <Button size="icon" variant="ghost" onClick={() => { setManualCouponEventId(event.id); setShowManualCouponModal(true); setManualCouponBetId(""); }} title="Manuel Kupon Ekle" className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10">
+                                                    <Plus className="h-4 w-4" />
+                                                </Button>
+                                            )}
                                             <Button size="icon" variant="ghost" onClick={() => { setHistoryEvent(event); setShowHistoryModal(true); handleLoadRewardHistory(event.id); }} title="Ödül Geçmişi">
                                                 <History className="h-4 w-4 text-amber-400" />
                                             </Button>
@@ -2152,12 +2173,12 @@ export default function AdminPage() {
                     </div >
                 )
             )}
-            {showManualCouponModal && viewEventId && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => { setShowManualCouponModal(false); setManualCouponBetId(""); }}>
+            {showManualCouponModal && manualCouponEventId && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => { setShowManualCouponModal(false); setManualCouponEventId(null); setManualCouponBetId(""); }}>
                     <Card className="bg-slate-900/95 border-white/10 shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle>Manuel Kupon Ekle</CardTitle>
-                            <Button variant="ghost" size="icon" onClick={() => { setShowManualCouponModal(false); setManualCouponBetId(""); }}>
+                            <Button variant="ghost" size="icon" onClick={() => { setShowManualCouponModal(false); setManualCouponEventId(null); setManualCouponBetId(""); }}>
                                 <X className="h-4 w-4" />
                             </Button>
                         </CardHeader>
@@ -2175,7 +2196,7 @@ export default function AdminPage() {
                             </div>
                         </CardContent>
                         <div className="p-4 border-t border-white/5 flex justify-end gap-2">
-                            <Button variant="outline" onClick={() => { setShowManualCouponModal(false); setManualCouponBetId(""); }} disabled={manualCouponLoading}>
+                            <Button variant="outline" onClick={() => { setShowManualCouponModal(false); setManualCouponEventId(null); setManualCouponBetId(""); }} disabled={manualCouponLoading}>
                                 İptal
                             </Button>
                             <Button onClick={handleManualCouponSubmit} disabled={manualCouponLoading || !manualCouponBetId.trim()}>
