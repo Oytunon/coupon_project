@@ -1438,11 +1438,6 @@ export default function AdminPage() {
                                             <Button size="icon" variant="ghost" onClick={() => handleViewDetails(event)} title="Detaylar">
                                                 <Eye className="h-4 w-4 text-purple-400" />
                                             </Button>
-                                            {adminRole !== 'moderator' && (
-                                                <Button size="sm" variant="outline" onClick={() => { setManualCouponEventId(event.id); setShowManualCouponModal(true); setManualCouponBetId(""); }} className="gap-2 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10" title="Manuel kupon ekleme">
-                                                    <Plus className="h-4 w-4" /> Manuel kupon ekleme
-                                                </Button>
-                                            )}
                                             <Button size="icon" variant="ghost" onClick={() => { setHistoryEvent(event); setShowHistoryModal(true); handleLoadRewardHistory(event.id); }} title="Ödül Geçmişi">
                                                 <History className="h-4 w-4 text-amber-400" />
                                             </Button>
@@ -1536,6 +1531,13 @@ export default function AdminPage() {
                                             </div>
                                         </div>
                                     </CardContent>
+                                    {adminRole !== 'moderator' && (
+                                        <div className="px-4 pb-4 pt-0 flex justify-end">
+                                            <Button size="sm" variant="outline" onClick={() => { setManualCouponEventId(event.id); setShowManualCouponModal(true); setManualCouponBetId(""); }} className="gap-2 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
+                                                <Plus className="h-4 w-4" /> Manuel kupon ekleme
+                                            </Button>
+                                        </div>
+                                    )}
                                 </Card>
                             ))}
                         </div>
