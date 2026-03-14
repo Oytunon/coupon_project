@@ -1,43 +1,52 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, case
 from shared.models.participant import Participant
 from shared.models.enrollment import EventParticipant
 from shared.models.coupon_event_result import CouponEventResult
 from shared.models.coupon import Coupon
 
+
 def get_event_leaderboard(db: Session, event_id: int):
-    participants = db.query(Participant).join(EventParticipant)\
-        .filter(EventParticipant.event_id == event_id).all()
-        
-    result = []
-    for p in participants:
-        # FIX: Query CouponEventResult for accurate points
-        # A coupon might be associated with this event via CouponEventResult even if Coupon.event_id is different.
-        from shared.models.coupon_event_result import CouponEventResult
-        
-        total_points = db.query(func.coalesce(func.sum(CouponEventResult.points_earned), 0.0)).join(
-             Coupon, Coupon.id == CouponEventResult.coupon_id
-        ).filter(
-            Coupon.client_id == p.client_id, 
-            CouponEventResult.event_id == event_id,
-            CouponEventResult.is_eligible == True
-        ).scalar()
-        
-        coupon_count = db.query(func.count(CouponEventResult.coupon_id)).join(
-             Coupon, Coupon.id == CouponEventResult.coupon_id
-        ).filter(
-            Coupon.client_id == p.client_id, 
-            CouponEventResult.event_id == event_id
-        ).scalar()
-        
-        result.append({
-            "id": p.id,
-            "username": p.username,
-            "client_id": p.client_id,
-            "joined_at": p.joined_at,
-            "coupon_count": coupon_count,
-            "points": total_points
-        })
-    
-    result.sort(key=lambda x: x["points"], reverse=True)
-    return result
+    """
+    Tek sorgu ile leaderboard getirir (N+1 problemi giderildi).
+    """
+    points_expr = func.coalesce(
+        func.sum(case((CouponEventResult.is_eligible == True, CouponEventResult.points_earned), else_=0.0)),
+        0.0
+    )
+    rows = (
+        db.query(
+            Participant.id,
+            Participant.username,
+            Participant.client_id,
+            Participant.joined_at,
+            points_expr.label("points"),
+            func.count(CouponEventResult.coupon_id).label("coupon_count"),
+        )
+        .select_from(EventParticipant)
+        .join(Participant, EventParticipant.participant_id == Participant.id)
+        .outerjoin(
+            Coupon,
+            (Coupon.client_id == Participant.client_id)
+        )
+        .outerjoin(
+            CouponEventResult,
+            (Coupon.id == CouponEventResult.coupon_id) & (CouponEventResult.event_id == event_id)
+        )
+        .filter(EventParticipant.event_id == event_id)
+        .group_by(Participant.id, Participant.username, Participant.client_id, Participant.joined_at)
+        .order_by(points_expr.desc())
+        .all()
+    )
+
+    return [
+        {
+            "id": r.id,
+            "username": r.username,
+            "client_id": r.client_id,
+            "joined_at": r.joined_at,
+            "coupon_count": r.coupon_count or 0,
+            "points": float(r.points) if r.points is not None else 0.0,
+        }
+        for r in rows
+    ]

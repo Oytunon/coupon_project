@@ -151,12 +151,35 @@ export default function UserDashboard() {
         }
     }
 
+    // Detail View Logic - hesaplamaları her zaman yap (hooks sırası sabit kalsın)
+    const targetEventId = paramEventId ? Number(paramEventId) : null
+    const selectedEvent = targetEventId ? publicEvents.find(e => e.id === targetEventId) : null
+    const selectedEnrollment = selectedEvent ? myEnrollments.find(e => e.event_id === targetEventId) : null
+
     if (loading) {
         return <div className="min-h-screen bg-black flex items-center justify-center"><Loader2 className="animate-spin text-amber-500 w-12 h-12" /></div>
     }
 
-    // Detail View Logic
-    const targetEventId = paramEventId ? Number(paramEventId) : null
+    if (selectedEvent) {
+        return (
+            <TournamentDetails
+                event={selectedEvent}
+                userPoints={selectedEnrollment?.score || 0}
+                userRank={selectedEnrollment?.rank || 0}
+                isJoined={!!selectedEnrollment}
+                onBack={() => {
+                    setSearchParams(prev => {
+                        const newParams = new URLSearchParams(prev)
+                        newParams.delete('eventId')
+                        return newParams
+                    })
+                }}
+                username={username || ''}
+                onJoin={() => handleJoin(selectedEvent.id)}
+                joinedAt={selectedEnrollment?.joined_at}
+            />
+        )
+    }
 
     // Filter Logic - Event dates are stored as TR (UTC+3), parse with +03:00 to avoid 3h shift
     const upcomingEventsList = publicEvents.filter(e => {
@@ -190,34 +213,6 @@ export default function UserDashboard() {
         if (e.display_until && now > parseEventDate(e.display_until)) return false
         return true
     })
-
-    if (targetEventId) {
-        const selectedEvent = publicEvents.find(e => e.id === targetEventId)
-        const enrollment = myEnrollments.find(e => e.event_id === targetEventId)
-
-        if (selectedEvent) {
-            return (
-                <TournamentDetails
-                    event={selectedEvent}
-                    userPoints={enrollment?.score || 0}
-                    userRank={enrollment?.rank || 0}
-                    isJoined={!!enrollment}
-                    onBack={() => {
-                        setSearchParams(prev => {
-                            const newParams = new URLSearchParams(prev)
-                            newParams.delete('eventId')
-                            return newParams
-                        })
-                    }}
-                    username={username || ''}
-                    onJoin={() => handleJoin(selectedEvent.id)}
-                    joinedAt={enrollment?.joined_at}
-                />
-            )
-        }
-    }
-
-
 
     // Helper to calculate total prize
     const calculateTotalPrize = (rules: any) => {

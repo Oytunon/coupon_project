@@ -10,7 +10,7 @@ interface ClientLayoutProps {
 
 export function ClientLayout({ children, username, activeCategory, onCategoryChange }: ClientLayoutProps) {
     return (
-        <div className="min-h-screen bg-background text-foreground pb-20 selection:bg-primary/30 font-sans">
+        <div className="min-h-screen bg-background text-foreground pb-28 md:pb-32 selection:bg-primary/30 font-sans">
 
 
             <ClientHeader username={username} activeCategory={activeCategory} onCategoryChange={onCategoryChange} />

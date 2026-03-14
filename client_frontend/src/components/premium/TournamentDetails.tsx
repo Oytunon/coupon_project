@@ -77,7 +77,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
     const endDate = parseEventDate(event.end_date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     const joinDateDisplay = isJoined && joinedAt ? new Date(joinedAt.endsWith('Z') ? joinedAt : joinedAt + 'Z').toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-';
     const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number }>({ days: 0, hours: 0, minutes: 0 })
-    const [activeTab, setActiveTab] = useState<'info' | 'leaderboard' | 'coupons' | 'rewards' | 'rules'>('info')
+    const [activeTab, setActiveTab] = useState<'info' | 'leaderboard' | 'coupons' | 'rewards'>('info')
 
     // Leaderboard State
     const [leaderboard, setLeaderboard] = useState<any[]>([])
@@ -432,17 +432,10 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                         <Gift className="w-4 h-4 md:w-[18px] md:h-[18px]" />
                         <span className="text-[10px] sm:text-xs md:text-sm whitespace-nowrap">ÖDÜLLER</span>
                     </button>
-                    <button
-                        onClick={() => setActiveTab('rules')}
-                        className={`flex-1 min-w-[60px] flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 md:px-6 py-2 md:py-3 rounded-xl font-bold transition-all ${activeTab === 'rules' ? 'bg-[#D9B648] text-black shadow-lg' : 'bg-transparent text-gray-400 hover:text-gray-200'}`}
-                    >
-                        <ScrollText className="w-4 h-4 md:w-[18px] md:h-[18px]" />
-                        <span className="text-[10px] sm:text-xs md:text-sm whitespace-nowrap">KURALLAR</span>
-                    </button>
                 </div>
 
                 {/* Content Area */}
-                <div className="px-4 pb-8">
+                <div className="px-4 pb-28 md:pb-32">
                     {/* INFO TAB */}
                     {activeTab === 'info' && (
                         <div className="space-y-3 md:space-y-4 animate-in fade-in slide-in-from-bottom-2">
@@ -458,31 +451,51 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                         <span>{endDate}</span>
                                     </p>
                                 </div>
+                                {/* Katılım Tarihi + Katılım Durumu - yan yana (mobil + masaüstü), sarı çizgi ile */}
                                 <div className="bg-black/50 border border-[#D9B648]/30 rounded-lg p-3 md:p-4">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Clock className="w-4 h-4 text-[#D9B648]" />
-                                        <span className="text-[#D9B648] text-xs md:text-sm font-semibold">Katılım Tarihi</span>
+                                    <div className="flex flex-row items-stretch gap-0 divide-x divide-[#D9B648]">
+                                        <div className="flex-1 min-w-0 pr-3 md:pr-4">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Clock className="w-4 h-4 text-[#D9B648] shrink-0" />
+                                                <span className="text-[#D9B648] text-xs md:text-sm font-semibold">Katılım Tarihi</span>
+                                            </div>
+                                            <p className="text-[#F7EBA5] text-xs md:text-base font-medium">{joinDateDisplay}</p>
+                                        </div>
+                                        <div className="flex-1 min-w-0 pl-3 md:pl-4">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <CheckCircle2 className="w-4 h-4 text-[#D9B648] shrink-0" />
+                                                <span className="text-[#D9B648] text-xs md:text-sm font-semibold">Katılım Durumu</span>
+                                            </div>
+                                            <p className="text-xs md:text-base font-bold text-[#D9B648]">{isJoined ? 'Katıldınız' : 'Katılmadınız'}</p>
+                                        </div>
                                     </div>
-                                    <p className="text-[#F7EBA5] text-sm md:text-base font-medium">{joinDateDisplay}</p>
                                 </div>
+                                {/* Geçerli Bahis Miktarları + Yatırım şartı - yan yana, sarı çizgi ile */}
                                 <div className="bg-black/50 border border-[#D9B648]/30 rounded-lg p-3 md:p-4">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <CheckCircle2 className="w-4 h-4 text-[#D9B648]" />
-                                        <span className="text-[#D9B648] text-xs md:text-sm font-semibold">Katılım Durumu</span>
+                                    <div className="flex flex-row items-stretch gap-0 divide-x divide-[#D9B648]">
+                                        <div className="flex-1 min-w-0 pr-3 md:pr-4">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <TrendingUp className="w-4 h-4 text-[#D9B648] shrink-0" />
+                                                <span className="text-[#D9B648] text-xs md:text-sm font-semibold">Geçerli Bahis Miktarları</span>
+                                            </div>
+                                            <p className="text-[#F7EBA5] text-xs md:text-sm">
+                                                <span className="font-medium">Minimum:</span> <span className="font-bold text-[#D9B648]">{event.rules?.min_stake || 100} TL</span>
+                                                <span className="mx-2 text-gray-500">|</span>
+                                                <span className="font-medium">Maksimum:</span> <span className="font-bold text-[#D9B648]">∞</span>
+                                            </p>
+                                        </div>
+                                        <div className="flex-1 min-w-0 pl-3 md:pl-4">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Shield className="w-4 h-4 text-[#D9B648] shrink-0" />
+                                                <span className="text-[#D9B648] text-xs md:text-sm font-semibold">Yatırım şartı</span>
+                                            </div>
+                                            <p className="text-[#F7EBA5] text-xs md:text-base font-bold">
+                                                {event.rules?.min_deposit != null ? `${Number(event.rules.min_deposit).toLocaleString('tr-TR')} TL` : 'Yok'}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <p className="text-sm md:text-base font-bold text-[#D9B648]">{isJoined ? 'Katıldınız' : 'Katılmadınız'}</p>
                                 </div>
-                                <div className="bg-black/50 border border-[#D9B648]/30 rounded-lg p-3 md:p-4">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <TrendingUp className="w-4 h-4 text-[#D9B648]" />
-                                        <span className="text-[#D9B648] text-xs md:text-sm font-semibold">Geçerli Bahis Miktarları</span>
-                                    </div>
-                                    <p className="text-[#F7EBA5] text-xs md:text-sm">
-                                        <span className="font-medium">Minimum:</span> <span className="font-bold text-[#D9B648]">{event.rules?.min_stake || 100} TL</span>
-                                        <span className="mx-2 text-gray-500">|</span>
-                                        <span className="font-medium">Maksimum:</span> <span className="font-bold text-[#D9B648]">∞</span>
-                                    </p>
-                                </div>
+                                {/* Geçerli Bahis Türleri - ayrı kutu, sağda */}
                                 <div className="bg-black/50 border border-[#D9B648]/30 rounded-lg p-3 md:p-4">
                                     <div className="flex items-center gap-2 mb-2">
                                         <Trophy className="w-4 h-4 text-[#D9B648]" />
@@ -492,17 +505,9 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                         {(event.rules?.min_odd || 1.5).toFixed(2)}+ oranlı tekli veya kombine bahis. Kombinede her maç en az {(event.rules?.min_odd || 1.5).toFixed(2)} olmalıdır.
                                     </p>
                                 </div>
-                                <div className="bg-black/50 border border-[#D9B648]/30 rounded-lg p-3 md:p-4">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Shield className="w-4 h-4 text-[#D9B648]" />
-                                        <span className="text-[#D9B648] text-xs md:text-sm font-semibold">Yatırım şartı</span>
-                                    </div>
-                                    <p className="text-[#F7EBA5] text-sm md:text-base font-bold">
-                                        {event.rules?.min_deposit != null ? `${Number(event.rules.min_deposit).toLocaleString('tr-TR')} TL` : 'Yok'}
-                                    </p>
-                                </div>
                             </div>
 
+                            {/* Geçerli Ligler - ayrı kutu */}
                             <div className="bg-black/50 border border-[#D9B648]/30 rounded-lg p-3 md:p-4">
                                 <div className="flex items-center gap-2 mb-3">
                                     <Shield className="w-4 h-4 text-[#D9B648]" />
@@ -572,6 +577,78 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                                 )}
                                             </>
                                         )
+                                    })()}
+                                </div>
+                            </div>
+
+                            {/* Turnuva Kuralları - Bilgi kısmının en altında */}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-[#D9B648] to-[#F7EBA5] rounded-xl flex items-center justify-center shadow-lg shadow-[#D9B648]/20">
+                                        <ScrollText className="md:w-6 md:h-6 text-black" />
+                                    </div>
+                                    <h2 className="text-xl md:text-2xl font-bold">Turnuva Kuralları</h2>
+                                </div>
+                                <div className="space-y-4">
+                                    {(() => {
+                                        const iconMap: Record<string, any> = {
+                                            UserPlus, TrendingUp, Ticket, Award, FileText, AlertCircle, Info, Search, Calendar, Clock, Gift, ScrollText
+                                        };
+
+                                        const fallbackRules = [
+                                            { id: 1, title: 'Nasıl Katılırım?', icon: UserPlus, content: 'Turnuvaya katılmak için "HEMEN KATIL" butonuna tıklamanız yeterlidir. Katılım ücretsizdir ve anında başlayabilirsiniz. Turnuva süresince oynadığınız tüm kuponlar otomatik olarak puan kazandırır.' },
+                                            { id: 2, title: 'Puan Nasıl Kazanılır?', icon: TrendingUp, content: 'Puanlarınız kuponlarınızın oranına ve tutarına göre hesaplanır. Yüksek oranlı ve tutarlı kuponlar daha fazla puan kazandırır.' },
+                                            { id: 3, title: 'Kupon Kuralları', icon: Ticket, content: 'Sadece futbol ve basketbol maçları geçerlidir. Minimum oran 1.50 olmalıdır.' },
+                                            { id: 4, title: 'Ödül Dağıtımı', icon: Award, content: 'Ödüller turnuva bitiminden 48 saat sonra hesabınıza otomatik olarak yatırılır. Şartları sağlayan kullanıcılar ödül havuzundan pay alır.' },
+                                            { id: 5, title: 'Genel Şartlar', icon: FileText, content: 'Turnuvaya katılan herkes genel kuralları kabul etmiş sayılır. Hile girişimi tespit edilen kullanıcılar diskalifiye edilir.' }
+                                        ];
+
+                                        const displayRules = (event.content_rules && event.content_rules.length > 0)
+                                            ? event.content_rules.map((r: any, idx: number) => ({
+                                                id: idx + 1,
+                                                title: r.title,
+                                                content: r.content,
+                                                icon: iconMap[r.icon] || Info
+                                            }))
+                                            : fallbackRules;
+
+                                        return displayRules.map((rule: any) => (
+                                            <div key={rule.id} className={`bg-gradient-to-br from-gray-900 to-black border-2 rounded-xl overflow-hidden transition-all ${activeRule === rule.id ? 'border-[#D9B648]' : 'border-[#D9B648]/20'}`}>
+                                                <button
+                                                    onClick={() => setActiveRule(activeRule === rule.id ? null : rule.id)}
+                                                    className="w-full flex items-center justify-between p-4 md:p-5 hover:bg-black/30 transition-all text-left group"
+                                                >
+                                                    <div className="flex items-center gap-3 md:gap-4 flex-1">
+                                                        <div className="relative">
+                                                            <div className={`absolute inset-0 bg-[#D9B648] blur-lg opacity-20 ${activeRule === rule.id ? 'opacity-40' : ''}`}></div>
+                                                            <div className="relative w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-[#D9B648] to-[#F7EBA5] rounded-xl flex items-center justify-center shadow-lg">
+                                                                <rule.icon className="md:w-6 md:h-6 text-black" />
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                <span className="text-[#D9B648] font-black text-lg md:text-xl">{rule.id}.</span>
+                                                                <h3 className="font-bold text-sm md:text-base text-[#F7EBA5]">{rule.title}</h3>
+                                                            </div>
+                                                            {activeRule !== rule.id && (
+                                                                <p className="text-gray-500 text-xs md:text-sm line-clamp-1">Detayları görüntülemek için tıklayın</p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <ChevronDown className={`md:w-6 md:h-6 text-[#D9B648] transition-transform flex-shrink-0 ml-2 ${activeRule === rule.id ? 'rotate-180' : ''}`} />
+                                                </button>
+
+                                                {activeRule === rule.id && (
+                                                    <div className="px-4 md:px-5 pb-4 md:pb-5 animate-in slide-in-from-top-2">
+                                                        <div className="bg-black/50 rounded-lg p-4 md:p-5 border-l-4 border-[#D9B648] max-h-[50vh] overflow-y-auto pr-2">
+                                                            <div className="text-gray-300 text-xs md:text-sm whitespace-pre-line leading-7">
+                                                                {rule.content}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ));
                                     })()}
                                 </div>
                             </div>
@@ -683,10 +760,10 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                                     </div>
                                                 </div>
 
-                                                {/* Ranks 4-10 List */}
+                                                {/* Ranks 4-100 List */}
                                                 {leaderboard.length > 3 && (
                                                     <div className="bg-black rounded-xl border border-[#D9B648]/30 overflow-hidden mb-8">
-                                                        {leaderboard.slice(3, 10).map((user, idx) => {
+                                                        {leaderboard.slice(3, 100).map((user, idx) => {
                                                             const rank = idx + 4;
                                                             const initial = user.username ? user.username.substring(0, 2).toUpperCase() : "??";
                                                             // Using the generic brown/bronze rank color for 4+ as requested or similar to previous
@@ -1088,83 +1165,6 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                         </div>
                     )}
 
-                    {/* RULES TAB */}
-                    {activeTab === 'rules' && (
-                        <div className="animate-in fade-in slide-in-from-bottom-2 space-y-4">
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-[#D9B648] to-[#F7EBA5] rounded-xl flex items-center justify-center shadow-lg shadow-[#D9B648]/20">
-                                    <ScrollText className="md:w-6 md:h-6 text-black" />
-                                </div>
-                                <div>
-                                    <h2 className="text-xl md:text-2xl font-bold">Turnuva Kuralları</h2>
-                                    <p className="text-gray-400 text-xs md:text-sm"></p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                {(() => {
-                                    const iconMap: Record<string, any> = {
-                                        UserPlus, TrendingUp, Ticket, Award, FileText, AlertCircle, Info, Search, Calendar, Clock, Gift, ScrollText
-                                    };
-
-                                    const fallbackRules = [
-                                        { id: 1, title: 'Nasıl Katılırım?', icon: UserPlus, content: 'Turnuvaya katılmak için "HEMEN KATIL" butonuna tıklamanız yeterlidir. Katılım ücretsizdir ve anında başlayabilirsiniz. Turnuva süresince oynadığınız tüm kuponlar otomatik olarak puan kazandırır.' },
-                                        { id: 2, title: 'Puan Nasıl Kazanılır?', icon: TrendingUp, content: 'Puanlarınız kuponlarınızın oranına ve tutarına göre hesaplanır. Yüksek oranlı ve tutarlı kuponlar daha fazla puan kazandırır.' },
-                                        { id: 3, title: 'Kupon Kuralları', icon: Ticket, content: 'Sadece futbol ve basketbol maçları geçerlidir. Minimum oran 1.50 olmalıdır.' },
-                                        { id: 4, title: 'Ödül Dağıtımı', icon: Award, content: 'Ödüller turnuva bitiminden 48 saat sonra hesabınıza otomatik olarak yatırılır. Şartları sağlayan kullanıcılar ödül havuzundan pay alır.' },
-                                        { id: 5, title: 'Genel Şartlar', icon: FileText, content: 'Turnuvaya katılan herkes genel kuralları kabul etmiş sayılır. Hile girişimi tespit edilen kullanıcılar diskalifiye edilir.' }
-                                    ];
-
-                                    const displayRules = (event.content_rules && event.content_rules.length > 0)
-                                        ? event.content_rules.map((r: any, idx: number) => ({
-                                            id: idx + 1,
-                                            title: r.title,
-                                            content: r.content,
-                                            icon: iconMap[r.icon] || Info
-                                        }))
-                                        : fallbackRules;
-
-                                    return displayRules.map((rule: any) => (
-                                        <div key={rule.id} className={`bg-gradient-to-br from-gray-900 to-black border-2 rounded-xl overflow-hidden transition-all ${activeRule === rule.id ? 'border-[#D9B648]' : 'border-[#D9B648]/20'}`}>
-                                            <button
-                                                onClick={() => setActiveRule(activeRule === rule.id ? null : rule.id)}
-                                                className="w-full flex items-center justify-between p-4 md:p-5 hover:bg-black/30 transition-all text-left group"
-                                            >
-                                                <div className="flex items-center gap-3 md:gap-4 flex-1">
-                                                    <div className="relative">
-                                                        <div className={`absolute inset-0 bg-[#D9B648] blur-lg opacity-20 ${activeRule === rule.id ? 'opacity-40' : ''}`}></div>
-                                                        <div className="relative w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-[#D9B648] to-[#F7EBA5] rounded-xl flex items-center justify-center shadow-lg">
-                                                            <rule.icon className="md:w-6 md:h-6 text-black" />
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <span className="text-[#D9B648] font-black text-lg md:text-xl">{rule.id}.</span>
-                                                            <h3 className="font-bold text-sm md:text-base text-[#F7EBA5]">{rule.title}</h3>
-                                                        </div>
-                                                        {activeRule !== rule.id && (
-                                                            <p className="text-gray-500 text-xs md:text-sm line-clamp-1">Detayları görüntülemek için tıklayın</p>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <ChevronDown className={`md:w-6 md:h-6 text-[#D9B648] transition-transform flex-shrink-0 ml-2 ${activeRule === rule.id ? 'rotate-180' : ''}`} />
-                                            </button>
-
-                                            {activeRule === rule.id && (
-                                                <div className="px-4 md:px-5 pb-4 md:pb-5 animate-in slide-in-from-top-2">
-                                                    <div className="bg-black/50 rounded-lg p-4 md:p-5 border-l-4 border-[#D9B648] max-h-[50vh] overflow-y-auto pr-2">
-                                                        <div className="text-gray-300 text-xs md:text-sm whitespace-pre-line leading-7">
-                                                            {rule.content}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ));
-                                })()}
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>
