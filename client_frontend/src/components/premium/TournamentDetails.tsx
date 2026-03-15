@@ -796,7 +796,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
 
                                     {/* Fixed User Rank Footer */}
                                     {isJoined && (
-                                        <div className="mt-6 bg-black rounded-xl border-2 border-[#D9B648] overflow-hidden sticky bottom-0 z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.8)]">
+                                        <div className="mt-6 mb-20 md:mb-0 bg-black rounded-xl border-2 border-[#D9B648] overflow-hidden sticky bottom-[72px] md:bottom-0 z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.8)]">
                                             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 md:px-6 py-4 md:py-5">
                                                 <div className="flex items-center gap-3 md:gap-4">
                                                     <div className="w-10 h-10 md:w-12 md:h-12 bg-black border-2 border-[#D9B648] rounded-full flex items-center justify-center text-[#D9B648] font-bold text-sm md:text-base shadow-[0_0_10px_rgba(255,184,0,0.3)]">
