@@ -466,20 +466,20 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                                 <CheckCircle2 className="w-4 h-4 text-[#D9B648] shrink-0" />
                                                 <span className="text-[#D9B648] text-xs md:text-sm font-semibold">Katılım Durumu</span>
                                             </div>
-                                            <p className="text-xs md:text-base font-bold text-[#D9B648]">{isJoined ? 'Katıldınız' : 'Katılmadınız'}</p>
+                                            <p className="text-xs md:text-base font-bold text-[#F7EBA5]">{isJoined ? 'Katıldınız' : 'Katılmadınız'}</p>
                                         </div>
                                     </div>
                                 </div>
-                                {/* Geçerli Bahis Miktarları + Yatırım şartı - yan yana, sarı çizgi ile */}
+                                {/* Geçerli Bahisler + Yatırım şartı - yan yana, sarı çizgi ile */}
                                 <div className="bg-black/50 border border-[#D9B648]/30 rounded-lg p-3 md:p-4">
                                     <div className="flex flex-row items-stretch gap-0 divide-x divide-[#D9B648]">
                                         <div className="flex-1 min-w-0 pr-3 md:pr-4">
                                             <div className="flex items-center gap-2 mb-2">
                                                 <TrendingUp className="w-4 h-4 text-[#D9B648] shrink-0" />
-                                                <span className="text-[#D9B648] text-xs md:text-sm font-semibold">Geçerli Bahis Miktarları</span>
+                                                <span className="text-[#D9B648] text-xs md:text-sm font-semibold">Geçerli Bahisler</span>
                                             </div>
                                             <p className="text-[#F7EBA5] text-xs md:text-sm">
-                                                <span className="font-medium">Minimum:</span> <span className="font-bold text-[#D9B648]">{event.rules?.min_stake || 100} TL</span>
+                                                <span className="font-medium">Minimum:</span> <span className="font-bold text-[#D9B648] whitespace-nowrap">{event.rules?.min_stake || 100} TL</span>
                                                 <span className="mx-2 text-gray-500">|</span>
                                                 <span className="font-medium">Maksimum:</span> <span className="font-bold text-[#D9B648]">∞</span>
                                             </p>
