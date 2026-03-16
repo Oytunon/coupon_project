@@ -311,10 +311,8 @@ async def process_coupons(
         if job_id:
             poller_task = asyncio.create_task(_cancellation_poller(job_id, cancel_event))
 
-        # Kaybeden çarpanı 0 olan tüm eventlerde sadece Won (4) çek - Lost isteği gereksiz
-        # ANCAK tarih override (backfill) varsa event_lost_coupons için Lost da lazım → her zaman Won+Lost çek
-        all_loss_zero = all(float(getattr(e, 'loss_point_multiplier', 0)) == 0 for e in active_events)
-        state_filter = None if (start_date_override and end_date_override) else (4 if all_loss_zero else None)  # Backfill: Won+Lost
+        # event_lost_coupons istatistikleri için her zaman Won+Lost çek (loss_point_multiplier=0 olsa bile)
+        state_filter = None  # Won+Lost
         import time
         t_start = time.perf_counter()
         # Tarih override veya scan_hours>24: MaxRows=500 + 4sn sayfa arası
@@ -441,11 +439,7 @@ async def process_coupons(
                     eligible_for_events.append(target_event)
                 if not eligible_for_events:
                     continue
-                if mapped_state == "lost":
-                    all_zero = all(float(getattr(ev, 'loss_point_multiplier', 0)) == 0 for ev in eligible_for_events)
-                    # Backfill: event_lost_coupons için Lost'u atlama (istatistik için gerekli)
-                    if all_zero and not (start_date_override and end_date_override):
-                        continue
+                # Lost: event_lost_coupons istatistikleri için her zaman eligible_bets'e ekle (loss_point_multiplier=0 olsa bile)
                 if sel_count == 1:
                     price = float(bet_history.get("Price", 0) or 0)
                     all_excluded_by_odds = True
