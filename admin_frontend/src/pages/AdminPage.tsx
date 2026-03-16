@@ -1681,7 +1681,7 @@ export default function AdminPage() {
                                                         <div className="flex justify-between items-center">
                                                             <div>
                                                                 <div className="font-medium">Toplam Kupon Sayısı</div>
-                                                                <div className="text-xs text-muted-foreground mt-0.5">Kazanan ve kaybeden kuponların toplam sayısı</div>
+                                                                <div className="text-xs text-muted-foreground mt-0.5">Kazanan, kaybeden ve sıralamaya girmeyen kuponların toplam sayısı</div>
                                                             </div>
                                                             <span className="font-bold text-lg">{statisticsData.toplam?.total_coupons ?? 0}</span>
                                                         </div>
@@ -1690,7 +1690,7 @@ export default function AdminPage() {
                                                         <div className="flex justify-between items-center">
                                                             <div>
                                                                 <div className="font-medium">Toplam Bahis Tutarı</div>
-                                                                <div className="text-xs text-muted-foreground mt-0.5">Kazanan ve kaybeden kuponlara ait toplam bahis tutarı</div>
+                                                                <div className="text-xs text-muted-foreground mt-0.5">Kazanan, kaybeden ve sıralamaya girmeyen kuponların toplam bahis tutarı</div>
                                                             </div>
                                                             <span className="font-bold text-lg">₺{(statisticsData.toplam?.total_stake ?? 0).toLocaleString("tr-TR")}</span>
                                                         </div>

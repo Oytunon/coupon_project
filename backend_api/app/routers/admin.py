@@ -348,7 +348,7 @@ async def get_event_statistics_api(event_id: int, db: Session = Depends(get_db))
     # CouponEventResult üzerinden event-kupon eşleşmesi (multi-event desteği)
     cer_subq = db.query(CouponEventResult.coupon_id).filter(CouponEventResult.event_id == event_id)
 
-    # TOPLAM (Kazanan + Kaybeden kuponlar)
+    # TOPLAM (Kazanan + Kaybeden + Sıralamaya girmeyen kuponlar)
     won_lost_subq = db.query(Coupon.id).filter(
         Coupon.id.in_(cer_subq),
         or_(
@@ -356,8 +356,8 @@ async def get_event_statistics_api(event_id: int, db: Session = Depends(get_db))
             or_(Coupon.state == "lost", Coupon.state == "Lost")
         )
     )
-    total_coupons = db.query(func.count(Coupon.id)).filter(Coupon.id.in_(won_lost_subq)).scalar() or 0
-    total_stake = db.query(func.coalesce(func.sum(Coupon.stake), 0.0)).filter(Coupon.id.in_(won_lost_subq)).scalar() or 0.0
+    total_coupons_from_cer = db.query(func.count(Coupon.id)).filter(Coupon.id.in_(won_lost_subq)).scalar() or 0
+    total_stake_from_cer = db.query(func.coalesce(func.sum(Coupon.stake), 0.0)).filter(Coupon.id.in_(won_lost_subq)).scalar() or 0.0
 
     # KAZANAN (Won)
     won_coupons = db.query(func.count(Coupon.id)).filter(
@@ -422,6 +422,9 @@ async def get_event_statistics_api(event_id: int, db: Session = Depends(get_db))
     lost_stake_total = lost_stake + excluded_stake
     # Katılımcıların Toplam Yatırım = eligible + sıralamaya girmeyen
     total_investment_with_excluded = total_investment + excluded_stake
+    # Toplam Kupon = Coupon/CER'daki + event_excluded_from_ranking
+    total_coupons = total_coupons_from_cer + excluded_count
+    total_stake = total_stake_from_cer + excluded_stake
 
     return {
         "event_id": event_id,
