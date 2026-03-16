@@ -18,6 +18,9 @@ COPY shared /app/shared
 # Copy worker package
 COPY worker /app/worker
 
+# Copy scripts (backfill vb.)
+COPY scripts /app/scripts
+
 # Set Python path to include current directory
 ENV PYTHONPATH=/app
 
