@@ -164,34 +164,26 @@ async def get_my_enrollments(
         event = db.query(Event).get(eid)
         if not event: continue
         
-        # Cache yerine canlı hesaplama yap (Leaderboard ile tutarlı olması için)
+        # Cache yerine canlı hesaplama - Leaderboard ile AYNI sıralama kullan (tutarlılık)
         from shared.models.coupon import Coupon
         from shared.models.coupon_event_result import CouponEventResult
-        
-        # FIX: Query CouponEventResult instead of Coupon directly. 
-        # A coupon might belong to multiple events or have a different primary event_id.
+        from shared.domain.leaderboard import get_event_leaderboard
+
         live_score = db.query(func.coalesce(func.sum(CouponEventResult.points_earned), 0.0)).join(
             Coupon, Coupon.id == CouponEventResult.coupon_id
         ).filter(
-            Coupon.client_id == participant.client_id, 
+            Coupon.client_id == participant.client_id,
             CouponEventResult.event_id == eid,
             CouponEventResult.is_eligible == True
         ).scalar()
-        
-        # Rank Calculation (Live Consistency Fix)
-        # We must count how many people have a higher score than me based on ACTUAL Coupon data
-        
-        # Subquery: Calculate total score for each participant in this event using CouponEventResult
-        higher_rank_count = db.query(func.count()).select_from(
-            db.query(Coupon.client_id, func.sum(CouponEventResult.points_earned).label('total_score'))
-            .join(CouponEventResult, Coupon.id == CouponEventResult.coupon_id)
-            .filter(CouponEventResult.event_id == eid, CouponEventResult.is_eligible == True)
-            .group_by(Coupon.client_id)
-            .having(func.sum(CouponEventResult.points_earned) > (live_score or 0))
-            .subquery()
-        ).scalar()
 
-        rank = (higher_rank_count or 0) + 1
+        # Rank: Leaderboard'dan türet (aynı sıralama mantığı - 1:1 tutarlılık)
+        lb = get_event_leaderboard(db, eid)
+        rank = 1
+        for i, r in enumerate(lb):
+            if r.get("client_id") == participant.client_id:
+                rank = i + 1
+                break
         
         # Get joined_at from EventParticipant
         enrollment = db.query(EventParticipant).filter(
