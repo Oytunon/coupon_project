@@ -56,3 +56,4 @@ test_*.py
 test_kupon.json
 *.txt
 scripts/
+!scripts/backfill_historical_coupons.py

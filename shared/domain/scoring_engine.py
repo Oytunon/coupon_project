@@ -153,10 +153,18 @@ async def _cancellation_poller(job_id: int, cancel_event: asyncio.Event):
         
         await asyncio.sleep(1.0) # Saniyede bir kontrol et
 
-async def process_coupons(target_event_id: Optional[int] = None, job_id: Optional[int] = None, scan_hours: int = 24):
+async def process_coupons(
+    target_event_id: Optional[int] = None,
+    job_id: Optional[int] = None,
+    scan_hours: int = 24,
+    start_date_override: Optional[str] = None,
+    end_date_override: Optional[str] = None,
+):
     """
     Kuponları işleyen ana fonksiyon.
     scan_hours: Geriye dönük kaç saatlik periyodu tarayacağını belirler (varsayılan: 24).
+    start_date_override, end_date_override: Belirli tarih aralığı (YYYY-MM-DDTHH:MM:SS veya DD-MM-YY HH:MM).
+    Override verildiğinde MaxRows=500 ve sayfa gecikmesi kullanılır.
     """
     db = SessionLocal()
     def update_job_status(status: str, processed=0, saved=0, error=None, total=0):
@@ -288,8 +296,12 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
         earliest_event_utc = min(event_starts_utc) if event_starts_utc else now_utc
         scan_start_utc = max(earliest_event_utc - timedelta(hours=1), scan_limit_ago_utc)
         bc_offset = timedelta(hours=3)  # Betconstruct Local = Turkey UTC+3
-        start_str = (scan_start_utc + bc_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
-        end_str = (now_utc + bc_offset + timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        if start_date_override and end_date_override:
+            start_str = start_date_override
+            end_str = end_date_override
+        else:
+            start_str = (scan_start_utc + bc_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
+            end_str = (now_utc + bc_offset + timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         if job_id:
             update_job_status("running", total=len(participants))
@@ -304,8 +316,8 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
         state_filter = 4 if all_loss_zero else None  # 4=Won, None=Won+Lost
         import time
         t_start = time.perf_counter()
-        # Manuel worker (scan_hours > 24): 72 saat tarama 504 riski → MaxRows=500 + 4sn sayfa arası
-        use_pagination = scan_hours > 24
+        # Tarih override veya scan_hours>24: MaxRows=500 + 4sn sayfa arası
+        use_pagination = (start_date_override and end_date_override) or scan_hours > 24
         max_rows = 500 if use_pagination else 0
         page_delay = 4.0 if use_pagination else 0
         logger.info(f"[Worker] GetBetReport başlatılıyor | Tarih: {start_str} - {end_str} | State: {'Won only' if all_loss_zero else 'Won+Lost'} | Katılımcı: {len(participants)} | Pagination: {max_rows or 'off'}")
