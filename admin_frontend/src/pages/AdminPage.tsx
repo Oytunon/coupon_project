@@ -1682,8 +1682,7 @@ export default function AdminPage() {
                                                     <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                                                         <div className="flex justify-between items-center">
                                                             <div>
-                                                                <div className="font-medium">Toplam Katılımcı Sayısı</div>
-                                                                <div className="text-xs text-muted-foreground mt-0.5">O evente katılan katılımcı sayısı</div>
+                                                                <div className="text-xs text-muted-foreground">Turnuvaya katılan toplam katılımcı sayısı</div>
                                                             </div>
                                                             <span className="font-bold text-lg">{statisticsData.katilim?.total_participants ?? 0}</span>
                                                         </div>
