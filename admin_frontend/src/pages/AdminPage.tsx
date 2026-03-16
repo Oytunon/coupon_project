@@ -143,11 +143,6 @@ const getEventStatistics = async (eventId: number) => {
     return res.data
 }
 
-const fetchEventLostCoupons = async (eventId: number, skip = 0, limit = 50) => {
-    const res = await apiClient.get(`/admin/events/${eventId}/lost-coupons`, { params: { skip, limit } })
-    return res.data
-}
-
 const deleteEvent = async (eventId: number) => {
     const res = await apiClient.delete(`/admin/events/${eventId}`)
     return res.data
@@ -468,7 +463,6 @@ export default function AdminPage() {
     const [statisticsEventId, setStatisticsEventId] = useState<number | null>(null)
     const [statisticsData, setStatisticsData] = useState<any>(null)
     const [loadingStatistics, setLoadingStatistics] = useState(false)
-    const [lostCoupons, setLostCoupons] = useState<{ total: number; items: any[] }>({ total: 0, items: [] })
 
     const [imageUploadLoading, setImageUploadLoading] = useState(false)
     const [tempImageFile, setTempImageFile] = useState<File | null>(null)
@@ -1093,15 +1087,10 @@ export default function AdminPage() {
     const handleOpenStatistics = async (event: any) => {
         setStatisticsEventId(event.id)
         setStatisticsData(null)
-        setLostCoupons({ total: 0, items: [] })
         setLoadingStatistics(true)
         try {
-            const [stats, lost] = await Promise.all([
-                getEventStatistics(event.id),
-                fetchEventLostCoupons(event.id)
-            ])
+            const stats = await getEventStatistics(event.id)
             setStatisticsData(stats)
-            setLostCoupons(lost || { total: 0, items: [] })
         } catch (e) {
             console.error(e)
             setStatisticsEventId(null)
@@ -1682,7 +1671,8 @@ export default function AdminPage() {
                                                     <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                                                         <div className="flex justify-between items-center">
                                                             <div>
-                                                                <div className="text-xs text-muted-foreground">Turnuvaya katılan toplam katılımcı sayısı</div>
+                                                                <div className="font-medium">Toplam Katılımcı Sayısı</div>
+                                                                <div className="text-xs text-muted-foreground mt-0.5">Turnuvaya katılan toplam katılımcı sayısı</div>
                                                             </div>
                                                             <span className="font-bold text-lg">{statisticsData.katilim?.total_participants ?? 0}</span>
                                                         </div>
@@ -1760,38 +1750,6 @@ export default function AdminPage() {
                                                         </div>
                                                     </div>
                                                 </div>
-                                                {lostCoupons.items.length > 0 && (
-                                                    <div>
-                                                        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Kaybeden Kuponlar ({lostCoupons.total})</h3>
-                                                        <div className="rounded-lg border border-white/10 overflow-hidden">
-                                                            <table className="w-full text-sm">
-                                                                <thead className="bg-white/5">
-                                                                    <tr>
-                                                                        <th className="text-left p-2 font-bold">#</th>
-                                                                        <th className="text-left p-2 font-bold">Kullanıcı</th>
-                                                                        <th className="text-right p-2 font-bold">Bahis Tutarı</th>
-                                                                        <th className="text-left p-2 font-bold">Tarih</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    {lostCoupons.items.map((item: any, idx: number) => (
-                                                                        <tr key={item.id} className="border-t border-white/5 hover:bg-white/5">
-                                                                            <td className="p-2">{idx + 1}</td>
-                                                                            <td className="p-2">{item.username}</td>
-                                                                            <td className="p-2 text-right font-medium">₺{Number(item.stake).toLocaleString("tr-TR")}</td>
-                                                                            <td className="p-2 text-muted-foreground">{item.created_at ? new Date(item.created_at).toLocaleString("tr-TR") : "—"}</td>
-                                                                        </tr>
-                                                                    ))}
-                                                                </tbody>
-                                                            </table>
-                                                            {lostCoupons.total > lostCoupons.items.length && (
-                                                                <div className="p-2 text-xs text-muted-foreground text-center border-t border-white/5">
-                                                                    İlk {lostCoupons.items.length} kayıt gösteriliyor (toplam {lostCoupons.total})
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                )}
                                             </>
                                         ) : null}
                                     </CardContent>
