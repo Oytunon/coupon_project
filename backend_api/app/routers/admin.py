@@ -408,6 +408,15 @@ async def get_event_statistics_api(event_id: int, db: Session = Depends(get_db))
         or_(Coupon.state == "won", Coupon.state == "Won", Coupon.state == "lost", Coupon.state == "Lost")
     ).scalar() or 0.0
 
+    # SIRALAMAYA GIRMEYEN (lig ok, oran fail - event_excluded_from_ranking)
+    from shared.models.event_excluded_from_ranking import EventExcludedFromRanking
+    excluded_count = db.query(func.count(EventExcludedFromRanking.id)).filter(
+        EventExcludedFromRanking.event_id == event_id
+    ).scalar() or 0
+    excluded_stake = db.query(func.coalesce(func.sum(EventExcludedFromRanking.stake), 0.0)).filter(
+        EventExcludedFromRanking.event_id == event_id
+    ).scalar() or 0.0
+
     return {
         "event_id": event_id,
         "event_name": event.name,
@@ -433,6 +442,10 @@ async def get_event_statistics_api(event_id: int, db: Session = Depends(get_db))
         "yatirim": {
             "total_investment": float(total_investment),
         },
+        "sıralamaya_girmeyen": {
+            "count": excluded_count,
+            "stake": float(excluded_stake),
+        },
     }
 
 
@@ -457,6 +470,8 @@ async def export_event_statistics(event_id: int, db: Session = Depends(get_db)):
     ws1.append(["Gecerli Kuponlarin Kazanc Tutari (TL)", _format_tr_number(stats["kazanan"]["won_payout"])])
     ws1.append(["Gecerli Olmayan Kupon Sayisi", _format_tr_number(stats["kaybeden"]["lost_coupons"], 0)])
     ws1.append(["Gecerli Olmayan Kuponlarin Bahis Tutari (TL)", _format_tr_number(stats["kaybeden"]["lost_stake"])])
+    ws1.append(["Siralamaya Girmeyen Kupon Sayisi", _format_tr_number(stats.get("sıralamaya_girmeyen", {}).get("count", 0), 0)])
+    ws1.append(["Siralamaya Girmeyen Toplam Mebla (TL)", _format_tr_number(stats.get("sıralamaya_girmeyen", {}).get("stake", 0))])
     ws1.append(["Katilimcilarin Toplam Yatirim Tutari (TL)", _format_tr_number(stats["yatirim"]["total_investment"])])
 
     output = BytesIO()

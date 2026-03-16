@@ -16,6 +16,7 @@ from shared.models.event import Event
 from shared.models.coupon_event_result import CouponEventResult
 from shared.models.excluded_bet_cache import ExcludedBetCache
 from shared.models.event_lost_coupon import EventLostCoupon
+from shared.models.event_excluded_from_ranking import EventExcludedFromRanking
 
 logger = logging.getLogger(__name__)
 
@@ -507,12 +508,15 @@ async def process_coupons(
                 bet_history["Selections"] = selections_for_bet
             final_events = []
             skipped_events_due_to_missing_data = set()
+            excluded_by_odds_only = []  # Lig uyumlu ama oran şartından elenen - event_excluded_from_ranking'e yazılacak
             for event in eligible_for_events:
                 rules = event.rules or {}
                 allowed_leagues = list(rules.get("allowed_league_ids") or []) + list(rules.get("yan_bahis_ids") or [])
                 min_odd = float(rules.get("min_odd", 0) or 0)
                 all_valid = True
                 is_missing_selections = False
+                failed_odds = False
+                failed_league = False
                 if min_odd > 0:
                     if not selections_for_bet:
                         all_valid = False
@@ -522,20 +526,28 @@ async def process_coupons(
                             sel_price = float(sel.get("Price", 0) or sel.get("Odds", 0) or sel.get("Coefficient", 0) or 0)
                             if sel_price < min_odd:
                                 all_valid = False
+                                failed_odds = True
                                 break
-                if allowed_leagues and all_valid:
+                league_ok = True
+                if allowed_leagues:
                     if not selections_for_bet:
                         if mapped_state == "lost" and float(getattr(event, 'loss_point_multiplier', 0)) == 0:
-                            all_valid = True
+                            league_ok = True
                         else:
-                            all_valid = False
+                            league_ok = False
                             is_missing_selections = True
                     else:
-                        all_valid = all(str(s.get("CompetitionId")) in [str(lid) for lid in allowed_leagues] for s in selections_for_bet)
+                        league_ok = all(str(s.get("CompetitionId")) in [str(lid) for lid in allowed_leagues] for s in selections_for_bet)
+                    if not league_ok:
+                        failed_league = True
+                if allowed_leagues and all_valid:
+                    all_valid = league_ok
                 if all_valid:
                     final_events.append(event)
                 elif is_missing_selections:
                     skipped_events_due_to_missing_data.add(event.id)
+                elif failed_odds and not failed_league:
+                    excluded_by_odds_only.append(event)
             if not final_events and not skipped_events_due_to_missing_data:
                 try:
                     existing_coupon = db.query(Coupon).filter(Coupon.bet_id == bet_id).first()
@@ -567,6 +579,26 @@ async def process_coupons(
                 logger.warning(f"Bet {bet_id} excluded events commit failed: {e}")
                 db.rollback()
             if not final_events:
+                # Lig uyumlu ama oran şartından elenen: event_excluded_from_ranking'e yaz (Coupon/CER yok)
+                if excluded_by_odds_only:
+                    try:
+                        for ev in excluded_by_odds_only:
+                            exists = db.query(EventExcludedFromRanking).filter(
+                                EventExcludedFromRanking.event_id == ev.id,
+                                EventExcludedFromRanking.bet_id == bet_id
+                            ).first()
+                            if not exists:
+                                db.add(EventExcludedFromRanking(
+                                    event_id=ev.id,
+                                    client_id=user.client_id,
+                                    bet_id=bet_id,
+                                    stake=amount,
+                                    state=mapped_state
+                                ))
+                        db.commit()
+                    except Exception as exc_err:
+                        logger.warning(f"EventExcludedFromRanking insert failed for bet {bet_id}: {exc_err}")
+                        db.rollback()
                 continue
             try:
                 existing_coupon = db.query(Coupon).filter(Coupon.bet_id == bet_id).first()

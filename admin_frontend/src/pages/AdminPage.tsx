@@ -1740,6 +1740,24 @@ export default function AdminPage() {
                                                             <span className="font-bold text-lg">₺{(statisticsData.kaybeden?.lost_stake ?? 0).toLocaleString("tr-TR")}</span>
                                                         </div>
                                                     </div>
+                                                    <div className="bg-white/5 rounded-lg p-4 border border-amber-500/20">
+                                                        <div className="flex justify-between items-center">
+                                                            <div>
+                                                                <div className="font-medium">Sıralamaya Girmeyen Kupon Sayısı</div>
+                                                                <div className="text-xs text-muted-foreground mt-0.5">Lig uyumlu ancak oran şartından elenen kuponlar (sıralamaya dahil edilmez)</div>
+                                                            </div>
+                                                            <span className="font-bold text-lg text-amber-400">{statisticsData.sıralamaya_girmeyen?.count ?? 0}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-white/5 rounded-lg p-4 border border-amber-500/20">
+                                                        <div className="flex justify-between items-center">
+                                                            <div>
+                                                                <div className="font-medium">Sıralamaya Girmeyen Toplam Mebla</div>
+                                                                <div className="text-xs text-muted-foreground mt-0.5">Lig uyumlu ancak oran şartından elenen kuponların toplam bahis tutarı</div>
+                                                            </div>
+                                                            <span className="font-bold text-lg text-amber-400">₺{(statisticsData.sıralamaya_girmeyen?.stake ?? 0).toLocaleString("tr-TR")}</span>
+                                                        </div>
+                                                    </div>
                                                     <div className="bg-white/5 rounded-lg p-4 border border-blue-500/30">
                                                         <div className="flex justify-between items-center">
                                                             <div>

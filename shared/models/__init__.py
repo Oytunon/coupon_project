@@ -10,4 +10,5 @@ from shared.models.worker_log import WorkerLog
 from shared.models.reward_job import RewardJob
 from shared.models.excluded_bet_cache import ExcludedBetCache
 from shared.models.event_lost_coupon import EventLostCoupon
+from shared.models.event_excluded_from_ranking import EventExcludedFromRanking
 from .league import League
