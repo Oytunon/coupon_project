@@ -914,14 +914,16 @@ export default function UserDashboard() {
                                         <div className="text-center p-12 text-neutral-500 italic bg-white/5 rounded-xl border border-dashed border-white/10">Kuponlarınızı görmek için giriş yapmalısınız.</div>
                                     ) : loadingCoupons ? (
                                         <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber-500" /></div>
-                                    ) : myCoupons.length === 0 ? (
+                                    ) : (() => {
+                                        const wonCoupons = myCoupons.filter((c: any) => c.state?.toLowerCase() === 'won')
+                                        return wonCoupons.length === 0 ? (
                                         <div className="text-center p-12 flex flex-col items-center gap-4 bg-white/5 rounded-xl border border-dashed border-white/10">
                                             <Ticket className="h-12 w-12 text-neutral-700" />
-                                            <p className="text-neutral-500 italic">Bu turnuvada henüz puanlanan kuponunuz bulunmuyor.</p>
+                                            <p className="text-neutral-500 italic">Bu turnuvada henüz kazanan kuponunuz bulunmuyor.</p>
                                         </div>
                                     ) : (
                                         <div className="space-y-4">
-                                            {myCoupons.map((coupon: any) => (
+                                            {wonCoupons.map((coupon: any) => (
                                                 <div key={coupon.id} className="p-4 bg-black/40 rounded-xl border border-white/5 hover:border-amber-500/20 transition-all group shadow-lg">
                                                     <div className="grid grid-cols-12 items-center gap-4">
                                                         <div className="col-span-12 sm:col-span-3 space-y-1">
@@ -984,7 +986,8 @@ export default function UserDashboard() {
                                                 </div>
                                             ))}
                                         </div>
-                                    )}
+                                    )
+                                    })()}
                                 </CardContent>
                             </Card>
                         </TabsContent>

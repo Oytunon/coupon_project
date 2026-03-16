@@ -219,8 +219,9 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
         return u.substring(0, 2).toUpperCase()
     }
 
-    // Filtered coupons
-    const filteredCoupons = coupons.filter(c => {
+    // Sadece kazanan kuponlar; arama filtresi
+    const wonCoupons = coupons.filter(c => c.state?.toLowerCase() === 'won')
+    const filteredCoupons = wonCoupons.filter(c => {
         if (!searchQuery) return true
         const q = searchQuery.toLowerCase().trim()
         const ids = q.split(',').map(s => s.trim()).filter(s => s)
@@ -904,7 +905,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                 </div>
                             </div>
                             <div className="mb-6 text-center">
-                                <p className="text-gray-400 text-sm">Bu sayfada yalnızca turnuva puanlamasına dahil edilen kuponlar görüntülenmektedir.</p>
+                                <p className="text-gray-400 text-sm">Bu sayfada yalnızca kazanan kuponlar görüntülenmektedir.</p>
                             </div>
                             <div className="mb-6 bg-gradient-to-br from-[#D9B648]/20 via-[#D9B648]/10 to-black border-2 border-[#D9B648] rounded-xl p-6 text-center">
                                 <div className="text-gray-400 text-sm mb-2">Toplam Puan:</div>
