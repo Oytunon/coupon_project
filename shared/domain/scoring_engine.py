@@ -15,6 +15,7 @@ from shared.models.worker_log import WorkerLog
 from shared.models.event import Event
 from shared.models.coupon_event_result import CouponEventResult
 from shared.models.excluded_bet_cache import ExcludedBetCache
+from shared.models.event_lost_coupon import EventLostCoupon
 
 logger = logging.getLogger(__name__)
 
@@ -596,6 +597,19 @@ async def process_coupons(target_event_id: Optional[int] = None, job_id: Optiona
                         cer.points_earned = calc_points
                         cer.points_calculation = calc_details
                         cer.last_checked_at = datetime.utcnow()
+                    if mapped_state == "lost":
+                        try:
+                            exists = db.query(EventLostCoupon).filter(
+                                EventLostCoupon.event_id == event.id,
+                                EventLostCoupon.coupon_id == existing_coupon.id
+                            ).first()
+                            if not exists:
+                                db.add(EventLostCoupon(
+                                    event_id=event.id, coupon_id=existing_coupon.id,
+                                    client_id=user.client_id, stake=existing_coupon.stake
+                                ))
+                        except Exception as elc_err:
+                            logger.warning(f"EventLostCoupon insert failed for bet {bet_id}: {elc_err}")
             except Exception as bet_err:
                 logger.error(f"Bet {bet_id} save failed: {bet_err}")
                 db.rollback()

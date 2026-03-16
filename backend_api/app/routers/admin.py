@@ -299,6 +299,159 @@ async def get_event_stats_api(event_id: int, db: Session = Depends(get_db)):
     }
 
 
+@router.get("/events/{event_id}/statistics")
+async def get_event_statistics_api(event_id: int, db: Session = Depends(get_db)):
+    """
+    Turnuva istatistikleri: KATILIM, TOPLAM, KAZANAN, KAYBEDEN, YATIRIM metrikleri.
+    """
+    from shared.models.coupon_event_result import CouponEventResult
+    from sqlalchemy import func
+    from sqlalchemy import or_
+
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(404, "Event bulunamadı")
+
+    # KATILIM
+    total_participants = db.query(EventParticipant).filter(EventParticipant.event_id == event_id).count()
+    participants_with_points = db.query(EventParticipant).filter(
+        EventParticipant.event_id == event_id, EventParticipant.total_points > 0
+    ).count()
+    participants_without_points = total_participants - participants_with_points
+
+    # CouponEventResult üzerinden event-kupon eşleşmesi (multi-event desteği)
+    cer_subq = db.query(CouponEventResult.coupon_id).filter(CouponEventResult.event_id == event_id)
+
+    # TOPLAM (Kazanan + Kaybeden kuponlar)
+    won_lost_subq = db.query(Coupon.id).filter(
+        Coupon.id.in_(cer_subq),
+        or_(
+            or_(Coupon.state == "won", Coupon.state == "Won"),
+            or_(Coupon.state == "lost", Coupon.state == "Lost")
+        )
+    )
+    total_coupons = db.query(func.count(Coupon.id)).filter(Coupon.id.in_(won_lost_subq)).scalar() or 0
+    total_stake = db.query(func.coalesce(func.sum(Coupon.stake), 0.0)).filter(Coupon.id.in_(won_lost_subq)).scalar() or 0.0
+
+    # KAZANAN (Won)
+    won_coupons = db.query(func.count(Coupon.id)).filter(
+        Coupon.id.in_(cer_subq),
+        or_(Coupon.state == "won", Coupon.state == "Won")
+    ).scalar() or 0
+    won_stake = db.query(func.coalesce(func.sum(Coupon.stake), 0.0)).filter(
+        Coupon.id.in_(cer_subq),
+        or_(Coupon.state == "won", Coupon.state == "Won")
+    ).scalar() or 0.0
+    won_payout = db.query(func.coalesce(func.sum(Coupon.winning), 0.0)).filter(
+        Coupon.id.in_(cer_subq),
+        or_(Coupon.state == "won", Coupon.state == "Won")
+    ).scalar() or 0.0
+
+    # KAYBEDEN / GEÇERLİ OLMAYAN (Lost veya is_eligible=False)
+    lost_or_ineligible_subq = (
+        db.query(CouponEventResult.coupon_id)
+        .join(Coupon, Coupon.id == CouponEventResult.coupon_id)
+        .filter(
+            CouponEventResult.event_id == event_id,
+            or_(
+                or_(Coupon.state == "lost", Coupon.state == "Lost"),
+                CouponEventResult.is_eligible == False
+            )
+        )
+    )
+    lost_coupons = db.query(func.count(Coupon.id)).filter(
+        Coupon.id.in_(lost_or_ineligible_subq)
+    ).scalar() or 0
+    lost_stake = db.query(func.coalesce(func.sum(Coupon.stake), 0.0)).join(
+        CouponEventResult, Coupon.id == CouponEventResult.coupon_id
+    ).filter(
+        CouponEventResult.event_id == event_id,
+        or_(
+            or_(Coupon.state == "lost", Coupon.state == "Lost"),
+            CouponEventResult.is_eligible == False
+        )
+    ).scalar() or 0.0
+
+    # YATIRIM (lig uyumlu kazanan + kaybeden kuponların stake toplamı - kupona basılan mebla)
+    eligible_cer_subq = db.query(CouponEventResult.coupon_id).filter(
+        CouponEventResult.event_id == event_id,
+        CouponEventResult.is_eligible == True
+    )
+    total_investment = db.query(func.coalesce(func.sum(Coupon.stake), 0.0)).filter(
+        Coupon.id.in_(eligible_cer_subq),
+        or_(Coupon.state == "won", Coupon.state == "Won", Coupon.state == "lost", Coupon.state == "Lost")
+    ).scalar() or 0.0
+
+    return {
+        "event_id": event_id,
+        "event_name": event.name,
+        "status": event.status or "draft",
+        "katilim": {
+            "total_participants": total_participants,
+            "participants_with_points": participants_with_points,
+            "participants_without_points": participants_without_points,
+        },
+        "toplam": {
+            "total_coupons": total_coupons,
+            "total_stake": float(total_stake),
+        },
+        "kazanan": {
+            "won_coupons": won_coupons,
+            "won_stake": float(won_stake),
+            "won_payout": float(won_payout),
+        },
+        "kaybeden": {
+            "lost_coupons": lost_coupons,
+            "lost_stake": float(lost_stake),
+        },
+        "yatirim": {
+            "total_investment": float(total_investment),
+        },
+    }
+
+
+@router.get("/events/{event_id}/lost-coupons")
+async def get_event_lost_coupons_api(
+    event_id: int,
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db)
+):
+    """
+    Lig uyumlu kaybeden kuponlar listesi (event_lost_coupons tablosundan).
+    """
+    from shared.models.event_lost_coupon import EventLostCoupon
+
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(404, "Event bulunamadı")
+
+    q = (
+        db.query(EventLostCoupon, Participant.username)
+        .outerjoin(Participant, Participant.client_id == EventLostCoupon.client_id)
+        .filter(EventLostCoupon.event_id == event_id)
+        .order_by(EventLostCoupon.created_at.desc())
+    )
+    total = db.query(EventLostCoupon).filter(EventLostCoupon.event_id == event_id).count()
+    rows = q.offset(skip).limit(limit).all()
+
+    items = []
+    for elc, username in rows:
+        items.append({
+            "id": elc.id,
+            "coupon_id": elc.coupon_id,
+            "username": username or "-",
+            "stake": float(elc.stake),
+            "created_at": elc.created_at.isoformat() if elc.created_at else None,
+        })
+
+    return {
+        "event_id": event_id,
+        "total": total,
+        "items": items,
+    }
+
+
 @router.get("/events/{event_id}/participants")
 async def get_event_participants_api(event_id: int, db: Session = Depends(get_db)):
     """

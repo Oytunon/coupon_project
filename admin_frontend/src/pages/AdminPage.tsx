@@ -36,7 +36,9 @@ import {
     ImagePlus,
     Timer,
     Info,
-    X
+    X,
+    BarChart3,
+    Loader2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -133,6 +135,16 @@ const runEventWorker = async (eventId: number) => {
 
 const getEventStats = async (eventId: number) => {
     const res = await apiClient.get(`/admin/events/${eventId}/stats`)
+    return res.data
+}
+
+const getEventStatistics = async (eventId: number) => {
+    const res = await apiClient.get(`/admin/events/${eventId}/statistics`)
+    return res.data
+}
+
+const fetchEventLostCoupons = async (eventId: number, skip = 0, limit = 50) => {
+    const res = await apiClient.get(`/admin/events/${eventId}/lost-coupons`, { params: { skip, limit } })
     return res.data
 }
 
@@ -452,6 +464,11 @@ export default function AdminPage() {
     const [manualCouponBetId, setManualCouponBetId] = useState("")
     const [manualCouponLoading, setManualCouponLoading] = useState(false)
     const [loadingEventDetail, setLoadingEventDetail] = useState(false)
+
+    const [statisticsEventId, setStatisticsEventId] = useState<number | null>(null)
+    const [statisticsData, setStatisticsData] = useState<any>(null)
+    const [loadingStatistics, setLoadingStatistics] = useState(false)
+    const [lostCoupons, setLostCoupons] = useState<{ total: number; items: any[] }>({ total: 0, items: [] })
 
     const [imageUploadLoading, setImageUploadLoading] = useState(false)
     const [tempImageFile, setTempImageFile] = useState<File | null>(null)
@@ -1055,6 +1072,31 @@ export default function AdminPage() {
         loadData()
     }
 
+    const handleOpenStatistics = async (event: any) => {
+        setStatisticsEventId(event.id)
+        setStatisticsData(null)
+        setLostCoupons({ total: 0, items: [] })
+        setLoadingStatistics(true)
+        try {
+            const [stats, lost] = await Promise.all([
+                getEventStatistics(event.id),
+                fetchEventLostCoupons(event.id)
+            ])
+            setStatisticsData(stats)
+            setLostCoupons(lost || { total: 0, items: [] })
+        } catch (e) {
+            console.error(e)
+            setStatisticsEventId(null)
+            toast({
+                title: "Hata",
+                description: "İstatistikler yüklenemedi.",
+                variant: "destructive"
+            })
+        } finally {
+            setLoadingStatistics(false)
+        }
+    }
+
     const handleDeleteUser = async (id: number) => {
         if (!confirm("Bu yöneticiyi silmek istediğinize emin misiniz?")) return
 
@@ -1528,9 +1570,12 @@ export default function AdminPage() {
                                             </div>
                                         </div>
                                     </CardContent>
-                                    <div className="px-4 pb-4 pt-0 flex justify-end gap-2">
+                                    <div className="px-4 pb-4 pt-0 flex justify-end gap-2 flex-wrap">
                                         <Button size="sm" variant="outline" onClick={() => handleViewDetails(event)} className="gap-2 border-purple-500/30 text-purple-400 hover:bg-purple-500/10">
                                             <Eye className="h-4 w-4" /> Detayları Gör
+                                        </Button>
+                                        <Button size="sm" variant="outline" onClick={() => handleOpenStatistics(event)} className="gap-2 border-blue-500/30 text-blue-400 hover:bg-blue-500/10">
+                                            <BarChart3 className="h-4 w-4" /> İstatistikler
                                         </Button>
                                         {adminRole !== 'moderator' && (
                                             <Button size="sm" variant="outline" onClick={() => { setManualCouponEventId(event.id); setShowManualCouponModal(true); setManualCouponBetId(""); }} className="gap-2 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
@@ -1592,6 +1637,149 @@ export default function AdminPage() {
                                             Ödülleri Düzenle
                                         </Button>
                                         <Button variant="ghost" size="sm" onClick={() => setRewardPoolEvent(null)}>Kapat</Button>
+                                    </div>
+                                </Card>
+                            </div>
+                        )}
+
+                        {/* İstatistikler Modal */}
+                        {statisticsEventId && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setStatisticsEventId(null)}>
+                                <Card className="bg-card border-white/5 w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+                                    <CardHeader className="border-b border-white/5">
+                                        <CardTitle className="flex items-center gap-2">
+                                            <BarChart3 className="h-5 w-5 text-blue-500" />
+                                            İstatistikler — {events.find(e => e.id === statisticsEventId)?.name || "Turnuva"}
+                                        </CardTitle>
+                                        <CardDescription>KATILIM, TOPLAM, KAZANAN, KAYBEDEN, YATIRIM metrikleri</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="overflow-y-auto p-6 space-y-6">
+                                        {loadingStatistics ? (
+                                            <div className="flex justify-center py-12">
+                                                <Loader2 className="h-10 w-10 text-blue-500 animate-spin" />
+                                            </div>
+                                        ) : statisticsData ? (
+                                            <>
+                                                <div className="space-y-4">
+                                                    <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                                                        <div className="flex justify-between items-center">
+                                                            <div>
+                                                                <div className="font-medium">Toplam Katılımcı Sayısı</div>
+                                                                <div className="text-xs text-muted-foreground mt-0.5">O evente katılan katılımcı sayısı</div>
+                                                            </div>
+                                                            <span className="font-bold text-lg">{statisticsData.katilim?.total_participants ?? 0}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                                                        <div className="flex justify-between items-center">
+                                                            <div>
+                                                                <div className="font-medium">Toplam Kupon Sayısı</div>
+                                                                <div className="text-xs text-muted-foreground mt-0.5">Kazanan ve kaybeden kuponların toplam sayısı</div>
+                                                            </div>
+                                                            <span className="font-bold text-lg">{statisticsData.toplam?.total_coupons ?? 0}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                                                        <div className="flex justify-between items-center">
+                                                            <div>
+                                                                <div className="font-medium">Toplam Bahis Tutarı</div>
+                                                                <div className="text-xs text-muted-foreground mt-0.5">Kazanan ve kaybeden kuponlara ait toplam bahis tutarı</div>
+                                                            </div>
+                                                            <span className="font-bold text-lg">₺{(statisticsData.toplam?.total_stake ?? 0).toLocaleString("tr-TR")}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                                                        <div className="flex justify-between items-center">
+                                                            <div>
+                                                                <div className="font-medium">Geçerli Kupon Sayısı</div>
+                                                                <div className="text-xs text-muted-foreground mt-0.5">Kazanan kuponların toplam sayısı</div>
+                                                            </div>
+                                                            <span className="font-bold text-lg text-emerald-400">{statisticsData.kazanan?.won_coupons ?? 0}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                                                        <div className="flex justify-between items-center">
+                                                            <div>
+                                                                <div className="font-medium">Geçerli Kuponların Bahis Tutarı</div>
+                                                                <div className="text-xs text-muted-foreground mt-0.5">Kazanan kuponların toplam bahis tutarı</div>
+                                                            </div>
+                                                            <span className="font-bold text-lg">₺{(statisticsData.kazanan?.won_stake ?? 0).toLocaleString("tr-TR")}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                                                        <div className="flex justify-between items-center">
+                                                            <div>
+                                                                <div className="font-medium">Geçerli Kuponların Kazanç Tutarı</div>
+                                                                <div className="text-xs text-muted-foreground mt-0.5">Kazanan kuponların toplam kazanç tutarı</div>
+                                                            </div>
+                                                            <span className="font-bold text-lg text-emerald-400">₺{(statisticsData.kazanan?.won_payout ?? 0).toLocaleString("tr-TR")}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                                                        <div className="flex justify-between items-center">
+                                                            <div>
+                                                                <div className="font-medium">Geçerli Olmayan Kupon Sayısı</div>
+                                                                <div className="text-xs text-muted-foreground mt-0.5">Kaybeden veya şartları sağlamayan kuponların toplam sayısı</div>
+                                                            </div>
+                                                            <span className="font-bold text-lg text-red-400">{statisticsData.kaybeden?.lost_coupons ?? 0}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                                                        <div className="flex justify-between items-center">
+                                                            <div>
+                                                                <div className="font-medium">Geçerli Olmayan Kuponların Bahis Tutarı</div>
+                                                                <div className="text-xs text-muted-foreground mt-0.5">Kaybeden veya şartları sağlamayan kuponların toplam bahis tutarı</div>
+                                                            </div>
+                                                            <span className="font-bold text-lg">₺{(statisticsData.kaybeden?.lost_stake ?? 0).toLocaleString("tr-TR")}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-white/5 rounded-lg p-4 border border-blue-500/30">
+                                                        <div className="flex justify-between items-center">
+                                                            <div>
+                                                                <div className="font-medium">Katılımcıların Toplam Yatırım Tutarı</div>
+                                                                <div className="text-xs text-muted-foreground mt-0.5">İlgili liglerde kazanan ve kaybeden kuponların oynanan ücretleri toplamı (kupona basılan mebla)</div>
+                                                            </div>
+                                                            <span className="font-bold text-lg text-blue-400">₺{(statisticsData.yatirim?.total_investment ?? 0).toLocaleString("tr-TR")}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {lostCoupons.items.length > 0 && (
+                                                    <div>
+                                                        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Kaybeden Kuponlar ({lostCoupons.total})</h3>
+                                                        <div className="rounded-lg border border-white/10 overflow-hidden">
+                                                            <table className="w-full text-sm">
+                                                                <thead className="bg-white/5">
+                                                                    <tr>
+                                                                        <th className="text-left p-2 font-bold">#</th>
+                                                                        <th className="text-left p-2 font-bold">Kullanıcı</th>
+                                                                        <th className="text-right p-2 font-bold">Bahis Tutarı</th>
+                                                                        <th className="text-left p-2 font-bold">Tarih</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {lostCoupons.items.map((item: any, idx: number) => (
+                                                                        <tr key={item.id} className="border-t border-white/5 hover:bg-white/5">
+                                                                            <td className="p-2">{idx + 1}</td>
+                                                                            <td className="p-2">{item.username}</td>
+                                                                            <td className="p-2 text-right font-medium">₺{Number(item.stake).toLocaleString("tr-TR")}</td>
+                                                                            <td className="p-2 text-muted-foreground">{item.created_at ? new Date(item.created_at).toLocaleString("tr-TR") : "—"}</td>
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                            {lostCoupons.total > lostCoupons.items.length && (
+                                                                <div className="p-2 text-xs text-muted-foreground text-center border-t border-white/5">
+                                                                    İlk {lostCoupons.items.length} kayıt gösteriliyor (toplam {lostCoupons.total})
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : null}
+                                    </CardContent>
+                                    <div className="p-4 border-t border-white/5 flex justify-end">
+                                        <Button variant="ghost" size="sm" onClick={() => setStatisticsEventId(null)}>Kapat</Button>
                                     </div>
                                 </Card>
                             </div>

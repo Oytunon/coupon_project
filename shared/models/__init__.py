@@ -9,4 +9,5 @@ from shared.models.enrollment import EventParticipant
 from shared.models.worker_log import WorkerLog
 from shared.models.reward_job import RewardJob
 from shared.models.excluded_bet_cache import ExcludedBetCache
+from shared.models.event_lost_coupon import EventLostCoupon
 from .league import League
