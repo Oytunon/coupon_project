@@ -2,7 +2,7 @@
 backfill_historical_coupons.py
 =============================
 Belirli tarih aralıklarını tarayarak geçmiş kuponları (kazanan + kaybeden) işler.
-event_lost_coupons ve diğer verileri doldurur.
+event_lost_coupons, event_excluded_from_ranking ve diğer verileri doldurur.
 
 Tarih formatı: DD-MM-YY HH:MM (Türkiye saati, Betconstruct Local)
 Örnek: "10-03-26 20:45" = 10 Mart 2026 20:45
