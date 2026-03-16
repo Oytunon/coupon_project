@@ -408,7 +408,7 @@ async def get_event_statistics_api(event_id: int, db: Session = Depends(get_db))
         or_(Coupon.state == "won", Coupon.state == "Won", Coupon.state == "lost", Coupon.state == "Lost")
     ).scalar() or 0.0
 
-    # SIRALAMAYA GIRMEYEN (lig ok, oran fail - event_excluded_from_ranking)
+    # SIRALAMAYA GIRMEYEN (lig ok, oran fail - event_excluded_from_ranking) - Geçerli Olmayan ve Yatırım'a eklenir
     from shared.models.event_excluded_from_ranking import EventExcludedFromRanking
     excluded_count = db.query(func.count(EventExcludedFromRanking.id)).filter(
         EventExcludedFromRanking.event_id == event_id
@@ -416,6 +416,12 @@ async def get_event_statistics_api(event_id: int, db: Session = Depends(get_db))
     excluded_stake = db.query(func.coalesce(func.sum(EventExcludedFromRanking.stake), 0.0)).filter(
         EventExcludedFromRanking.event_id == event_id
     ).scalar() or 0.0
+
+    # Geçerli Olmayan = kaybeden + sıralamaya girmeyen (birleştirilmiş)
+    lost_coupons_total = lost_coupons + excluded_count
+    lost_stake_total = lost_stake + excluded_stake
+    # Katılımcıların Toplam Yatırım = eligible + sıralamaya girmeyen
+    total_investment_with_excluded = total_investment + excluded_stake
 
     return {
         "event_id": event_id,
@@ -436,15 +442,11 @@ async def get_event_statistics_api(event_id: int, db: Session = Depends(get_db))
             "won_payout": float(won_payout),
         },
         "kaybeden": {
-            "lost_coupons": lost_coupons,
-            "lost_stake": float(lost_stake),
+            "lost_coupons": lost_coupons_total,
+            "lost_stake": float(lost_stake_total),
         },
         "yatirim": {
-            "total_investment": float(total_investment),
-        },
-        "sıralamaya_girmeyen": {
-            "count": excluded_count,
-            "stake": float(excluded_stake),
+            "total_investment": float(total_investment_with_excluded),
         },
     }
 
@@ -470,8 +472,6 @@ async def export_event_statistics(event_id: int, db: Session = Depends(get_db)):
     ws1.append(["Gecerli Kuponlarin Kazanc Tutari (TL)", _format_tr_number(stats["kazanan"]["won_payout"])])
     ws1.append(["Gecerli Olmayan Kupon Sayisi", _format_tr_number(stats["kaybeden"]["lost_coupons"], 0)])
     ws1.append(["Gecerli Olmayan Kuponlarin Bahis Tutari (TL)", _format_tr_number(stats["kaybeden"]["lost_stake"])])
-    ws1.append(["Siralamaya Girmeyen Kupon Sayisi", _format_tr_number(stats.get("sıralamaya_girmeyen", {}).get("count", 0), 0)])
-    ws1.append(["Siralamaya Girmeyen Toplam Mebla (TL)", _format_tr_number(stats.get("sıralamaya_girmeyen", {}).get("stake", 0))])
     ws1.append(["Katilimcilarin Toplam Yatirim Tutari (TL)", _format_tr_number(stats["yatirim"]["total_investment"])])
 
     output = BytesIO()
