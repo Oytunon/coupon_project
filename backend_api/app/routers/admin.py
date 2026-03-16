@@ -12,16 +12,29 @@ from backend_api.app.security import get_password_hash, get_require_full_admin
 from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta
 
-# Excel export: Türkçe sayı formatı (1.546.301,09)
+# Excel export: Türkçe sayı formatı (1.546.301,09) - binlik nokta, ondalık virgül
 def _format_tr_number(n, decimals=2):
     if n is None:
-        return "0" if decimals > 0 else "0"
+        return "0,00" if decimals > 0 else "0"
     try:
         v = float(n)
-        s = f"{v:,.{decimals}f}"
-        parts = s.rsplit(".", 1)
-        before = parts[0].replace(",", ".")
-        return f"{before},{parts[1]}" if len(parts) == 2 else before
+        s = f"{v:.{decimals}f}"  # 1546301.09
+        if "." in s:
+            int_part, dec_part = s.split(".", 1)
+        else:
+            int_part, dec_part = s, "0" * decimals
+        sign = "-" if int_part.startswith("-") else ""
+        int_part = int_part.lstrip("-")
+        if len(int_part) <= 3:
+            return sign + int_part + ("," + dec_part if decimals > 0 else "")
+        # Binlik ayırıcı: sağdan sola her 3 basamakta nokta
+        result = []
+        for i, c in enumerate(reversed(int_part)):
+            if i > 0 and i % 3 == 0:
+                result.append(".")
+            result.append(c)
+        int_formatted = sign + "".join(reversed(result))
+        return int_formatted + ("," + dec_part if decimals > 0 else "")
     except (ValueError, TypeError):
         return str(n)
 
