@@ -321,7 +321,7 @@ async def process_coupons(
         use_pagination = (start_date_override and end_date_override) or scan_hours > 24
         max_rows = 500 if use_pagination else 0
         page_delay = 4.0 if use_pagination else 0
-        logger.info(f"[Worker] GetBetReport başlatılıyor | Tarih: {start_str} - {end_str} | State: {'Won only' if all_loss_zero else 'Won+Lost'} | Katılımcı: {len(participants)} | Pagination: {max_rows or 'off'}")
+        logger.info(f"[Worker] GetBetReport başlatılıyor | Tarih: {start_str} - {end_str} | State: {'Won+Lost' if state_filter is None else 'Won only'} | Katılımcı: {len(participants)} | Pagination: {max_rows or 'off'}")
         bet_report_data = await fetch_bet_report(start_str, end_str, include_selections=True, state_filter=state_filter, max_rows=max_rows, page_delay_seconds=page_delay)
         t_api = time.perf_counter() - t_start
         bets = bet_report_data.get("Bets", []) or []
@@ -329,7 +329,9 @@ async def process_coupons(
         single_count = sum(1 for b in bets if b.get("Type") == 1 or (str(b.get("TypeName", "")).lower() == "single"))
         multi_count = sum(1 for b in bets if b.get("Type") in (2, 3) or (str(b.get("TypeName", "")).lower() in ("multiple", "combo", "accumulator", "kombine", "parlay")))
         other_count = len(bets) - single_count - multi_count
-        logger.info(f"[Worker] GetBetReport tamamlandı | API: {len(bets)} kupon ({t_api:.1f}s) | Single: {single_count} | Multi: {multi_count} | Diğer: {other_count}")
+        won_api = sum(1 for b in bets if b.get("State") == 4 or "won" in str(b.get("StateName", "")).lower())
+        lost_api = sum(1 for b in bets if b.get("State") == 3 or "lost" in str(b.get("StateName", "")).lower())
+        logger.info(f"[Worker] GetBetReport tamamlandı | API: {len(bets)} kupon ({t_api:.1f}s) | Won: {won_api} Lost: {lost_api} | Single: {single_count} | Multi: {multi_count} | Diğer: {other_count}")
 
         total_saved = 0
         eligible_bets = []
@@ -441,7 +443,8 @@ async def process_coupons(
                     continue
                 if mapped_state == "lost":
                     all_zero = all(float(getattr(ev, 'loss_point_multiplier', 0)) == 0 for ev in eligible_for_events)
-                    if all_zero:
+                    # Backfill: event_lost_coupons için Lost'u atlama (istatistik için gerekli)
+                    if all_zero and not (start_date_override and end_date_override):
                         continue
                 if sel_count == 1:
                     price = float(bet_history.get("Price", 0) or 0)
@@ -459,7 +462,8 @@ async def process_coupons(
                 logger.warning(f"[Worker] Bet işleme hatası bet_id={bet_history.get('BetId') or bet_history.get('Id')}: {bet_err}")
 
         eligible_multi = sum(1 for t in eligible_bets if t[4] > 1) if eligible_bets else 0  # t[4] = sel_count
-        logger.info(f"[Worker] Filtre sonucu | Katılımcı eşleşen: {matched_count} | Uygun: {len(eligible_bets)} (multi: {eligible_multi})")
+        eligible_lost = sum(1 for t in eligible_bets if t[2] == "lost")  # t[2] = mapped_state
+        logger.info(f"[Worker] Filtre sonucu | Katılımcı eşleşen: {matched_count} | Uygun: {len(eligible_bets)} (multi: {eligible_multi}, lost: {eligible_lost})")
 
         # Phase 2: Selections - GetBetReport zaten dahil etti; eksik olanlar için DB/fetch
         import collections
