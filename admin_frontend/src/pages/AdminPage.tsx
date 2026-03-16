@@ -265,7 +265,7 @@ const ContentRuleEditor = ({ rules, onChange }: { rules: { title: string; conten
                                     <SelectTrigger className="bg-black/20 border-white/10">
                                         <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent className="max-h-[220px] overflow-y-auto">
                                         {icons.map(icon => (
                                             <SelectItem key={icon} value={icon}>{icon}</SelectItem>
                                         ))}
