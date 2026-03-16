@@ -410,6 +410,60 @@ async def get_event_statistics_api(event_id: int, db: Session = Depends(get_db))
     }
 
 
+@router.get("/events/{event_id}/statistics/export")
+async def export_event_statistics(event_id: int, db: Session = Depends(get_db)):
+    """Turnuva istatistiklerini Excel olarak indir."""
+    from shared.models.event_lost_coupon import EventLostCoupon
+
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(404, "Event bulunamadı")
+
+    stats = await get_event_statistics_api(event_id, db)
+    lost_data = await get_event_lost_coupons_api(event_id, 0, 10000, db)
+
+    wb = openpyxl.Workbook()
+
+    ws1 = wb.active
+    ws1.title = "Istatistikler"
+    ws1.append(["Metrik", "Deger"])
+    ws1.append(["Toplam Katilimci Sayisi", stats["katilim"]["total_participants"]])
+    ws1.append(["Toplam Kupon Sayisi", stats["toplam"]["total_coupons"]])
+    ws1.append(["Toplam Bahis Tutari (TL)", stats["toplam"]["total_stake"]])
+    ws1.append(["Gecerli Kupon Sayisi", stats["kazanan"]["won_coupons"]])
+    ws1.append(["Gecerli Kuponlarin Bahis Tutari (TL)", stats["kazanan"]["won_stake"]])
+    ws1.append(["Gecerli Kuponlarin Kazanc Tutari (TL)", stats["kazanan"]["won_payout"]])
+    ws1.append(["Gecerli Olmayan Kupon Sayisi", stats["kaybeden"]["lost_coupons"]])
+    ws1.append(["Gecerli Olmayan Kuponlarin Bahis Tutari (TL)", stats["kaybeden"]["lost_stake"]])
+    ws1.append(["Katilimcilarin Toplam Yatirim Tutari (TL)", stats["yatirim"]["total_investment"]])
+
+    ws2 = wb.create_sheet("Kaybeden Kuponlar")
+    ws2.append(["#", "Kullanici", "Bahis Tutari (TL)", "Tarih"])
+    for idx, item in enumerate(lost_data["items"], 1):
+        created = item.get("created_at") or "-"
+        if created and created != "-":
+            try:
+                from datetime import timezone
+                dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
+                if dt.tzinfo:
+                    dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+                created = _utc_to_tr_str(dt)
+            except Exception:
+                pass
+        ws2.append([idx, item.get("username", "-"), item.get("stake", 0), created])
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = f"{event.slug}_istatistikler_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    return StreamingResponse(
+        output,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+
 @router.get("/events/{event_id}/lost-coupons")
 async def get_event_lost_coupons_api(
     event_id: int,

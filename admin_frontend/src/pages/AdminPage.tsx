@@ -946,6 +946,24 @@ export default function AdminPage() {
         }
     };
 
+    const handleExportStatistics = async (eventId: number, eventName: string) => {
+        try {
+            const response = await apiClient.get(`/admin/events/${eventId}/statistics/export`, {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${eventName}_istatistikler.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            toast({ title: "Başarılı", description: "İstatistikler indiriliyor." });
+        } catch (err: any) {
+            toast({ title: "Hata", description: "Dosya indirilemedi.", variant: "destructive" });
+        }
+    };
+
     const handleExportRewardHistory = async (eventId: number, eventName: string) => {
         try {
             const response = await apiClient.get(`/admin/events/${eventId}/reward-history/export`, {
@@ -1778,7 +1796,10 @@ export default function AdminPage() {
                                             </>
                                         ) : null}
                                     </CardContent>
-                                    <div className="p-4 border-t border-white/5 flex justify-end">
+                                    <div className="p-4 border-t border-white/5 flex justify-end gap-2">
+                                        <Button variant="outline" size="sm" disabled={loadingStatistics || !statisticsData} onClick={() => statisticsEventId && handleExportStatistics(statisticsEventId, events.find(e => e.id === statisticsEventId)?.name || "turnuva")} className="gap-2">
+                                            <Download className="h-4 w-4" /> Excel İndir
+                                        </Button>
                                         <Button variant="ghost" size="sm" onClick={() => setStatisticsEventId(null)}>Kapat</Button>
                                     </div>
                                 </Card>
