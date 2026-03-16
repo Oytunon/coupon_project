@@ -1740,15 +1740,6 @@ export default function AdminPage() {
                                                             <span className="font-bold text-lg">₺{(statisticsData.kaybeden?.lost_stake ?? 0).toLocaleString("tr-TR")}</span>
                                                         </div>
                                                     </div>
-                                                    <div className="bg-white/5 rounded-lg p-4 border border-blue-500/30">
-                                                        <div className="flex justify-between items-center">
-                                                            <div>
-                                                                <div className="font-medium">Katılımcıların Toplam Yatırım Tutarı</div>
-                                                                <div className="text-xs text-muted-foreground mt-0.5">Geçerli kuponlar + sıralamaya girmeyen kuponların toplam bahis tutarı (kupona basılan mebla)</div>
-                                                            </div>
-                                                            <span className="font-bold text-lg text-blue-400">₺{(statisticsData.yatirim?.total_investment ?? 0).toLocaleString("tr-TR")}</span>
-                                                        </div>
-                                                    </div>
                                                 </div>
                                             </>
                                         ) : null}
