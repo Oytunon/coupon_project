@@ -332,6 +332,7 @@ async def process_coupons(
         logger.info(f"[Worker] GetBetReport tamamlandı | API: {len(bets)} kupon ({t_api:.1f}s) | Won: {won_api} Lost: {lost_api} | Single: {single_count} | Multi: {multi_count} | Diğer: {other_count}")
 
         total_saved = 0
+        lost_inserted = 0  # event_lost_coupons'a eklenen
         eligible_bets = []
         matched_count = 0
         for bet_history in bets:
@@ -619,6 +620,7 @@ async def process_coupons(
                                     event_id=event.id, coupon_id=existing_coupon.id,
                                     client_id=user.client_id, stake=existing_coupon.stake
                                 ))
+                                lost_inserted += 1
                         except Exception as elc_err:
                             logger.warning(f"EventLostCoupon insert failed for bet {bet_id}: {elc_err}")
             except Exception as bet_err:
@@ -627,7 +629,7 @@ async def process_coupons(
                 continue
 
         t_total = time.perf_counter() - t_start
-        logger.info(f"[Worker] Tamamlandı | Tarandı: {len(bets)} | Uygun: {len(eligible_bets)} | Yeni: {total_saved} | Toplam süre: {t_total:.1f}s (API: {t_api:.1f}s)")
+        logger.info(f"[Worker] Tamamlandı | Tarandı: {len(bets)} | Uygun: {len(eligible_bets)} | Yeni: {total_saved} | event_lost_coupons: {lost_inserted} işlendi | Toplam süre: {t_total:.1f}s (API: {t_api:.1f}s)")
 
         # Update Participant Totals (tüm katılımcılar için)
         for user in participants:
