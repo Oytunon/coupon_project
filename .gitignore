@@ -57,3 +57,5 @@ test_kupon.json
 *.txt
 scripts/
 !scripts/backfill_historical_coupons.py
+!scripts/diagnose_backfill.py
+!scripts/test_fetch_lost.py
