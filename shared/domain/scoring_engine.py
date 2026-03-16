@@ -312,8 +312,9 @@ async def process_coupons(
             poller_task = asyncio.create_task(_cancellation_poller(job_id, cancel_event))
 
         # Kaybeden çarpanı 0 olan tüm eventlerde sadece Won (4) çek - Lost isteği gereksiz
+        # ANCAK tarih override (backfill) varsa event_lost_coupons için Lost da lazım → her zaman Won+Lost çek
         all_loss_zero = all(float(getattr(e, 'loss_point_multiplier', 0)) == 0 for e in active_events)
-        state_filter = 4 if all_loss_zero else None  # 4=Won, None=Won+Lost
+        state_filter = None if (start_date_override and end_date_override) else (4 if all_loss_zero else None)  # Backfill: Won+Lost
         import time
         t_start = time.perf_counter()
         # Tarih override veya scan_hours>24: MaxRows=500 + 4sn sayfa arası
