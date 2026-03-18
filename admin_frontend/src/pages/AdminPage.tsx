@@ -794,9 +794,12 @@ export default function AdminPage() {
             setWorkerElapsedSeconds(0)
             setWorkerEstimatedSeconds(event.avg_worker_duration_seconds ?? 120)
 
+            let pollFailCount = 0
+            const MAX_POLL_FAILS = 10  // 10 ardışık hata sonra dur
             const checkStatus = setInterval(async () => {
                 try {
                     const statusRes = await apiClient.get(`/admin/worker-jobs/${jobId}`)
+                    pollFailCount = 0  // Başarılı istek, sayacı sıfırla
                     const job = statusRes.data
 
                     setWorkerJob((prev: any) => ({ ...prev, ...job, event_name: event.name }))
@@ -820,7 +823,11 @@ export default function AdminPage() {
                     }
                 } catch (e) {
                     console.error("Status check failed", e)
-                    clearInterval(checkStatus)
+                    pollFailCount++
+                    if (pollFailCount >= MAX_POLL_FAILS) {
+                        clearInterval(checkStatus)
+                        toast({ title: "Bağlantı hatası", description: "İşlem durumu alınamadı. Sayfayı yenileyin.", variant: "destructive" })
+                    }
                 }
             }, 2000)
 

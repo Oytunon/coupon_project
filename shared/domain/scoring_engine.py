@@ -324,6 +324,9 @@ async def process_coupons(
         bet_report_data = await fetch_bet_report(start_str, end_str, include_selections=True, state_filter=state_filter, max_rows=max_rows, page_delay_seconds=page_delay)
         t_api = time.perf_counter() - t_start
         bets = bet_report_data.get("Bets", []) or []
+        # UI güncellemesi: GetBetReport bitti, taranan kupon sayısını göster
+        if job_id:
+            update_job_status("running", processed=len(bets))
         enrolled_count = len(enrolled_client_ids)
         single_count = sum(1 for b in bets if b.get("Type") == 1 or (str(b.get("TypeName", "")).lower() == "single"))
         multi_count = sum(1 for b in bets if b.get("Type") in (2, 3) or (str(b.get("TypeName", "")).lower() in ("multiple", "combo", "accumulator", "kombine", "parlay")))
