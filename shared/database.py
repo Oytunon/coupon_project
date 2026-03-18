@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.pool import QueuePool
+from sqlalchemy.pool import QueuePool, NullPool
 from sqlalchemy.exc import DisconnectionError, OperationalError
 from fastapi import HTTPException
 from shared.settings import settings
@@ -40,19 +40,17 @@ def get_engine_kwargs(db_url: str) -> dict:
         kwargs["poolclass"] = None
         kwargs["connect_args"] = {"check_same_thread": False}
     else:
-        # PostgreSQL/MySQL için connection pooling
-        kwargs["poolclass"] = QueuePool
-        kwargs["pool_size"] = settings.DB_POOL_SIZE
-        kwargs["max_overflow"] = settings.DB_MAX_OVERFLOW
-        kwargs["pool_timeout"] = settings.DB_POOL_TIMEOUT
-        kwargs["pool_pre_ping"] = True  # Bağlantı sağlık kontrolü
-
-        # Supabase pooler (6543): Bağlantılar çok kısa ömürlü - 60 sn'de yenile
+        # Supabase pooler (6543): NullPool - her istekte yeni bağlantı, SSL kapanma sorunu yok
         if is_supabase_pooler(db_url):
-            kwargs["pool_recycle"] = 60
-            kwargs["pool_size"] = min(settings.DB_POOL_SIZE, 3)  # Pooler için küçük pool
+            kwargs["poolclass"] = NullPool
             kwargs["connect_args"] = {"connect_timeout": 10}
         else:
+            # Normal PostgreSQL/MySQL: QueuePool
+            kwargs["poolclass"] = QueuePool
+            kwargs["pool_size"] = settings.DB_POOL_SIZE
+            kwargs["max_overflow"] = settings.DB_MAX_OVERFLOW
+            kwargs["pool_timeout"] = settings.DB_POOL_TIMEOUT
+            kwargs["pool_pre_ping"] = True
             kwargs["pool_recycle"] = settings.DB_POOL_RECYCLE
     
     return kwargs
