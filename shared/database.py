@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.pool import QueuePool
-from sqlalchemy.exc import DisconnectionError
+from sqlalchemy.exc import DisconnectionError, OperationalError
 from fastapi import HTTPException
 from shared.settings import settings
 from shared.exceptions import BAPIRateLimitError
@@ -105,7 +105,11 @@ def get_db_session():
         raise
     finally:
         if db:
-            db.close()
+            try:
+                db.close()
+            except OperationalError as e:
+                # Bağlantı sunucu tarafından kapatılmış olabilir - sessizce geç
+                logger.debug(f"Session close failed (connection already closed): {e}")
 
 
 def check_database_health() -> bool:

@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     DB_POOL_SIZE: int = 5
     DB_MAX_OVERFLOW: int = 10
     DB_POOL_TIMEOUT: int = 30
-    DB_POOL_RECYCLE: int = 3600
+    DB_POOL_RECYCLE: int = 300  # 5 dk - managed DB'ler genelde daha kısa idle timeout kullanır
     DB_ECHO: bool = False
 
     # Retry
