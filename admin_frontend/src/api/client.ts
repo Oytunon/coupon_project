@@ -4,6 +4,7 @@ import axios from 'axios'
 // Force relative path for Vercel proxy to avoid Mixed Content (HTTPS -> HTTP) errors
 export const apiClient = axios.create({
     baseURL: '/api',
+    timeout: 30000, // 30 sn - takılı kalmayı önler
     headers: {
         "Content-Type": "application/json",
     },

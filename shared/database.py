@@ -22,6 +22,10 @@ def get_database_type(db_url: str) -> str:
     else:
         return "unknown"
 
+# Supabase pooler (6543) kullanılıyor mu?
+def is_supabase_pooler(db_url: str) -> bool:
+    return "pooler.supabase.com" in db_url and ":6543" in db_url
+
 # Database türüne göre engine parametreleri
 def get_engine_kwargs(db_url: str) -> dict:
     """Database türüne göre engine parametrelerini döndür"""
@@ -41,8 +45,15 @@ def get_engine_kwargs(db_url: str) -> dict:
         kwargs["pool_size"] = settings.DB_POOL_SIZE
         kwargs["max_overflow"] = settings.DB_MAX_OVERFLOW
         kwargs["pool_timeout"] = settings.DB_POOL_TIMEOUT
-        kwargs["pool_recycle"] = settings.DB_POOL_RECYCLE
         kwargs["pool_pre_ping"] = True  # Bağlantı sağlık kontrolü
+
+        # Supabase pooler (6543): Bağlantılar çok kısa ömürlü - 60 sn'de yenile
+        if is_supabase_pooler(db_url):
+            kwargs["pool_recycle"] = 60
+            kwargs["pool_size"] = min(settings.DB_POOL_SIZE, 3)  # Pooler için küçük pool
+            kwargs["connect_args"] = {"connect_timeout": 10}
+        else:
+            kwargs["pool_recycle"] = settings.DB_POOL_RECYCLE
     
     return kwargs
 
