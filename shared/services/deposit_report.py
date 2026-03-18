@@ -16,9 +16,12 @@ logger = logging.getLogger(__name__)
 # TypeId: 3 = Deposit
 TYPE_ID_DEPOSIT = 3
 
-# Pagination
-MAX_ROWS = 500
+# Pagination - 200: 504 timeout riskini azaltır
+MAX_ROWS = 200
 PAGE_DELAY_SEC = 4.0  # Sayfalar arası (rate limit)
+REQUEST_TIMEOUT = 90  # 504 önleme
+MAX_RETRIES = 3
+RETRY_DELAY_SEC = 15
 
 
 def _to_bc_local_format(dt: datetime) -> str:
@@ -64,7 +67,7 @@ async def fetch_deposits_bulk(
     logger.info(f"[Deposit API] Toplu çekim başlıyor | Tarih: {from_str} -> {to_str}")
 
     if own_client:
-        http_client = httpx.AsyncClient(timeout=60)
+        http_client = httpx.AsyncClient(timeout=REQUEST_TIMEOUT)
 
     try:
         while True:
@@ -92,12 +95,23 @@ async def fetch_deposits_bulk(
                 "ToTransactionDateLocal": "",
             }
 
-            r = await http_client.post(
-                settings.BAPI_DEPOSIT_REPORT_URL,
-                headers=get_headers(),
-                json=body,
-            )
-            r.raise_for_status()
+            last_err = None
+            for attempt in range(1, MAX_RETRIES + 1):
+                try:
+                    r = await http_client.post(
+                        settings.BAPI_DEPOSIT_REPORT_URL,
+                        headers=get_headers(),
+                        json=body,
+                    )
+                    r.raise_for_status()
+                    break
+                except httpx.HTTPStatusError as e:
+                    last_err = e
+                    if e.response.status_code in (502, 503, 504) and attempt < MAX_RETRIES:
+                        logger.warning(f"[Deposit API] Sayfa {page_num} {e.response.status_code}, {RETRY_DELAY_SEC}s sonra tekrar ({attempt}/{MAX_RETRIES})")
+                        await _interruptible_sleep(RETRY_DELAY_SEC)
+                    else:
+                        raise
             data = r.json()
 
             if data.get("HasError"):

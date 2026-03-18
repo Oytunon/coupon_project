@@ -2,11 +2,13 @@
 Event 70 için deposit backfill: 10.03.2026 12:00 (TR) - bugüne kadar tüm katılımcıların
 katılımdan sonraki yatırımlarını toplar ve event_participant_deposits tablosuna yazar.
 
+504 timeout önleme: Tarih aralığı 2 günlük parçalara bölünür, her parça ayrı çekilir.
+
 Kullanım:
   python scripts/backfill_deposits_event70.py
-
-SSH üzerinden yavaş çeker (sayfalar arası 4 sn).
+  python scripts/backfill_deposits_event70.py --chunk-days 1   # 1 günlük parça (daha güvenli)
 """
+import argparse
 import asyncio
 import os
 import sys
@@ -30,9 +32,10 @@ logger = logging.getLogger(__name__)
 EVENT_ID = 70
 # 10.03.2026 12:00 TR (UTC+3) -> 09:00 UTC
 FROM_DT = datetime(2026, 3, 10, 9, 0, 0, tzinfo=timezone.utc)
+CHUNK_DAYS_DEFAULT = 1  # 504 önleme: 1 günlük parçalar
 
 
-async def main():
+async def main(chunk_days: int = CHUNK_DAYS_DEFAULT):
     db = SessionLocal()
     try:
         event = db.query(Event).filter(Event.id == EVENT_ID).first()
@@ -63,11 +66,22 @@ async def main():
 
         logger.info(f"[Backfill] Event {EVENT_ID} | Katılımcı: {len(enrolled_client_ids)} client")
         logger.info(f"[Backfill] Tarih aralığı: {FROM_DT.strftime('%Y-%m-%d %H:%M')} UTC -> {to_dt.strftime('%Y-%m-%d %H:%M')} UTC")
-        logger.info("[Backfill] API'den toplu çekim başlıyor (sayfa arası 4 sn)...")
+        logger.info(f"[Backfill] Parça boyutu: {chunk_days} gün (504 önleme)")
 
-        docs = await fetch_deposits_bulk(from_dt=FROM_DT, to_dt=to_dt)
+        docs = []
+        chunk_start = FROM_DT
+        chunk_num = 0
+        while chunk_start < to_dt:
+            chunk_num += 1
+            chunk_end = min(chunk_start + timedelta(days=chunk_days), to_dt)
+            logger.info(f"[Backfill] Parça {chunk_num}: {chunk_start.strftime('%Y-%m-%d')} -> {chunk_end.strftime('%Y-%m-%d')}")
+            chunk_docs = await fetch_deposits_bulk(from_dt=chunk_start, to_dt=chunk_end)
+            docs.extend(chunk_docs)
+            chunk_start = chunk_end
+            if chunk_start < to_dt:
+                await asyncio.sleep(5)  # Parçalar arası 5 sn
 
-        logger.info(f"[Backfill] API'den {len(docs)} deposit kaydı alındı, filtreleme yapılıyor...")
+        logger.info(f"[Backfill] API'den toplam {len(docs)} deposit kaydı alındı, filtreleme yapılıyor...")
 
         totals: dict[tuple[int, int], float] = defaultdict(float)
         for doc in docs:
@@ -118,4 +132,7 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--chunk-days", type=int, default=CHUNK_DAYS_DEFAULT, help="Tarih parça boyutu (gün), 504 önleme")
+    args = parser.parse_args()
+    asyncio.run(main(chunk_days=args.chunk_days))
