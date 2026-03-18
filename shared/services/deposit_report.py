@@ -59,12 +59,16 @@ async def fetch_deposits_bulk(
     all_docs = []
     skip_rows = 0
     own_client = http_client is None
+    page_num = 0
+
+    logger.info(f"[Deposit API] Toplu çekim başlıyor | Tarih: {from_str} -> {to_str}")
 
     if own_client:
         http_client = httpx.AsyncClient(timeout=60)
 
     try:
         while True:
+            page_num += 1
             body = {
                 "AmountFrom": "",
                 "AmountTo": "",
@@ -97,12 +101,18 @@ async def fetch_deposits_bulk(
             data = r.json()
 
             if data.get("HasError"):
-                logger.warning(f"Deposit API HasError: {data.get('AlertMessage', '')}")
+                logger.warning(f"[Deposit API] HasError: {data.get('AlertMessage', '')}")
                 break
 
             docs = (data.get("Data") or {}).get("Documents") or {}
             objects = docs.get("Objects") or []
             count = docs.get("Count") or 0
+
+            deposits_this_page = sum(1 for o in objects if o.get("TypeId") == TYPE_ID_DEPOSIT)
+            logger.info(f"[Deposit API] Sayfa {page_num} | Gelen: {len(objects)} | Deposit: {deposits_this_page} | Toplam Count: {count}")
+            if page_num == 1 and len(objects) > 0:
+                sample = next((o for o in objects if o.get("TypeId") == TYPE_ID_DEPOSIT), objects[0])
+                logger.info(f"[Deposit API] İlk örnek: ClientId={sample.get('ClientId')} Amount={sample.get('Amount')} CreatedLocal={sample.get('CreatedLocal')}")
 
             for obj in objects:
                 if obj.get("TypeId") == TYPE_ID_DEPOSIT:
@@ -122,6 +132,7 @@ async def fetch_deposits_bulk(
         if own_client:
             await http_client.aclose()
 
+    logger.info(f"[Deposit API] Tamamlandı | Toplam çekilen: {len(all_docs)} deposit kaydı")
     return all_docs
 
 

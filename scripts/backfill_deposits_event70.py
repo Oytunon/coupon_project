@@ -59,13 +59,15 @@ async def main():
             client_to_enrollments[p.client_id].append((enr.event_id, enr.participant_id, joined))
 
         enrolled_client_ids = set(client_to_enrollments.keys())
-        logger.info(f"Event {EVENT_ID} | Katılımcı: {len(enrolled_client_ids)} client")
-
         to_dt = datetime.now(timezone.utc)
-        logger.info(f"Tarih aralığı: {FROM_DT.strftime('%Y-%m-%d %H:%M')} UTC -> {to_dt.strftime('%Y-%m-%d %H:%M')} UTC")
-        logger.info("API'den toplu çekim başlıyor (sayfa arası 4 sn)...")
+
+        logger.info(f"[Backfill] Event {EVENT_ID} | Katılımcı: {len(enrolled_client_ids)} client")
+        logger.info(f"[Backfill] Tarih aralığı: {FROM_DT.strftime('%Y-%m-%d %H:%M')} UTC -> {to_dt.strftime('%Y-%m-%d %H:%M')} UTC")
+        logger.info("[Backfill] API'den toplu çekim başlıyor (sayfa arası 4 sn)...")
 
         docs = await fetch_deposits_bulk(from_dt=FROM_DT, to_dt=to_dt)
+
+        logger.info(f"[Backfill] API'den {len(docs)} deposit kaydı alındı, filtreleme yapılıyor...")
 
         totals: dict[tuple[int, int], float] = defaultdict(float)
         for doc in docs:
@@ -104,10 +106,11 @@ async def main():
 
         db.commit()
         total_deposit = sum(totals.values())
-        logger.info(f"Tamamlandı | API kayıt: {len(docs)} | Güncellenen: {saved} | Toplam yatırım: {total_deposit:,.2f} TRY")
+        matched = sum(1 for v in totals.values() if v > 0)
+        logger.info(f"[Backfill] Tamamlandı | API kayıt: {len(docs)} | Eşleşen katılımcı: {matched} | Tabloya yazılan: {saved} | Toplam yatırım: {total_deposit:,.2f} TRY")
     except Exception as e:
         import traceback
-        logger.error(f"Hata: {e}")
+        logger.error(f"[Backfill] Hata: {e}")
         traceback.print_exc()
         db.rollback()
     finally:

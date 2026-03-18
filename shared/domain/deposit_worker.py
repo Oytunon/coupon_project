@@ -108,6 +108,8 @@ async def process_deposits(
         min_joined = min(ja for per_client in client_to_enrollments.values() for _, _, ja in per_client)
         now_utc = datetime.now(timezone.utc)
 
+        logger.info(f"[Deposit Worker] Event(ler): {[e.id for e in active_events]} | Katılımcı: {len(enrolled_client_ids)} | Tarih: {min_joined.strftime('%Y-%m-%d %H:%M')} - {now_utc.strftime('%Y-%m-%d %H:%M')} UTC")
+
         if job_id:
             update_job_status("running", total=len(enrolled_client_ids))
 
@@ -151,9 +153,10 @@ async def process_deposits(
                 saved += 1
 
         db.commit()
+        total_deposit_sum = sum(totals.values())
         if job_id:
             update_job_status("completed", processed=len(docs), saved=saved)
-        logger.info(f"[Deposit Worker] Tamamlandı | API kayıt: {len(docs)} | Güncellenen: {saved}")
+        logger.info(f"[Deposit Worker] Tamamlandı | API kayıt: {len(docs)} | Güncellenen: {saved} | Toplam yatırım: {total_deposit_sum:,.2f} TRY")
 
     except WorkerCancelledException:
         db.rollback()
