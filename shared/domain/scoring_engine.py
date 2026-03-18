@@ -6,6 +6,7 @@ from typing import Optional, List, Tuple
 import math
 
 from sqlalchemy import func
+from sqlalchemy.orm.attributes import flag_modified
 from shared.database import SessionLocal
 from shared.models.coupon import Coupon
 from shared.models.participant import Participant
@@ -559,7 +560,6 @@ async def process_coupons(
                         if not current_data.get("Selections"):
                             current_data["Selections"] = selections_for_bet
                             existing_coupon.bet_data = current_data
-                            from sqlalchemy.orm.attributes import flag_modified
                             flag_modified(existing_coupon, "bet_data")
                 except Exception as sel_err:
                     logger.warning(f"Bet {bet_id}: selections update failed: {sel_err}")
@@ -628,7 +628,6 @@ async def process_coupons(
                         if not current_data.get("Selections"):
                             current_data["Selections"] = selections_for_bet
                             existing_coupon.bet_data = current_data
-                            from sqlalchemy.orm.attributes import flag_modified
                             flag_modified(existing_coupon, "bet_data")
                 for event in final_events:
                     calc_points, calc_details = calculate_points_for_event(existing_coupon, event)
@@ -682,7 +681,16 @@ async def process_coupons(
 
         db.commit()
         if job_id:
-            update_job_status("completed", processed=len(bets), saved=total_saved)
+            update_job_status("running", processed=len(bets), saved=total_saved)
+
+        # Kupon işleri bittikten sonra deposit senkronu (aynı job, rate limit tek havuzda)
+        try:
+            from shared.domain.deposit_worker import process_deposits
+            await process_deposits(target_event_id=target_event_id, job_id=job_id)
+        except Exception as dep_err:
+            logger.warning(f"[Worker] Deposit senkron hatası (kuponlar tamamlandı): {dep_err}")
+            if job_id:
+                update_job_status("completed", processed=len(bets), saved=total_saved)
     except WorkerCancelledException as wc:
         logger.info(f"   [WORKER] Interrupted by cancellation: {wc}")
         db.rollback()

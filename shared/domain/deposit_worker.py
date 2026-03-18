@@ -1,0 +1,171 @@
+"""
+Deposit worker: Katılımcıların turnuvaya katıldıktan sonraki toplam yatırımlarını senkronize eder.
+TOPLU çekim: API'den tek seferde (pagination ile) tüm yatırımlar alınır, katılımcılara göre filtre/toplam yapılır.
+Her çalıştırmada toplam YENİDEN HESAPLANIR ve REPLACE edilir - çift sayım olmaz.
+"""
+import logging
+from collections import defaultdict
+from datetime import datetime, timezone
+from typing import Optional
+
+from shared.database import SessionLocal
+from shared.models.event import Event
+from shared.models.participant import Participant
+from shared.models.enrollment import EventParticipant
+from shared.models.event_participant_deposit import EventParticipantDeposit
+from shared.models.worker_log import WorkerLog
+from shared.domain.rules_validator import get_active_events
+from shared.services.deposit_report import fetch_deposits_bulk
+from shared.services.betconstruct import WorkerCancelledException
+
+logger = logging.getLogger(__name__)
+
+
+async def process_deposits(
+    target_event_id: Optional[int] = None,
+    job_id: Optional[int] = None,
+):
+    """
+    Event katılımcılarının joined_at sonrası toplam yatırımlarını toplu çeker ve event_participant_deposits'e yazar.
+    Tek API çağrısı (pagination ile) - client başına istek yok.
+    """
+    db = SessionLocal()
+
+    def update_job_status(status: str, processed: int = 0, saved: int = 0, error: Optional[str] = None, total: int = 0):
+        if not job_id:
+            return
+        log_db = SessionLocal()
+        try:
+            job = log_db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
+            if job:
+                job.status = status
+                job.processed_count += processed
+                job.saved_count += saved
+                if total > 0:
+                    job.total_count = total
+                if error:
+                    job.error_message = str(error)
+                if status in ("completed", "failed", "cancelled"):
+                    job.completed_at = datetime.now(timezone.utc)
+                log_db.commit()
+        except Exception as ex:
+            logger.error(f"Deposit job update error: {ex}")
+        finally:
+            log_db.close()
+
+    try:
+        if not job_id:
+            cron_job = WorkerLog(event_id=target_event_id, status="pending")
+            db.add(cron_job)
+            db.commit()
+            db.refresh(cron_job)
+            job_id = cron_job.id
+            logger.info(f"[Deposit Worker] Job oluşturuldu: job_id={job_id}")
+
+        if job_id:
+            update_job_status("running")
+
+        if target_event_id:
+            event = db.query(Event).filter(Event.id == target_event_id).first()
+            active_events = [event] if event else []
+        else:
+            active_events = get_active_events(db=db)
+
+        if not active_events:
+            if job_id:
+                update_job_status("completed")
+            return
+
+        enrollments = db.query(EventParticipant).filter(
+            EventParticipant.event_id.in_([e.id for e in active_events])
+        ).all()
+
+        if not enrollments:
+            if job_id:
+                update_job_status("completed")
+            return
+
+        participant_ids = list(set(e.participant_id for e in enrollments))
+        participants = {p.id: p for p in db.query(Participant).filter(Participant.id.in_(participant_ids)).all()}
+
+        # client_id -> [(event_id, participant_id, joined_at_utc), ...]
+        client_to_enrollments: dict[int, list[tuple[int, int, datetime]]] = defaultdict(list)
+        for enr in enrollments:
+            p = participants.get(enr.participant_id)
+            if not p:
+                continue
+            joined = enr.joined_at
+            if joined.tzinfo is None:
+                joined = joined.replace(tzinfo=timezone.utc)
+            client_to_enrollments[p.client_id].append((enr.event_id, enr.participant_id, joined))
+
+        enrolled_client_ids = set(client_to_enrollments.keys())
+        if not enrolled_client_ids:
+            if job_id:
+                update_job_status("completed")
+            return
+
+        min_joined = min(ja for per_client in client_to_enrollments.values() for _, _, ja in per_client)
+        now_utc = datetime.now(timezone.utc)
+
+        if job_id:
+            update_job_status("running", total=len(enrolled_client_ids))
+
+        docs = await fetch_deposits_bulk(from_dt=min_joined, to_dt=now_utc)
+
+        totals: dict[tuple[int, int], float] = defaultdict(float)
+
+        for doc in docs:
+            cid = doc["client_id"]
+            if cid not in enrolled_client_ids:
+                continue
+            amount = doc["amount"]
+            created = doc.get("created_utc")
+            if created is None:
+                continue
+            for event_id, participant_id, joined_at in client_to_enrollments[cid]:
+                if created >= joined_at:
+                    totals[(event_id, participant_id)] += amount
+
+        now_utc = datetime.now(timezone.utc)
+        saved = 0
+
+        for cid, enroll_list in client_to_enrollments.items():
+            for event_id, participant_id, _ in enroll_list:
+                total_amount = totals.get((event_id, participant_id), 0.0)
+                existing = db.query(EventParticipantDeposit).filter(
+                    EventParticipantDeposit.event_id == event_id,
+                    EventParticipantDeposit.participant_id == participant_id,
+                ).first()
+                if existing:
+                    existing.total_deposit_amount = round(total_amount, 2)
+                    existing.last_synced_at = now_utc
+                else:
+                    db.add(EventParticipantDeposit(
+                        event_id=event_id,
+                        participant_id=participant_id,
+                        total_deposit_amount=round(total_amount, 2),
+                        currency_id="TRY",
+                        last_synced_at=now_utc,
+                    ))
+                saved += 1
+
+        db.commit()
+        if job_id:
+            update_job_status("completed", processed=len(docs), saved=saved)
+        logger.info(f"[Deposit Worker] Tamamlandı | API kayıt: {len(docs)} | Güncellenen: {saved}")
+
+    except WorkerCancelledException:
+        db.rollback()
+        if job_id:
+            update_job_status("cancelled")
+        logger.info("[Deposit Worker] İptal edildi")
+    except Exception as e:
+        import traceback
+        logger.error(f"[Deposit Worker] Hata: {e}")
+        logger.error(traceback.format_exc())
+        db.rollback()
+        if job_id:
+            update_job_status("failed", error=str(e))
+    finally:
+        db.close()

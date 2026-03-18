@@ -1747,6 +1747,15 @@ export default function AdminPage() {
                                                             <span className="font-bold text-lg">₺{(statisticsData.kaybeden?.lost_stake ?? 0).toLocaleString("tr-TR")}</span>
                                                         </div>
                                                     </div>
+                                                    <div className="mt-4 pt-4 border-t border-white/10">
+                                                        <div className="flex justify-between items-center">
+                                                            <div>
+                                                                <span className="text-sm font-medium">Genel Toplam Yatırım</span>
+                                                                <div className="text-xs text-muted-foreground mt-0.5">Katılımdan sonraki gerçek para yatırımları toplamı</div>
+                                                            </div>
+                                                            <span className="font-bold text-lg text-primary">₺{(statisticsData.toplam_yatirim?.total_deposit ?? 0).toLocaleString("tr-TR")}</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </>
                                         ) : null}

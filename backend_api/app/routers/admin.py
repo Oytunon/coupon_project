@@ -285,6 +285,7 @@ async def cancel_worker_job(job_id: int, db: Session = Depends(get_db), _: Admin
     db.commit()
     return {"status": "success", "message": "İşlem iptal ediliyor..."}
 
+
 @router.get("/events/{event_id}/stats")
 async def get_event_stats_api(event_id: int, db: Session = Depends(get_db)):
     from shared.models.enrollment import EventParticipant
@@ -408,6 +409,12 @@ async def get_event_statistics_api(event_id: int, db: Session = Depends(get_db))
         or_(Coupon.state == "won", Coupon.state == "Won", Coupon.state == "lost", Coupon.state == "Lost")
     ).scalar() or 0.0
 
+    # TOPLAM YATIRIM (katılımdan sonraki gerçek para yatırımları - event_participant_deposits)
+    from shared.models.event_participant_deposit import EventParticipantDeposit
+    total_deposit = db.query(func.coalesce(func.sum(EventParticipantDeposit.total_deposit_amount), 0.0)).filter(
+        EventParticipantDeposit.event_id == event_id
+    ).scalar() or 0.0
+
     # SIRALAMAYA GIRMEYEN (lig ok, oran fail - event_excluded_from_ranking) - Geçerli Olmayan ve Yatırım'a eklenir
     from shared.models.event_excluded_from_ranking import EventExcludedFromRanking
     excluded_count = db.query(func.count(EventExcludedFromRanking.id)).filter(
@@ -451,6 +458,9 @@ async def get_event_statistics_api(event_id: int, db: Session = Depends(get_db))
         "yatirim": {
             "total_investment": float(total_investment_with_excluded),
         },
+        "toplam_yatirim": {
+            "total_deposit": float(total_deposit),
+        },
     }
 
 
@@ -476,6 +486,7 @@ async def export_event_statistics(event_id: int, db: Session = Depends(get_db)):
     ws1.append(["Gecerli Olmayan Kupon Sayisi", _format_tr_number(stats["kaybeden"]["lost_coupons"], 0)])
     ws1.append(["Gecerli Olmayan Kuponlarin Bahis Tutari (TL)", _format_tr_number(stats["kaybeden"]["lost_stake"])])
     ws1.append(["Katilimcilarin Toplam Yatirim Tutari (TL)", _format_tr_number(stats["yatirim"]["total_investment"])])
+    ws1.append(["Genel Toplam Yatirim - Katilimdan Sonraki (TL)", _format_tr_number(stats.get("toplam_yatirim", {}).get("total_deposit", 0))])
 
     output = BytesIO()
     wb.save(output)
