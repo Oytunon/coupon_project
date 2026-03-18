@@ -313,6 +313,8 @@ async def process_coupons(
         if job_id:
             poller_task = asyncio.create_task(_cancellation_poller(job_id, cancel_event))
 
+        db.close()  # Uzun GetBetReport öncesi kapat (Supabase idle timeout)
+
         # event_lost_coupons istatistikleri için her zaman Won+Lost çek (loss_point_multiplier=0 olsa bile)
         state_filter = None  # Won+Lost
         import time
@@ -323,6 +325,8 @@ async def process_coupons(
         page_delay = 4.0 if use_pagination else 0
         logger.info(f"[Worker] GetBetReport başlatılıyor | Tarih: {start_str} - {end_str} | State: {'Won+Lost' if state_filter is None else 'Won only'} | Katılımcı: {len(participants)} | Pagination: {max_rows or 'off'}")
         bet_report_data = await fetch_bet_report(start_str, end_str, include_selections=True, state_filter=state_filter, max_rows=max_rows, page_delay_seconds=page_delay)
+
+        db = SessionLocal()  # Yazma için yeni session (önceki idle kalmıştı)
         t_api = time.perf_counter() - t_start
         bets = bet_report_data.get("Bets", []) or []
         # UI güncellemesi: GetBetReport bitti, taranan kupon sayısını göster
@@ -696,7 +700,10 @@ async def process_coupons(
                 update_job_status("completed", processed=len(bets), saved=total_saved)
     except WorkerCancelledException as wc:
         logger.info(f"   [WORKER] Interrupted by cancellation: {wc}")
-        db.rollback()
+        try:
+            db.rollback()
+        except Exception:
+            pass
         if job_id:
             update_job_status("cancelled")
     except Exception as e:
@@ -706,11 +713,14 @@ async def process_coupons(
         if job_id:
             update_job_status("failed", error=str(e))
         err_str = str(e).lower()
-        if "rate" in err_str or "request lim" in err_str or "429" in err_str:
+        if "429" in err_str or "rate limit" in err_str or "request limit" in err_str:
             _stale_cooldown_until = datetime.utcnow() + timedelta(minutes=5)
             logger.warning(f"⏳ Rate limit hatası tespit edildi. 5 dk cooldown başlatıldı.")
     finally:
-        db.close()
+        try:
+            db.close()
+        except Exception:
+            pass
         # Poller task'i temizle
         if 'poller_task' in locals() and poller_task:
             poller_task.cancel()
