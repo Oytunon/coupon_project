@@ -556,6 +556,8 @@ async def process_coupons(
                     skipped_events_due_to_missing_data.add(event.id)
                 elif failed_odds and not failed_league:
                     excluded_by_odds_only.append(event)
+            # Aynı event iki kez eklenebilir (farklı objeler, aynı id) - CER duplicate önle
+            final_events = list({ev.id: ev for ev in final_events}.values())
             if not final_events and not skipped_events_due_to_missing_data:
                 try:
                     existing_coupon = db.query(Coupon).filter(Coupon.bet_id == bet_id).first()
@@ -694,6 +696,8 @@ async def process_coupons(
             from shared.domain.deposit_worker import process_deposits
             dep_scan = scan_hours if scan_hours < 24 else 24
             await process_deposits(target_event_id=target_event_id, job_id=job_id, scan_hours=dep_scan)
+            if job_id:
+                update_job_status("completed", processed=len(bets), saved=total_saved)
         except Exception as dep_err:
             logger.warning(f"[Worker] Deposit senkron hatası (kuponlar tamamlandı): {dep_err}")
             if job_id:
