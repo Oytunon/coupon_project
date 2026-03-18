@@ -129,7 +129,7 @@ async def process_deposits(
             min_synced = min(synced_ats)
             if min_synced.tzinfo is None:
                 min_synced = min_synced.replace(tzinfo=timezone.utc)
-            from_dt = min_synced
+            from_dt = max(min_synced, now_utc - timedelta(hours=scan_hours))  # Cap: max scan_hours geriye
             incremental = True
         elif scan_hours is not None:
             from_dt = max(min_joined, now_utc - timedelta(hours=scan_hours))
