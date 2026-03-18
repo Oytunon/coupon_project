@@ -64,6 +64,9 @@ async def main(chunk_days: int = CHUNK_DAYS_DEFAULT):
         enrolled_client_ids = set(client_to_enrollments.keys())
         to_dt = datetime.now(timezone.utc)
 
+        # Uzun API çekimi öncesi DB'yi kapat (Supabase idle timeout)
+        db.close()
+
         logger.info(f"[Backfill] Event {EVENT_ID} | Katılımcı: {len(enrolled_client_ids)} client")
         logger.info(f"[Backfill] Tarih aralığı: {FROM_DT.strftime('%Y-%m-%d %H:%M')} UTC -> {to_dt.strftime('%Y-%m-%d %H:%M')} UTC")
         logger.info(f"[Backfill] Parça boyutu: {chunk_days} gün (504 önleme)")
@@ -96,6 +99,8 @@ async def main(chunk_days: int = CHUNK_DAYS_DEFAULT):
                 if created >= joined_at:
                     totals[(event_id, participant_id)] += amount
 
+        # Yazma için yeni DB session (önceki ~35 dk idle kalmıştı, Supabase kapatmış olabilir)
+        db = SessionLocal()
         now_utc = datetime.now(timezone.utc)
         saved = 0
         for cid, enroll_list in client_to_enrollments.items():
@@ -126,9 +131,15 @@ async def main(chunk_days: int = CHUNK_DAYS_DEFAULT):
         import traceback
         logger.error(f"[Backfill] Hata: {e}")
         traceback.print_exc()
-        db.rollback()
+        try:
+            db.rollback()
+        except Exception:
+            pass
     finally:
-        db.close()
+        try:
+            db.close()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":
