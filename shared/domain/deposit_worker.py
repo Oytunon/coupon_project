@@ -1,11 +1,13 @@
 """
 Deposit worker: Katılımcıların turnuvaya katıldıktan sonraki toplam yatırımlarını senkronize eder.
 TOPLU çekim: API'den tek seferde (pagination ile) tüm yatırımlar alınır, katılımcılara göre filtre/toplam yapılır.
-Her çalıştırmada toplam YENİDEN HESAPLANIR ve REPLACE edilir - çift sayım olmaz.
+
+- scan_hours verilirse (otomatik): Son N saat incremental - last_synced_at'tan bugüne ekler. İlk run'da max N saat geriye gider.
+- scan_hours verilmezse (manuel): min_joined'tan bugüne tam tarama, REPLACE.
 """
 import logging
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from shared.database import SessionLocal
@@ -24,10 +26,12 @@ logger = logging.getLogger(__name__)
 async def process_deposits(
     target_event_id: Optional[int] = None,
     job_id: Optional[int] = None,
+    scan_hours: Optional[int] = None,
 ):
     """
     Event katılımcılarının joined_at sonrası toplam yatırımlarını toplu çeker ve event_participant_deposits'e yazar.
-    Tek API çağrısı (pagination ile) - client başına istek yok.
+    scan_hours: Otomatik run'da son N saat (örn. 1). İncremental ekleme, geriye çok gitmez.
+    scan_hours=None: Manuel run, min_joined'tan bugüne tam tarama (REPLACE).
     """
     db = SessionLocal()
 
@@ -108,15 +112,44 @@ async def process_deposits(
         min_joined = min(ja for per_client in client_to_enrollments.values() for _, _, ja in per_client)
         now_utc = datetime.now(timezone.utc)
 
-        logger.info(f"[Deposit Worker] Event(ler): {[e.id for e in active_events]} | Katılımcı: {len(enrolled_client_ids)} | Tarih: {min_joined.strftime('%Y-%m-%d %H:%M')} - {now_utc.strftime('%Y-%m-%d %H:%M')} UTC")
+        # Tarih aralığı: scan_hours varsa incremental (son N saat), yoksa tam tarama
+        event_ids = [e.id for e in active_events]
+        existing_deposits = {
+            (ep.event_id, ep.participant_id): ep
+            for ep in db.query(EventParticipantDeposit).filter(
+                EventParticipantDeposit.event_id.in_(event_ids)
+            ).all()
+        }
+        participant_keys = {(eid, pid) for cid, enroll_list in client_to_enrollments.items() for eid, pid, _ in enroll_list}
+        synced_ats = [
+            ep.last_synced_at for (eid, pid), ep in existing_deposits.items()
+            if (eid, pid) in participant_keys and ep.last_synced_at
+        ]
+        if scan_hours is not None and synced_ats:
+            min_synced = min(synced_ats)
+            if min_synced.tzinfo is None:
+                min_synced = min_synced.replace(tzinfo=timezone.utc)
+            from_dt = min_synced
+            incremental = True
+        elif scan_hours is not None:
+            from_dt = max(min_joined, now_utc - timedelta(hours=scan_hours))
+            incremental = True
+        else:
+            from_dt = min_joined
+            incremental = False
+
+        db.close()  # Uzun API çekimi öncesi kapat (Supabase idle timeout)
+
+        logger.info(f"[Deposit Worker] Event(ler): {event_ids} | Katılımcı: {len(enrolled_client_ids)} | Tarih: {from_dt.strftime('%Y-%m-%d %H:%M')} - {now_utc.strftime('%Y-%m-%d %H:%M')} UTC | {'incremental' if incremental else 'full'}")
 
         if job_id:
             update_job_status("running", total=len(enrolled_client_ids))
 
-        docs = await fetch_deposits_bulk(from_dt=min_joined, to_dt=now_utc)
+        docs = await fetch_deposits_bulk(from_dt=from_dt, to_dt=now_utc)
 
-        totals: dict[tuple[int, int], float] = defaultdict(float)
+        db = SessionLocal()  # Yazma için yeni session (önceki ~30 dk idle kalmıştı)
 
+        new_totals: dict[tuple[int, int], float] = defaultdict(float)
         for doc in docs:
             cid = doc["client_id"]
             if cid not in enrolled_client_ids:
@@ -127,18 +160,25 @@ async def process_deposits(
                 continue
             for event_id, participant_id, joined_at in client_to_enrollments[cid]:
                 if created >= joined_at:
-                    totals[(event_id, participant_id)] += amount
+                    new_totals[(event_id, participant_id)] += amount
 
         now_utc = datetime.now(timezone.utc)
         saved = 0
+        total_deposit_sum = 0.0
 
         for cid, enroll_list in client_to_enrollments.items():
             for event_id, participant_id, _ in enroll_list:
-                total_amount = totals.get((event_id, participant_id), 0.0)
+                new_sum = new_totals.get((event_id, participant_id), 0.0)
                 existing = db.query(EventParticipantDeposit).filter(
                     EventParticipantDeposit.event_id == event_id,
                     EventParticipantDeposit.participant_id == participant_id,
                 ).first()
+                if incremental:
+                    base = existing.total_deposit_amount if existing else 0.0
+                    total_amount = base + new_sum
+                else:
+                    total_amount = new_sum
+                total_deposit_sum += total_amount
                 if existing:
                     existing.total_deposit_amount = round(total_amount, 2)
                     existing.last_synced_at = now_utc
@@ -153,13 +193,15 @@ async def process_deposits(
                 saved += 1
 
         db.commit()
-        total_deposit_sum = sum(totals.values())
         if job_id:
             update_job_status("completed", processed=len(docs), saved=saved)
         logger.info(f"[Deposit Worker] Tamamlandı | API kayıt: {len(docs)} | Güncellenen: {saved} | Toplam yatırım: {total_deposit_sum:,.2f} TRY")
 
     except WorkerCancelledException:
-        db.rollback()
+        try:
+            db.rollback()
+        except Exception:
+            pass
         if job_id:
             update_job_status("cancelled")
         logger.info("[Deposit Worker] İptal edildi")
@@ -167,8 +209,14 @@ async def process_deposits(
         import traceback
         logger.error(f"[Deposit Worker] Hata: {e}")
         logger.error(traceback.format_exc())
-        db.rollback()
+        try:
+            db.rollback()
+        except Exception:
+            pass
         if job_id:
             update_job_status("failed", error=str(e))
     finally:
-        db.close()
+        try:
+            db.close()
+        except Exception:
+            pass
