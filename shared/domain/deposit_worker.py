@@ -17,7 +17,7 @@ from shared.models.enrollment import EventParticipant
 from shared.models.event_participant_deposit import EventParticipantDeposit
 from shared.models.worker_log import WorkerLog
 from shared.domain.rules_validator import get_active_events
-from shared.services.deposit_report import fetch_deposits_bulk
+from shared.services.deposit_report import fetch_deposits_bulk, MANUAL_MAX_ROWS, MANUAL_PAGE_DELAY_SEC
 from shared.services.betconstruct import WorkerCancelledException
 
 logger = logging.getLogger(__name__)
@@ -145,7 +145,10 @@ async def process_deposits(
         if job_id:
             update_job_status("running", total=len(enrolled_client_ids))
 
-        docs = await fetch_deposits_bulk(from_dt=from_dt, to_dt=now_utc)
+        # Manuel (full): MaxRows=500, 2sn gecikme → ~183 sayfa, ~6 dk. Otomatik: 200, 4sn.
+        max_rows = None if incremental else MANUAL_MAX_ROWS
+        page_delay = None if incremental else MANUAL_PAGE_DELAY_SEC
+        docs = await fetch_deposits_bulk(from_dt=from_dt, to_dt=now_utc, max_rows=max_rows, page_delay=page_delay)
 
         db = SessionLocal()  # Yazma için yeni session (önceki ~30 dk idle kalmıştı)
 

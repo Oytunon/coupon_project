@@ -16,9 +16,12 @@ logger = logging.getLogger(__name__)
 # TypeId: 3 = Deposit
 TYPE_ID_DEPOSIT = 3
 
-# Pagination - 200: 504 timeout riskini azaltır
+# Pagination - 200: 504 timeout riskini azaltır (otomatik/incremental)
 MAX_ROWS = 200
 PAGE_DELAY_SEC = 4.0  # Sayfalar arası (rate limit)
+# Manuel tam tarama: MaxRows=500, 4sn gecikme (91k → ~183 sayfa, ~12 dk, limit yok)
+MANUAL_MAX_ROWS = 500
+MANUAL_PAGE_DELAY_SEC = 4.0
 REQUEST_TIMEOUT = 90  # 504 önleme
 MAX_RETRIES = 3
 RETRY_DELAY_SEC = 15
@@ -52,12 +55,16 @@ async def fetch_deposits_bulk(
     from_dt: datetime,
     to_dt: datetime,
     http_client: Optional[httpx.AsyncClient] = None,
-    page_delay: float = PAGE_DELAY_SEC,
+    page_delay: Optional[float] = None,
+    max_rows: Optional[int] = None,
 ) -> list[dict]:
     """
     Tüm yatırımları toplu çeker (ClientId boş). Pagination ile.
     Her item: {client_id, amount, created_utc}
+    max_rows, page_delay: None = varsayılan (otomatik). Manuel için MANUAL_* kullan.
     """
+    max_rows = max_rows or MAX_ROWS
+    page_delay = page_delay if page_delay is not None else PAGE_DELAY_SEC
     from_str = _to_bc_local_format(from_dt)
     to_str = _to_bc_local_format(to_dt)
     all_docs = []
@@ -87,7 +94,7 @@ async def fetch_deposits_bulk(
                 "Id": "",
                 "IsOrderedDesc": True,
                 "IsTest": "false",
-                "MaxRows": MAX_ROWS,
+                "MaxRows": max_rows,
                 "OrderedItem": 1,
                 "PaymentSystemId": None,
                 "RegionId": None,
@@ -125,7 +132,7 @@ async def fetch_deposits_bulk(
             count = docs.get("Count") or 0
 
             deposits_this_page = sum(1 for o in objects if o.get("TypeId") == TYPE_ID_DEPOSIT)
-            logger.info(f"[Deposit API] Sayfa {page_num} | Gelen: {len(objects)} | Deposit: {deposits_this_page} | Toplam Count: {count}")
+            logger.info(f"[Deposit API] Sayfa {page_num} | MaxRows: {max_rows} | Gelen: {len(objects)} | Deposit: {deposits_this_page} | Toplam Count: {count}")
             if page_num == 1 and len(objects) > 0:
                 sample = next((o for o in objects if o.get("TypeId") == TYPE_ID_DEPOSIT), objects[0])
                 logger.info(f"[Deposit API] İlk örnek: ClientId={sample.get('ClientId')} Amount={sample.get('Amount')} CreatedLocal={sample.get('CreatedLocal')}")
@@ -138,10 +145,10 @@ async def fetch_deposits_bulk(
                     if cid is not None:
                         all_docs.append({"client_id": cid, "amount": amt, "created_utc": created})
 
-            if not objects or len(objects) < MAX_ROWS or skip_rows + len(objects) >= count:
+            if not objects or len(objects) < max_rows or skip_rows + len(objects) >= count:
                 break
 
-            skip_rows += MAX_ROWS
+            skip_rows += max_rows
             await _interruptible_sleep(page_delay)
 
     finally:

@@ -684,10 +684,11 @@ async def process_coupons(
             update_job_status("running", processed=len(bets), saved=total_saved)
 
         # Kupon işleri bittikten sonra deposit senkronu (aynı job, rate limit tek havuzda)
-        # Manuel (job_id) veya scan_hours>=24: tam tarama. Otomatik (scan_hours=1): son 1 saat incremental.
+        # Otomatik (scan_hours=1): son 1 saat incremental.
+        # Manuel (job_id) veya scan_hours>=24: son 24 saat incremental (min_joined'a kadar gitme - çok uzun sürüyor).
         try:
             from shared.domain.deposit_worker import process_deposits
-            dep_scan = None if (job_id or scan_hours >= 24) else scan_hours
+            dep_scan = scan_hours if scan_hours < 24 else 24
             await process_deposits(target_event_id=target_event_id, job_id=job_id, scan_hours=dep_scan)
         except Exception as dep_err:
             logger.warning(f"[Worker] Deposit senkron hatası (kuponlar tamamlandı): {dep_err}")
