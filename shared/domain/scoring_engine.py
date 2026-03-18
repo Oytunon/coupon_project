@@ -316,8 +316,8 @@ async def process_coupons(
         state_filter = None  # Won+Lost
         import time
         t_start = time.perf_counter()
-        # Tarih override veya scan_hours>24: MaxRows=500 + 4sn sayfa arası
-        use_pagination = (start_date_override and end_date_override) or scan_hours > 24
+        # Tarih override, scan_hours>=24 veya manuel (job_id): MaxRows=500 + 4sn sayfa arası (504 önlemek için)
+        use_pagination = (start_date_override and end_date_override) or scan_hours >= 24 or job_id is not None
         max_rows = 500 if use_pagination else 0
         page_delay = 4.0 if use_pagination else 0
         logger.info(f"[Worker] GetBetReport başlatılıyor | Tarih: {start_str} - {end_str} | State: {'Won+Lost' if state_filter is None else 'Won only'} | Katılımcı: {len(participants)} | Pagination: {max_rows or 'off'}")
