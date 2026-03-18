@@ -69,64 +69,72 @@ async def main(chunk_days: int = CHUNK_DAYS_DEFAULT):
 
         logger.info(f"[Backfill] Event {EVENT_ID} | Katılımcı: {len(enrolled_client_ids)} client")
         logger.info(f"[Backfill] Tarih aralığı: {FROM_DT.strftime('%Y-%m-%d %H:%M')} UTC -> {to_dt.strftime('%Y-%m-%d %H:%M')} UTC")
-        logger.info(f"[Backfill] Parça boyutu: {chunk_days} gün (504 önleme)")
+        logger.info(f"[Backfill] Parça boyutu: {chunk_days} gün | Parça bitince DB'ye yazılacak (koparsa öncekiler kalır)")
 
-        docs = []
+        totals: dict[tuple[int, int], float] = defaultdict(float)
+        total_docs = 0
         chunk_start = FROM_DT
         chunk_num = 0
+
         while chunk_start < to_dt:
             chunk_num += 1
             chunk_end = min(chunk_start + timedelta(days=chunk_days), to_dt)
             logger.info(f"[Backfill] Parça {chunk_num}: {chunk_start.strftime('%Y-%m-%d')} -> {chunk_end.strftime('%Y-%m-%d')}")
+
             chunk_docs = await fetch_deposits_bulk(from_dt=chunk_start, to_dt=chunk_end)
-            docs.extend(chunk_docs)
+            total_docs += len(chunk_docs)
+
+            for doc in chunk_docs:
+                cid = doc["client_id"]
+                if cid not in enrolled_client_ids:
+                    continue
+                amount = doc["amount"]
+                created = doc.get("created_utc")
+                if created is None:
+                    continue
+                for event_id, participant_id, joined_at in client_to_enrollments[cid]:
+                    if created >= joined_at:
+                        totals[(event_id, participant_id)] += amount
+
+            # Her parça bitince hemen DB'ye yaz (koparsa öncekiler kalsın)
+            write_db = SessionLocal()
+            try:
+                now_utc = datetime.now(timezone.utc)
+                for cid, enroll_list in client_to_enrollments.items():
+                    for event_id, participant_id, _ in enroll_list:
+                        total_amount = totals.get((event_id, participant_id), 0.0)
+                        existing = write_db.query(EventParticipantDeposit).filter(
+                            EventParticipantDeposit.event_id == event_id,
+                            EventParticipantDeposit.participant_id == participant_id,
+                        ).first()
+                        if existing:
+                            existing.total_deposit_amount = round(total_amount, 2)
+                            existing.last_synced_at = now_utc
+                        else:
+                            write_db.add(EventParticipantDeposit(
+                                event_id=event_id,
+                                participant_id=participant_id,
+                                total_deposit_amount=round(total_amount, 2),
+                                currency_id="TRY",
+                                last_synced_at=now_utc,
+                            ))
+                write_db.commit()
+                running_total = sum(totals.values())
+                logger.info(f"[Backfill] Parça {chunk_num} kaydedildi | Toplam: {total_docs} kayıt | Ara toplam yatırım: {running_total:,.2f} TRY")
+            except Exception as we:
+                logger.error(f"[Backfill] Parça {chunk_num} DB yazma hatası: {we}")
+                write_db.rollback()
+                raise
+            finally:
+                write_db.close()
+
             chunk_start = chunk_end
             if chunk_start < to_dt:
-                await asyncio.sleep(5)  # Parçalar arası 5 sn
+                await asyncio.sleep(5)
 
-        logger.info(f"[Backfill] API'den toplam {len(docs)} deposit kaydı alındı, filtreleme yapılıyor...")
-
-        totals: dict[tuple[int, int], float] = defaultdict(float)
-        for doc in docs:
-            cid = doc["client_id"]
-            if cid not in enrolled_client_ids:
-                continue
-            amount = doc["amount"]
-            created = doc.get("created_utc")
-            if created is None:
-                continue
-            for event_id, participant_id, joined_at in client_to_enrollments[cid]:
-                if created >= joined_at:
-                    totals[(event_id, participant_id)] += amount
-
-        # Yazma için yeni DB session (önceki ~35 dk idle kalmıştı, Supabase kapatmış olabilir)
-        db = SessionLocal()
-        now_utc = datetime.now(timezone.utc)
-        saved = 0
-        for cid, enroll_list in client_to_enrollments.items():
-            for event_id, participant_id, _ in enroll_list:
-                total_amount = totals.get((event_id, participant_id), 0.0)
-                existing = db.query(EventParticipantDeposit).filter(
-                    EventParticipantDeposit.event_id == event_id,
-                    EventParticipantDeposit.participant_id == participant_id,
-                ).first()
-                if existing:
-                    existing.total_deposit_amount = round(total_amount, 2)
-                    existing.last_synced_at = now_utc
-                else:
-                    db.add(EventParticipantDeposit(
-                        event_id=event_id,
-                        participant_id=participant_id,
-                        total_deposit_amount=round(total_amount, 2),
-                        currency_id="TRY",
-                        last_synced_at=now_utc,
-                    ))
-                saved += 1
-
-        db.commit()
         total_deposit = sum(totals.values())
         matched = sum(1 for v in totals.values() if v > 0)
-        logger.info(f"[Backfill] Tamamlandı | API kayıt: {len(docs)} | Eşleşen katılımcı: {matched} | Tabloya yazılan: {saved} | Toplam yatırım: {total_deposit:,.2f} TRY")
+        logger.info(f"[Backfill] Tamamlandı | API kayıt: {total_docs} | Eşleşen katılımcı: {matched} | Toplam yatırım: {total_deposit:,.2f} TRY")
     except Exception as e:
         import traceback
         logger.error(f"[Backfill] Hata: {e}")
