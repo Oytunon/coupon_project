@@ -97,10 +97,10 @@ async def main(chunk_days: float = CHUNK_DAYS_DEFAULT, from_date: str | None = N
             chunk_end = min(chunk_start + timedelta(days=chunk_days), to_dt)
             logger.info(f"[Backfill] Parça {chunk_num}: {chunk_start.strftime('%Y-%m-%d')} -> {chunk_end.strftime('%Y-%m-%d')}")
 
-            # 504 önleme: MaxRows=100, 6sn gecikme - daha hafif istekler
+            # MaxRows=200, 4sn gecikme
             chunk_docs = await fetch_deposits_bulk(
                 from_dt=chunk_start, to_dt=chunk_end,
-                max_rows=100, page_delay=6.0
+                max_rows=200, page_delay=4.0
             )
             total_docs += len(chunk_docs)
 
