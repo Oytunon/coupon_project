@@ -6,8 +6,9 @@ katılımdan sonraki yatırımlarını toplar ve event_participant_deposits tabl
 
 Kullanım:
   python scripts/backfill_deposits_event70.py
-  python scripts/backfill_deposits_event70.py --chunk-days 1   # 1 günlük parça
-  python scripts/backfill_deposits_event70.py --chunk-days 0.5 # 12 saat (504 sık geliyorsa)
+  python scripts/backfill_deposits_event70.py                  # varsayılan: 12 saatlik parça
+  python scripts/backfill_deposits_event70.py --chunk-days 1  # 1 günlük (504 riski)
+  python scripts/backfill_deposits_event70.py --chunk-days 0.25  # 6 saat (504 çok sık)
   python scripts/backfill_deposits_event70.py --from-date 2026-03-15  # Parça 5'ten devam (504 koptuysa)
 """
 import argparse
@@ -34,7 +35,7 @@ logger = logging.getLogger(__name__)
 EVENT_ID = 70
 # 10.03.2026 12:00 TR (UTC+3) -> 09:00 UTC
 FROM_DT = datetime(2026, 3, 10, 9, 0, 0, tzinfo=timezone.utc)
-CHUNK_DAYS_DEFAULT = 1  # 504 önleme: 1 günlük parçalar (0.5 = 12 saat)
+CHUNK_DAYS_DEFAULT = 0.5  # 504 önleme: 12 saatlik parçalar (1 gün çok ağır)
 
 
 async def main(chunk_days: float = CHUNK_DAYS_DEFAULT, from_date: str | None = None):
