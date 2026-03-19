@@ -91,6 +91,7 @@ async def main(chunk_days: float = CHUNK_DAYS_DEFAULT, from_date: str | None = N
         logger.info(f"[Backfill] Tarih aralığı: {chunk_start.strftime('%Y-%m-%d %H:%M')} UTC -> {to_dt.strftime('%Y-%m-%d %H:%M')} UTC")
         logger.info(f"[Backfill] Parça boyutu: {chunk_days} gün | Parça bitince DB'ye yazılacak (koparsa öncekiler kalır)")
 
+        chunk_num = 0
         while chunk_start < to_dt:
             chunk_num += 1
             chunk_end = min(chunk_start + timedelta(days=chunk_days), to_dt)
