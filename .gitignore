@@ -61,3 +61,4 @@ scripts/
 !scripts/test_fetch_lost.py
 !scripts/test_last30_full.py
 !scripts/backfill_deposits_event70.py
+!scripts/test_deposit_api_response.py
