@@ -68,6 +68,7 @@ async def fetch_deposits_bulk(
     from_str = _to_bc_local_format(from_dt)
     to_str = _to_bc_local_format(to_dt)
     all_docs = []
+    seen_ids = set()  # Id ile dedupe - aynı transaction 2 kez gelirse sadece 1 kez say
     skip_rows = 0
     own_client = http_client is None
     page_num = 0
@@ -139,11 +140,17 @@ async def fetch_deposits_bulk(
 
             for obj in objects:
                 if obj.get("TypeId") == TYPE_ID_DEPOSIT:
+                    tx_id = obj.get("Id")
                     cid = obj.get("ClientId")
                     amt = float(obj.get("Amount", 0) or 0)
                     created = _parse_created_local(obj.get("CreatedLocal"))
                     if cid is not None:
-                        all_docs.append({"client_id": cid, "amount": amt, "created_utc": created})
+                        # Id ile dedupe - aynı transaction 2 kez gelirse (pagination overlap vb.) sadece 1 kez say
+                        if tx_id is not None:
+                            if tx_id in seen_ids:
+                                continue
+                            seen_ids.add(tx_id)
+                        all_docs.append({"client_id": cid, "amount": amt, "created_utc": created, "id": tx_id})
 
             if not objects or len(objects) < max_rows or skip_rows + len(objects) >= count:
                 break

@@ -35,10 +35,11 @@ async def process_deposits(
     """
     db = SessionLocal()
 
-    def update_job_status(status: str, processed: int = 0, saved: int = 0, error: Optional[str] = None, total: int = 0):
+    def update_job_status(status: str, processed: int = 0, saved: int = 0, error: Optional[str] = None, total: int = 0, _db=None):
         if not job_id:
             return
-        log_db = SessionLocal()
+        log_db = _db if _db is not None else SessionLocal()
+        own = _db is None
         try:
             job = log_db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
             if job:
@@ -55,7 +56,8 @@ async def process_deposits(
         except Exception as ex:
             logger.error(f"Deposit job update error: {ex}")
         finally:
-            log_db.close()
+            if own:
+                log_db.close()
 
     try:
         if not job_id:
@@ -67,7 +69,7 @@ async def process_deposits(
             logger.info(f"[Deposit Worker] Job oluşturuldu: job_id={job_id}")
 
         if job_id:
-            update_job_status("running")
+            update_job_status("running", _db=db)
 
         if target_event_id:
             event = db.query(Event).filter(Event.id == target_event_id).first()
@@ -77,7 +79,7 @@ async def process_deposits(
 
         if not active_events:
             if job_id:
-                update_job_status("completed")
+                update_job_status("completed", _db=db)
             return
 
         enrollments = db.query(EventParticipant).filter(
@@ -86,7 +88,7 @@ async def process_deposits(
 
         if not enrollments:
             if job_id:
-                update_job_status("completed")
+                update_job_status("completed", _db=db)
             return
 
         participant_ids = list(set(e.participant_id for e in enrollments))
@@ -106,7 +108,7 @@ async def process_deposits(
         enrolled_client_ids = set(client_to_enrollments.keys())
         if not enrolled_client_ids:
             if job_id:
-                update_job_status("completed")
+                update_job_status("completed", _db=db)
             return
 
         min_joined = min(ja for per_client in client_to_enrollments.values() for _, _, ja in per_client)
@@ -197,7 +199,7 @@ async def process_deposits(
 
         db.commit()
         if job_id:
-            update_job_status("completed", processed=len(docs), saved=saved)
+            update_job_status("completed", processed=len(docs), saved=saved, _db=db)
         logger.info(f"[Deposit Worker] Tamamlandı | API kayıt: {len(docs)} | Güncellenen: {saved} | Toplam yatırım: {total_deposit_sum:,.2f} TRY")
 
     except WorkerCancelledException:

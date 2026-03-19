@@ -169,11 +169,12 @@ async def process_coupons(
     Override verildiğinde MaxRows=500 ve sayfa gecikmesi kullanılır.
     """
     db = SessionLocal()
-    def update_job_status(status: str, processed=0, saved=0, error=None, total=0):
+    def update_job_status(status: str, processed=0, saved=0, error=None, total=0, _db=None):
         if not job_id: return
-        log_db = SessionLocal()
+        use_db = _db if _db is not None else SessionLocal()
+        own = _db is None
         try:
-            job = log_db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
+            job = use_db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
             if job:
                 job.status = status
                 job.processed_count += processed
@@ -183,11 +184,12 @@ async def process_coupons(
                 if error: job.error_message = str(error)
                 if status in ["completed", "failed", "cancelled"]:
                     job.completed_at = datetime.utcnow()
-                log_db.commit()
+                use_db.commit()
         except Exception as ex:
             logger.error(f"Job update error: {ex}")
         finally:
-            log_db.close()
+            if own:
+                use_db.close()
 
     try:
         # 72 saatten eski excluded_bet_cache kayıtlarını temizle
@@ -230,7 +232,7 @@ async def process_coupons(
             else:
                 logger.warning(f"⚠️ Başka bir worker zaten çalışıyor (job_id={running_job.id}). Atlanıyor.")
                 if job_id:
-                    update_job_status("failed", error=f"Başka bir worker zaten çalışıyor (ID: {running_job.id})")
+                    update_job_status("failed", error=f"Başka bir worker zaten çalışıyor (ID: {running_job.id})", _db=db)
                 return
 
         # Cron çağrısında (job_id=None) otomatik WorkerLog oluştur
@@ -243,21 +245,21 @@ async def process_coupons(
             logger.info(f"📋 Cron worker log oluşturuldu: job_id={job_id}")
 
         if job_id:
-            update_job_status("running")
+            update_job_status("running", _db=db)
 
         if target_event_id:
             event = db.query(Event).filter(Event.id == target_event_id).first()
             active_events = [event] if event else []
             if not active_events:
                 msg = f"Event {target_event_id} veritabanında bulunamadı."
-                update_job_status("failed", error=msg)
+                update_job_status("failed", error=msg, _db=db)
                 return
         else:
             from shared.domain.rules_validator import get_active_events
             active_events = get_active_events(db=db)
 
         if not active_events:
-            if job_id: update_job_status("completed")
+            if job_id: update_job_status("completed", _db=db)
             return
 
         active_event_ids = [e.id for e in active_events]
@@ -267,7 +269,7 @@ async def process_coupons(
         
         participant_ids = list(set(e.participant_id for e in enrollments))
         if not participant_ids:
-            if job_id: update_job_status("completed")
+            if job_id: update_job_status("completed", _db=db)
             return
 
         participants = db.query(Participant).filter(Participant.id.in_(participant_ids)).all()
@@ -306,7 +308,7 @@ async def process_coupons(
             end_str = (now_utc + bc_offset + timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         if job_id:
-            update_job_status("running", total=len(participants))
+            update_job_status("running", total=len(participants), _db=db)
         cancel_event = asyncio.Event()
         set_active_cancel_event(cancel_event)
         poller_task = None
@@ -331,7 +333,7 @@ async def process_coupons(
         bets = bet_report_data.get("Bets", []) or []
         # UI güncellemesi: GetBetReport bitti, taranan kupon sayısını göster
         if job_id:
-            update_job_status("running", processed=len(bets))
+            update_job_status("running", processed=len(bets), _db=db)
         enrolled_count = len(enrolled_client_ids)
         single_count = sum(1 for b in bets if b.get("Type") == 1 or (str(b.get("TypeName", "")).lower() == "single"))
         multi_count = sum(1 for b in bets if b.get("Type") in (2, 3) or (str(b.get("TypeName", "")).lower() in ("multiple", "combo", "accumulator", "kombine", "parlay")))
@@ -687,7 +689,7 @@ async def process_coupons(
 
         db.commit()
         if job_id:
-            update_job_status("running", processed=len(bets), saved=total_saved)
+            update_job_status("running", processed=len(bets), saved=total_saved, _db=db)
 
         # Kupon işleri bittikten sonra deposit senkronu (aynı job, rate limit tek havuzda)
         # Otomatik (scan_hours=1): son 1 saat incremental.
@@ -697,11 +699,11 @@ async def process_coupons(
             dep_scan = scan_hours if scan_hours < 24 else 24
             await process_deposits(target_event_id=target_event_id, job_id=job_id, scan_hours=dep_scan)
             if job_id:
-                update_job_status("completed", processed=len(bets), saved=total_saved)
+                update_job_status("completed", processed=len(bets), saved=total_saved, _db=db)
         except Exception as dep_err:
             logger.warning(f"[Worker] Deposit senkron hatası (kuponlar tamamlandı): {dep_err}")
             if job_id:
-                update_job_status("completed", processed=len(bets), saved=total_saved)
+                update_job_status("completed", processed=len(bets), saved=total_saved, _db=db)
     except WorkerCancelledException as wc:
         logger.info(f"   [WORKER] Interrupted by cancellation: {wc}")
         try:
