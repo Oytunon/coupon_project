@@ -24,8 +24,10 @@ MANUAL_MAX_ROWS = 500
 MANUAL_PAGE_DELAY_SEC = 4.0
 REQUEST_TIMEOUT = 90  # 504 önleme
 MAX_RETRIES = 3
+MAX_RETRIES_504 = 5  # 504 için daha fazla deneme
 RETRY_DELAY_SEC = 15
 RETRY_DELAY_401_SEC = 60  # 401 için daha uzun (token yenilenebilir)
+RETRY_DELAY_504_SEC = 60  # 504 için daha uzun (API toparlansın)
 
 
 def _to_bc_local_format(dt: datetime) -> str:
@@ -105,7 +107,7 @@ async def fetch_deposits_bulk(
             }
 
             last_err = None
-            for attempt in range(1, MAX_RETRIES + 1):
+            for attempt in range(1, max(MAX_RETRIES, MAX_RETRIES_504) + 1):
                 try:
                     r = await http_client.post(
                         settings.BAPI_DEPOSIT_REPORT_URL,
@@ -116,9 +118,12 @@ async def fetch_deposits_bulk(
                     break
                 except httpx.HTTPStatusError as e:
                     last_err = e
-                    if e.response.status_code in (401, 502, 503, 504) and attempt < MAX_RETRIES:
-                        wait = RETRY_DELAY_401_SEC if e.response.status_code == 401 else RETRY_DELAY_SEC
-                        logger.warning(f"[Deposit API] Sayfa {page_num} {e.response.status_code}, {wait}s sonra tekrar ({attempt}/{MAX_RETRIES})")
+                    retries_for_code = MAX_RETRIES_504 if e.response.status_code == 504 else MAX_RETRIES
+                    if e.response.status_code in (401, 502, 503, 504) and attempt < retries_for_code:
+                        wait = RETRY_DELAY_401_SEC if e.response.status_code == 401 else (
+                            RETRY_DELAY_504_SEC if e.response.status_code == 504 else RETRY_DELAY_SEC
+                        )
+                        logger.warning(f"[Deposit API] Sayfa {page_num} {e.response.status_code}, {wait}s sonra tekrar ({attempt}/{retries_for_code})")
                         await _interruptible_sleep(wait)
                     else:
                         raise

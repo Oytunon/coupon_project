@@ -6,7 +6,9 @@ katılımdan sonraki yatırımlarını toplar ve event_participant_deposits tabl
 
 Kullanım:
   python scripts/backfill_deposits_event70.py
-  python scripts/backfill_deposits_event70.py --chunk-days 1   # 1 günlük parça (daha güvenli)
+  python scripts/backfill_deposits_event70.py --chunk-days 1   # 1 günlük parça
+  python scripts/backfill_deposits_event70.py --chunk-days 0.5 # 12 saat (504 sık geliyorsa)
+  python scripts/backfill_deposits_event70.py --from-date 2026-03-15  # Parça 5'ten devam (504 koptuysa)
 """
 import argparse
 import asyncio
@@ -32,10 +34,10 @@ logger = logging.getLogger(__name__)
 EVENT_ID = 70
 # 10.03.2026 12:00 TR (UTC+3) -> 09:00 UTC
 FROM_DT = datetime(2026, 3, 10, 9, 0, 0, tzinfo=timezone.utc)
-CHUNK_DAYS_DEFAULT = 1  # 504 önleme: 1 günlük parçalar
+CHUNK_DAYS_DEFAULT = 1  # 504 önleme: 1 günlük parçalar (0.5 = 12 saat)
 
 
-async def main(chunk_days: int = CHUNK_DAYS_DEFAULT):
+async def main(chunk_days: float = CHUNK_DAYS_DEFAULT, from_date: str | None = None):
     db = SessionLocal()
     try:
         event = db.query(Event).filter(Event.id == EVENT_ID).first()
@@ -64,24 +66,41 @@ async def main(chunk_days: int = CHUNK_DAYS_DEFAULT):
         enrolled_client_ids = set(client_to_enrollments.keys())
         to_dt = datetime.now(timezone.utc)
 
+        # --from-date: Kaldığı yerden devam (DB'deki mevcut toplamları yükle)
+        totals: dict[tuple[int, int], float] = defaultdict(float)
+        total_docs = 0
+        if from_date:
+            try:
+                from_dt_parsed = datetime.strptime(from_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            except ValueError:
+                logger.error(f"Geçersiz --from-date: {from_date} (YYYY-MM-DD olmalı)")
+                return
+            chunk_start = from_dt_parsed
+            # DB'deki mevcut toplamları yükle
+            for ep in db.query(EventParticipantDeposit).filter(EventParticipantDeposit.event_id == EVENT_ID).all():
+                totals[(ep.event_id, ep.participant_id)] = ep.total_deposit_amount
+            existing_sum = sum(totals.values())
+            logger.info(f"[Backfill] --from-date {from_date} | DB'den yüklendi: {existing_sum:,.2f} TRY (devam)")
+        else:
+            chunk_start = FROM_DT
+
         # Uzun API çekimi öncesi DB'yi kapat (Supabase idle timeout)
         db.close()
 
         logger.info(f"[Backfill] Event {EVENT_ID} | Katılımcı: {len(enrolled_client_ids)} client")
-        logger.info(f"[Backfill] Tarih aralığı: {FROM_DT.strftime('%Y-%m-%d %H:%M')} UTC -> {to_dt.strftime('%Y-%m-%d %H:%M')} UTC")
+        logger.info(f"[Backfill] Tarih aralığı: {chunk_start.strftime('%Y-%m-%d %H:%M')} UTC -> {to_dt.strftime('%Y-%m-%d %H:%M')} UTC")
         logger.info(f"[Backfill] Parça boyutu: {chunk_days} gün | Parça bitince DB'ye yazılacak (koparsa öncekiler kalır)")
-
-        totals: dict[tuple[int, int], float] = defaultdict(float)
-        total_docs = 0
-        chunk_start = FROM_DT
-        chunk_num = 0
 
         while chunk_start < to_dt:
             chunk_num += 1
             chunk_end = min(chunk_start + timedelta(days=chunk_days), to_dt)
             logger.info(f"[Backfill] Parça {chunk_num}: {chunk_start.strftime('%Y-%m-%d')} -> {chunk_end.strftime('%Y-%m-%d')}")
 
-            chunk_docs = await fetch_deposits_bulk(from_dt=chunk_start, to_dt=chunk_end)
+            # 504 önleme: MaxRows=100, 6sn gecikme - daha hafif istekler
+            chunk_docs = await fetch_deposits_bulk(
+                from_dt=chunk_start, to_dt=chunk_end,
+                max_rows=100, page_delay=6.0
+            )
             total_docs += len(chunk_docs)
 
             for doc in chunk_docs:
@@ -152,6 +171,7 @@ async def main(chunk_days: int = CHUNK_DAYS_DEFAULT):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--chunk-days", type=int, default=CHUNK_DAYS_DEFAULT, help="Tarih parça boyutu (gün), 504 önleme")
+    parser.add_argument("--chunk-days", type=float, default=CHUNK_DAYS_DEFAULT, help="Tarih parça boyutu (gün, 0.5=12sa), 504 önleme")
+    parser.add_argument("--from-date", type=str, default=None, help="Bu tarihten devam et (YYYY-MM-DD), 504 koptuysa kullan")
     args = parser.parse_args()
-    asyncio.run(main(chunk_days=args.chunk_days))
+    asyncio.run(main(chunk_days=args.chunk_days, from_date=args.from_date))
