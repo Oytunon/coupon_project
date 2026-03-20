@@ -1,6 +1,7 @@
 import asyncio
 import httpx
 import logging
+import time
 from datetime import datetime, timedelta
 from typing import Optional, List, Tuple
 import math
@@ -168,6 +169,7 @@ async def process_coupons(
     start_date_override, end_date_override: Belirli tarih aralığı (YYYY-MM-DDTHH:MM:SS veya DD-MM-YY HH:MM).
     Override verildiğinde MaxRows=500 ve sayfa gecikmesi kullanılır.
     """
+    is_manual_run = job_id is not None  # API'den tetiklenen manuel run'da deposit atlanır
     db = SessionLocal()
     def update_job_status(status: str, processed=0, saved=0, error=None, total=0, _db=None):
         if not job_id: return
@@ -691,19 +693,18 @@ async def process_coupons(
         if job_id:
             update_job_status("running", processed=len(bets), saved=total_saved, _db=db)
 
-        # Kupon işleri bittikten sonra deposit senkronu (aynı job, rate limit tek havuzda)
+        # Kupon işleri bittikten sonra deposit senkronu (sadece otomatik cron'da)
+        # Manuel run'da deposit atlanır.
         # Otomatik (scan_hours=1): son 1 saat incremental.
-        # Manuel (job_id) veya scan_hours>=24: son 24 saat incremental (min_joined'a kadar gitme - çok uzun sürüyor).
-        try:
-            from shared.domain.deposit_worker import process_deposits
-            dep_scan = scan_hours if scan_hours < 24 else 24
-            await process_deposits(target_event_id=target_event_id, job_id=job_id, scan_hours=dep_scan)
-            if job_id:
-                update_job_status("completed", processed=len(bets), saved=total_saved, _db=db)
-        except Exception as dep_err:
-            logger.warning(f"[Worker] Deposit senkron hatası (kuponlar tamamlandı): {dep_err}")
-            if job_id:
-                update_job_status("completed", processed=len(bets), saved=total_saved, _db=db)
+        if not is_manual_run:
+            try:
+                from shared.domain.deposit_worker import process_deposits
+                dep_scan = scan_hours if scan_hours < 24 else 24
+                await process_deposits(target_event_id=target_event_id, job_id=job_id, scan_hours=dep_scan)
+            except Exception as dep_err:
+                logger.warning(f"[Worker] Deposit senkron hatası (kuponlar tamamlandı): {dep_err}")
+        if job_id:
+            update_job_status("completed", processed=len(bets), saved=total_saved, _db=db)
     except WorkerCancelledException as wc:
         logger.info(f"   [WORKER] Interrupted by cancellation: {wc}")
         try:
