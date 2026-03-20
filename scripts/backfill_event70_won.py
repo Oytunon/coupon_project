@@ -82,6 +82,7 @@ def main():
                 end_date_override=end_iso,
                 state_filter=4,  # Sadece Won
                 skip_concurrency_check=force,
+                skip_deposits=True,  # Backfill: sadece kupon, deposit atla
             ))
             logger.info(f"Aralık {i}/{len(date_ranges)} tamamlandı.")
         except Exception as e:

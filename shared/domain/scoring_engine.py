@@ -72,7 +72,7 @@ def calculate_points_for_event(
     """
     rules = event.rules or {}
     formula = rules.get("scoring_formula", "simple")
-    state = coupon.state.lower()
+    state = (coupon.state or "open").lower()
     
     # Multi + (Asya veya iade) + kazanç: puan = WinningAmount
     use_winning_amount = (
@@ -111,19 +111,20 @@ def calculate_points_for_event(
         multiplier = 0.0
     
     # round 3 hane: kombine oranlar 9.072 gibi 3 hane olabiliyor, 2'ye yuvarlayınca 9.07→9070 (9072 olmalı)
-    truncated_odds = round(coupon.odds, 3)
+    truncated_odds = round(float(coupon.odds or 0), 3)
     
     base_points = truncated_odds
     formula_str = "odds"
 
+    stake = float(coupon.stake or 0)
     if formula == "stake_times_odds":
-        base_points = (coupon.stake * truncated_odds) / 10
+        base_points = (stake * truncated_odds) / 10
         formula_str = "(stake * odds) / 10"
     elif formula == "stake_times_odds_raw":
-        base_points = coupon.stake * truncated_odds
+        base_points = stake * truncated_odds
         formula_str = "stake * odds"
     elif formula == "net_profit_multiplier":
-        base_points = max(0.0, (coupon.stake * truncated_odds) - coupon.stake)
+        base_points = max(0.0, (stake * truncated_odds) - stake)
         formula_str = "(stake * odds) - stake"
     
     # round: floor ile 1694.999... → 1694.99 oluyordu (750×2.26=1695 olmalı)
@@ -164,6 +165,7 @@ async def process_coupons(
     end_date_override: Optional[str] = None,
     state_filter: Optional[int] = None,
     skip_concurrency_check: bool = False,
+    skip_deposits: bool = False,
 ):
     """
     Kuponları işleyen ana fonksiyon.
@@ -698,9 +700,9 @@ async def process_coupons(
             update_job_status("running", processed=len(bets), saved=total_saved, _db=db)
 
         # Kupon işleri bittikten sonra deposit senkronu (sadece otomatik cron'da)
-        # Manuel run'da deposit atlanır.
+        # Manuel run'da veya skip_deposits=True (backfill) ile deposit atlanır.
         # Otomatik (scan_hours=1): son 1 saat incremental.
-        if not is_manual_run:
+        if not is_manual_run and not skip_deposits:
             try:
                 from shared.domain.deposit_worker import process_deposits
                 dep_scan = scan_hours if scan_hours < 24 else 24
