@@ -27,8 +27,8 @@ from shared.domain.scoring_engine import process_coupons
 logger = setup_logging("backfill_event70_won")
 
 EVENT_ID = 70
-# 16 Mart 2025 00:00 TR = 15 Mart 21:00 UTC
-FROM_DATE_UTC = datetime(2025, 3, 15, 21, 0, 0, tzinfo=timezone.utc)
+# 16 Mart 2026 00:00 TR = 15 Mart 21:00 UTC
+FROM_DATE_UTC = datetime(2026, 3, 15, 21, 0, 0, tzinfo=timezone.utc)
 
 
 def _generate_date_ranges():
