@@ -576,45 +576,69 @@ async def recalculate_event_points(
     current_admin: AdminUser = Depends(get_require_full_admin)
 ):
     """Event'in tüm puanlarını yeniden hesapla."""
-    
-    event = db.query(Event).filter(Event.id == event_id).first()
-    if not event:
-        raise HTTPException(404, "Event not found")
-    
-    from shared.domain.scoring_engine import calculate_points_for_event
-    
-    results = db.query(CouponEventResult).filter(
-        CouponEventResult.event_id == event_id,
-        CouponEventResult.is_eligible == True
-    ).all()
-    
-    recalculated_count = 0
-    for cer in results:
-        coupon = db.query(Coupon).filter(Coupon.id == cer.coupon_id).first()
-        if coupon:
-            new_points, calculation = calculate_points_for_event(coupon, event)
-            cer.points_earned = new_points
-            cer.points_calculation = calculation
-            cer.evaluated_at = datetime.now()
-            recalculated_count += 1
+    import logging
+    logger = logging.getLogger(__name__)
+    try:
+        event = db.query(Event).filter(Event.id == event_id).first()
+        if not event:
+            raise HTTPException(404, "Event not found")
+        
+        from shared.domain.scoring_engine import calculate_points_for_event
+        
+        results = db.query(CouponEventResult).filter(
+            CouponEventResult.event_id == event_id,
+            CouponEventResult.is_eligible == True
+        ).all()
+        
+        recalculated_count = 0
+        errors = []
+        for cer in results:
+            try:
+                coupon = db.query(Coupon).filter(Coupon.id == cer.coupon_id).first()
+                if not coupon:
+                    errors.append(f"Coupon id={cer.coupon_id} bulunamadı")
+                    continue
+                new_points, calculation = calculate_points_for_event(coupon, event)
+                cer.points_earned = new_points
+                cer.points_calculation = calculation
+                cer.evaluated_at = datetime.now()
+                recalculated_count += 1
+            except Exception as e:
+                errors.append(f"Coupon id={cer.coupon_id}: {str(e)}")
 
-    # Katılımcı toplam puanlarını güncelle (sıralama için)
-    enrollments = db.query(EventParticipant).filter(EventParticipant.event_id == event_id).all()
-    for ep in enrollments:
-        participant = db.query(Participant).filter(Participant.id == ep.participant_id).first()
-        if participant:
-            total = db.query(func.sum(CouponEventResult.points_earned)).filter(
-                CouponEventResult.event_id == event_id,
-                CouponEventResult.coupon_id.in_(db.query(Coupon.id).filter(Coupon.client_id == participant.client_id)),
-                CouponEventResult.is_eligible == True
-            ).scalar() or 0.0
-            ep.total_points = total
+        # Katılımcı toplam puanlarını güncelle (sıralama için)
+        enrollments = db.query(EventParticipant).filter(EventParticipant.event_id == event_id).all()
+        for ep in enrollments:
+            participant = db.query(Participant).filter(Participant.id == ep.participant_id).first()
+            if participant:
+                total = db.query(func.sum(CouponEventResult.points_earned)).filter(
+                    CouponEventResult.event_id == event_id,
+                    CouponEventResult.coupon_id.in_(db.query(Coupon.id).filter(Coupon.client_id == participant.client_id)),
+                    CouponEventResult.is_eligible == True
+                ).scalar() or 0.0
+                ep.total_points = total
 
-    db.commit()
-    return {
-        "message": f"Recalculated {recalculated_count} coupon points for event {event.name}",
-        "recalculated_count": recalculated_count
-    }
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Recalculate commit failed event_id={event_id}: {e}")
+            raise HTTPException(500, f"Kayıt hatası: {str(e)}")
+
+        msg = f"Recalculated {recalculated_count} coupon points for event {event.name}"
+        if errors:
+            msg += f". {len(errors)} hata: " + "; ".join(errors[:3]) + ("..." if len(errors) > 3 else "")
+        
+        return {
+            "message": msg,
+            "recalculated_count": recalculated_count,
+            "errors": errors[:10] if errors else []
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Recalculate event_id={event_id} failed: {e}")
+        raise HTTPException(500, f"Puanlar yeniden hesaplanamadı: {str(e)}")
 
 
 @router.post("/{event_id}/worker", status_code=202)
