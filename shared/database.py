@@ -26,6 +26,12 @@ def get_database_type(db_url: str) -> str:
 def is_supabase_pooler(db_url: str) -> bool:
     return "pooler.supabase.com" in db_url and ":6543" in db_url
 
+
+# Supabase Session mode (5432) - MaxClients sınırlı, pool küçük tutulmalı
+def is_supabase_session_mode(db_url: str) -> bool:
+    return "pooler.supabase.com" in db_url and ":6543" not in db_url
+
+
 # Database türüne göre engine parametreleri
 def get_engine_kwargs(db_url: str) -> dict:
     """Database türüne göre engine parametrelerini döndür"""
@@ -46,9 +52,16 @@ def get_engine_kwargs(db_url: str) -> dict:
             kwargs["connect_args"] = {"connect_timeout": 10}
         else:
             # Normal PostgreSQL/MySQL: QueuePool
+            # Supabase Session mode (5432): MaxClients sınırı - API+Worker+RewardWorker paylaşıyor
+            pool_size = settings.DB_POOL_SIZE
+            max_overflow = settings.DB_MAX_OVERFLOW
+            if is_supabase_session_mode(db_url):
+                pool_size = 1
+                max_overflow = 1
+                logger.info(f"Supabase Session mode (5432): pool_size={pool_size}, max_overflow={max_overflow}")
             kwargs["poolclass"] = QueuePool
-            kwargs["pool_size"] = settings.DB_POOL_SIZE
-            kwargs["max_overflow"] = settings.DB_MAX_OVERFLOW
+            kwargs["pool_size"] = pool_size
+            kwargs["max_overflow"] = max_overflow
             kwargs["pool_timeout"] = settings.DB_POOL_TIMEOUT
             kwargs["pool_pre_ping"] = True
             kwargs["pool_recycle"] = settings.DB_POOL_RECYCLE
