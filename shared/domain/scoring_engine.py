@@ -162,11 +162,13 @@ async def process_coupons(
     scan_hours: int = 24,
     start_date_override: Optional[str] = None,
     end_date_override: Optional[str] = None,
+    state_filter: Optional[int] = None,
 ):
     """
     Kuponları işleyen ana fonksiyon.
     scan_hours: Geriye dönük kaç saatlik periyodu tarayacağını belirler (varsayılan: 24).
     start_date_override, end_date_override: Belirli tarih aralığı (YYYY-MM-DDTHH:MM:SS veya DD-MM-YY HH:MM).
+    state_filter: 4=Won only, 3=Lost only, None=Won+Lost (varsayılan).
     Override verildiğinde MaxRows=500 ve sayfa gecikmesi kullanılır.
     """
     is_manual_run = job_id is not None  # API'den tetiklenen manuel run'da deposit atlanır
@@ -319,15 +321,15 @@ async def process_coupons(
 
         db.close()  # Uzun GetBetReport öncesi kapat (Supabase idle timeout)
 
-        # event_lost_coupons istatistikleri için her zaman Won+Lost çek (loss_point_multiplier=0 olsa bile)
-        state_filter = None  # Won+Lost
+        # state_filter: 4=Won, 3=Lost, None=Won+Lost (event_lost_coupons için)
         import time
         t_start = time.perf_counter()
         # Tarih override, scan_hours>=24 veya manuel (job_id): MaxRows=500 + 4sn sayfa arası (504 önlemek için)
         use_pagination = (start_date_override and end_date_override) or scan_hours >= 24 or job_id is not None
         max_rows = 500 if use_pagination else 0
         page_delay = 4.0 if use_pagination else 0
-        logger.info(f"[Worker] GetBetReport başlatılıyor | Tarih: {start_str} - {end_str} | State: {'Won+Lost' if state_filter is None else 'Won only'} | Katılımcı: {len(participants)} | Pagination: {max_rows or 'off'}")
+        state_label = "Won only" if state_filter == 4 else "Lost only" if state_filter == 3 else "Won+Lost"
+        logger.info(f"[Worker] GetBetReport başlatılıyor | Tarih: {start_str} - {end_str} | State: {state_label} | Katılımcı: {len(participants)} | Pagination: {max_rows or 'off'}")
         bet_report_data = await fetch_bet_report(start_str, end_str, include_selections=True, state_filter=state_filter, max_rows=max_rows, page_delay_seconds=page_delay)
 
         db = SessionLocal()  # Yazma için yeni session (önceki idle kalmıştı)
