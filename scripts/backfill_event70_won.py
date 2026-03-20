@@ -11,6 +11,7 @@ Event 70 aktif olmasa bile çalışır.
   python scripts/backfill_event70_won.py
 
 --dry-run: Sadece taranacak aralıkları gösterir, API çağrısı yapmaz.
+--force: Takılı worker job'u varsa atla, eşzamanlılık kontrolünü bypass et.
 """
 
 import asyncio
@@ -52,6 +53,7 @@ def _generate_date_ranges():
 
 def main():
     dry_run = "--dry-run" in sys.argv
+    force = "--force" in sys.argv
     date_ranges = _generate_date_ranges()
 
     logger.info("=" * 60)
@@ -61,6 +63,8 @@ def main():
     for i, (start_iso, end_iso) in enumerate(date_ranges, 1):
         logger.info(f"  [{i}] {start_iso} -> {end_iso}")
     logger.info("Sadece katılım tarihinden (joined_at) sonra oynanan kuponlar işlenir.")
+    if force:
+        logger.info("--force: Eşzamanlılık kontrolü atlanıyor (takılı job varsa yine de çalışır).")
 
     if dry_run:
         logger.info("[DRY RUN] Çıkılıyor. Gerçek tarama için --dry-run olmadan çalıştırın.")
@@ -77,6 +81,7 @@ def main():
                 start_date_override=start_iso,
                 end_date_override=end_iso,
                 state_filter=4,  # Sadece Won
+                skip_concurrency_check=force,
             ))
             logger.info(f"Aralık {i}/{len(date_ranges)} tamamlandı.")
         except Exception as e:

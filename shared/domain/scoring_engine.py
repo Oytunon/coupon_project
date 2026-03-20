@@ -163,6 +163,7 @@ async def process_coupons(
     start_date_override: Optional[str] = None,
     end_date_override: Optional[str] = None,
     state_filter: Optional[int] = None,
+    skip_concurrency_check: bool = False,
 ):
     """
     Kuponları işleyen ana fonksiyon.
@@ -215,29 +216,30 @@ async def process_coupons(
             logger.warning(f"⏳ Stale job sonrası cooldown ({wait_sec:.0f}s kaldı). Bu run atlanıyor.")
             return
 
-        # Eşzamanlılık kilidi: Başka bir worker çalışıyor mu kontrol et
-        STALE_JOB_HOURS = 1.5  # 1.5 saatten uzun running/pending = takılı (rate limit/crash)
-        running_query = db.query(WorkerLog).filter(WorkerLog.status.in_(["running", "pending"]))
-        if job_id:
-            running_query = running_query.filter(WorkerLog.id != job_id)
+        # Eşzamanlılık kilidi: Başka bir worker çalışıyor mu kontrol et (backfill --force ile atlanır)
+        if not skip_concurrency_check:
+            STALE_JOB_HOURS = 1.5  # 1.5 saatten uzun running/pending = takılı (rate limit/crash)
+            running_query = db.query(WorkerLog).filter(WorkerLog.status.in_(["running", "pending"]))
+            if job_id:
+                running_query = running_query.filter(WorkerLog.id != job_id)
 
-        running_job = running_query.first()
-        if running_job:
-            job_age = (datetime.utcnow() - (running_job.created_at or datetime.utcnow())).total_seconds() / 3600
-            if job_age >= STALE_JOB_HOURS:
-                logger.warning(f"⚠️ Job {running_job.id} {job_age:.1f} saattir takılı. failed olarak işaretleniyor.")
-                running_job.status = "failed"
-                running_job.completed_at = datetime.utcnow()
-                running_job.error_message = (running_job.error_message or "") + f" [Stale: {job_age:.1f}h]"
-                db.commit()
-                # Rate limit toparlanması için 5 dk cooldown - yeni job hemen başlamasın
-                _stale_cooldown_until = datetime.utcnow() + timedelta(minutes=5)
-                logger.warning(f"⏳ 5 dakika cooldown başlatıldı. Sonraki cron'da tekrar denenecek.")
-            else:
-                logger.warning(f"⚠️ Başka bir worker zaten çalışıyor (job_id={running_job.id}). Atlanıyor.")
-                if job_id:
-                    update_job_status("failed", error=f"Başka bir worker zaten çalışıyor (ID: {running_job.id})", _db=db)
-                return
+            running_job = running_query.first()
+            if running_job:
+                job_age = (datetime.utcnow() - (running_job.created_at or datetime.utcnow())).total_seconds() / 3600
+                if job_age >= STALE_JOB_HOURS:
+                    logger.warning(f"⚠️ Job {running_job.id} {job_age:.1f} saattir takılı. failed olarak işaretleniyor.")
+                    running_job.status = "failed"
+                    running_job.completed_at = datetime.utcnow()
+                    running_job.error_message = (running_job.error_message or "") + f" [Stale: {job_age:.1f}h]"
+                    db.commit()
+                    # Rate limit toparlanması için 5 dk cooldown - yeni job hemen başlamasın
+                    _stale_cooldown_until = datetime.utcnow() + timedelta(minutes=5)
+                    logger.warning(f"⏳ 5 dakika cooldown başlatıldı. Sonraki cron'da tekrar denenecek.")
+                else:
+                    logger.warning(f"⚠️ Başka bir worker zaten çalışıyor (job_id={running_job.id}). Atlanıyor.")
+                    if job_id:
+                        update_job_status("failed", error=f"Başka bir worker zaten çalışıyor (ID: {running_job.id})", _db=db)
+                    return
 
         # Cron çağrısında (job_id=None) otomatik WorkerLog oluştur
         if not job_id:
