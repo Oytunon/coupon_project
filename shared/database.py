@@ -56,7 +56,7 @@ def get_engine_kwargs(db_url: str) -> dict:
             pool_size = settings.DB_POOL_SIZE
             max_overflow = settings.DB_MAX_OVERFLOW
             if is_supabase_session_mode(db_url):
-                pool_size = 1
+                pool_size = 2
                 max_overflow = 1
                 logger.info(f"Supabase Session mode (5432): pool_size={pool_size}, max_overflow={max_overflow}")
             kwargs["poolclass"] = QueuePool
