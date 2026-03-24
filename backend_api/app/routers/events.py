@@ -17,7 +17,7 @@ import uuid
 import shutil
 import os
 
-from shared.database import get_db_session
+from shared.database import get_db_session, get_db_session_direct
 from shared.models.event import Event
 from shared.models.coupon_event_result import CouponEventResult
 from shared.models.admin import AdminUser
@@ -76,6 +76,7 @@ class EventCreate(BaseModel):
     image_url: Optional[str] = None
     rules: EventRules
     content_rules: List[ContentRule] = []
+    content_rules_html: Optional[str] = None
 
 
 class EventUpdate(BaseModel):
@@ -91,6 +92,7 @@ class EventUpdate(BaseModel):
     image_url: Optional[str] = None
     rules: Optional[EventRules] = None
     content_rules: Optional[List[ContentRule]] = None
+    content_rules_html: Optional[str] = None
 
 
 class EventStatusUpdate(BaseModel):
@@ -111,6 +113,7 @@ class EventResponse(BaseModel):
     image_url: Optional[str]
     rules: dict
     content_rules: List[ContentRule] = []
+    content_rules_html: Optional[str] = None
     reward_status: Optional[str] = None
     last_worker_run: Optional[datetime] = None
     last_cron_run: Optional[datetime] = None
@@ -199,6 +202,7 @@ async def create_event(
             image_url=event_data.image_url,
             rules=event_data.rules.dict(),
             content_rules=processed_content_rules,
+            content_rules_html=event_data.content_rules_html,
             created_by=current_admin.id,
             status="draft" 
         )
@@ -344,7 +348,7 @@ async def update_event(
 
     # 2. Update simple fields
     for field, value in data_dict.items():
-        if field not in ["rules", "content_rules"]:
+        if field not in ["rules", "content_rules", "content_rules_html"]:
             logger.info(f"Updating {field}: {getattr(event, field)} -> {value}")
             setattr(event, field, value)
 
@@ -383,6 +387,9 @@ async def update_event(
         logger.info(f"Content Rules update: {event.content_rules} -> {processed_rules}")
         event.content_rules = processed_rules
         flag_modified(event, "content_rules")
+
+    if "content_rules_html" in data_dict:
+        event.content_rules_html = data_dict["content_rules_html"]
     
     # 5. Final validation
     if event.end_date <= event.start_date:
@@ -572,7 +579,7 @@ async def add_manual_coupon_endpoint(
 @router.post("/{event_id}/recalculate", status_code=202)
 async def recalculate_event_points(
     event_id: int,
-    db: Session = Depends(get_db_session),
+    db: Session = Depends(get_db_session_direct),  # 5432 - ana trafikten izole
     current_admin: AdminUser = Depends(get_require_full_admin)
 ):
     """Event'in tüm puanlarını yeniden hesapla."""
@@ -605,6 +612,8 @@ async def recalculate_event_points(
                 recalculated_count += 1
             except Exception as e:
                 errors.append(f"Coupon id={cer.coupon_id}: {str(e)}")
+
+        db.flush()  # CER güncellemelerini yaz - total_points SUM yeni değerleri görsün
 
         # Katılımcı toplam puanlarını güncelle (sıralama için)
         enrollments = db.query(EventParticipant).filter(EventParticipant.event_id == event_id).all()

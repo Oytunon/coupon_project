@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from shared.models.magic_token import MagicToken
+from shared.models.worker_log import WorkerLog
 from shared.database import SessionLocal
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,6 @@ async def cleanup_expired_magic_tokens(retention_days: int = 7):
     except Exception as e:
         logger.error(f"Magic token cleanup error: {e}")
         db.rollback()
-        raise
         raise
     finally:
         db.close()
@@ -52,6 +52,29 @@ async def auto_expire_events():
         return expired_count
     except Exception as e:
         logger.error(f"Event auto-expiration error: {e}")
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+async def cleanup_old_worker_logs(retention_days: int = 30):
+    """completed/failed/cancelled WorkerLog kayıtlarını retention_days'dan eski olanları siler.
+    Admin paneldeki son çalıştırma bilgisi için son N gün yeterli."""
+    db: Session = SessionLocal()
+    try:
+        threshold = datetime.utcnow() - timedelta(days=retention_days)
+        deleted = db.query(WorkerLog).filter(
+            WorkerLog.completed_at.isnot(None),
+            WorkerLog.completed_at < threshold,
+            WorkerLog.status.in_(["completed", "failed", "cancelled"])
+        ).delete(synchronize_session=False)
+        db.commit()
+        if deleted > 0:
+            logger.info(f"🗑️  {deleted} eski worker log temizlendi (>{retention_days} gün).")
+        return deleted
+    except Exception as e:
+        logger.error(f"Worker log cleanup error: {e}")
         db.rollback()
         raise
     finally:

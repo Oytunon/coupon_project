@@ -73,8 +73,14 @@ def check_migration_status():
         logger.warning("⚠ Please ensure database exists and run: alembic upgrade head")
         return False
 
-# Check migration status on startup
-check_migration_status()
+# Check migration status in background (startup'ı bloklamaz)
+import threading
+def _run_migration_check():
+    try:
+        check_migration_status()
+    except Exception:
+        pass
+threading.Thread(target=_run_migration_check, daemon=True).start()
 
 
 # Initialize FastAPI app

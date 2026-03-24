@@ -30,6 +30,9 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 def get_url():
+    # Migration: DIRECT (5432) tercih edilir - PgBouncer transaction mode ile uyum
+    if settings.DATABASE_URL_DIRECT:
+        return settings.DATABASE_URL_DIRECT
     return settings.DATABASE_URL
 
 def run_migrations_offline() -> None:

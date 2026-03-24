@@ -437,7 +437,8 @@ export default function AdminPage() {
             min_deposit: 0,
             rewards: [] as any[]
         },
-        content_rules: [] as { title: string; content: string; icon: string }[]
+        content_rules: [] as { title: string; content: string; icon: string }[],
+        content_rules_html: "" as string
     }
     const [showAddEvent, setShowAddEvent] = useState(false)
     const [newEvent, setNewEvent] = useState(DEFAULT_NEW_EVENT)
@@ -497,11 +498,14 @@ export default function AdminPage() {
     const loadData = async () => {
         setLoading(true)
         try {
-            const [s, p, u, e] = await Promise.all([
+            // Progressive loading: events first (dropdown için kritik), sonra diğerleri paralel
+            const eventsData = await fetchEvents().catch((err) => { console.error(err); return [] })
+            setEvents(Array.isArray(eventsData) ? eventsData : [])
+
+            const [s, p, u] = await Promise.all([
                 adminRole !== 'moderator' ? fetchAdminStats().catch(() => null) : Promise.resolve(null),
                 fetchParticipants(selectedEventId || undefined, (page - 1) * limit, limit, debouncedSearch).catch((err) => { console.error(err); return { items: [], total: 0 } }),
                 adminRole !== 'moderator' ? fetchAdminUsers().catch(() => []) : Promise.resolve([]),
-                fetchEvents().catch((err) => { console.error(err); return [] })
             ])
             setStats(s)
             if (p && p.items) {
@@ -512,7 +516,6 @@ export default function AdminPage() {
                 setTotalParticipants(Array.isArray(p) ? p.length : 0)
             }
             setAdminUsers(Array.isArray(u) ? u : [])
-            setEvents(Array.isArray(e) ? e : [])
         } catch (err) {
             console.error("Data load failed", err)
             toast({
@@ -680,7 +683,8 @@ export default function AdminPage() {
                 start_date: newEvent.start_date.length === 16 ? newEvent.start_date + ":00" : newEvent.start_date,
                 end_date: newEvent.end_date.length === 16 ? newEvent.end_date + ":00" : newEvent.end_date,
                 display_until: newEvent.display_until ? (newEvent.display_until.length === 16 ? newEvent.display_until + ":00" : newEvent.display_until) : null,
-                content_rules: newEvent.content_rules || []
+                content_rules: newEvent.content_rules || [],
+                content_rules_html: newEvent.content_rules_html?.trim() ? newEvent.content_rules_html : null
             }
             const createdEvent = await createEvent(payload)
 
@@ -829,7 +833,7 @@ export default function AdminPage() {
                         toast({ title: "Bağlantı hatası", description: "İşlem durumu alınamadı. Sayfayı yenileyin.", variant: "destructive" })
                     }
                 }
-            }, 2000)
+            }, 5000)
 
         } catch (err: any) {
             if (err.response?.status === 409) {
@@ -891,6 +895,7 @@ export default function AdminPage() {
         const rules = event.rules || {}
         setEditingEvent({
             ...event,
+            content_rules_html: event.content_rules_html ?? "",
             description: event.description || "",
             start_date: formatDateTimeLocal(event.start_date),
             end_date: formatDateTimeLocal(event.end_date),
@@ -1019,7 +1024,8 @@ export default function AdminPage() {
                     min_deposit: isNaN(editingEvent.rules.min_deposit) ? 0 : Number(editingEvent.rules.min_deposit),
                     scoring_formula: editingEvent.rules.scoring_formula
                 },
-                content_rules: editingEvent.content_rules || []
+                content_rules: editingEvent.content_rules || [],
+                content_rules_html: editingEvent.content_rules_html?.trim() ? editingEvent.content_rules_html : null
             }
             console.log("Sending payload:", payload)
             await updateEvent(editingEvent.id, payload)
@@ -1459,11 +1465,18 @@ export default function AdminPage() {
                                                 <Button size="sm" variant="outline" className="border-emerald-800 text-emerald-500 hover:bg-emerald-500/10 gap-2" onClick={async () => {
                                                     try {
                                                         const res = await recalculateEventPoints(event.id)
-                                                        toast({ title: "Başarılı", description: res.message || `${res.recalculated_count} kupon yeniden hesaplandı.` })
+                                                        const hasErrors = res?.errors?.length
+                                                        toast({
+                                                            title: hasErrors ? "Tamamlandı (bazı hatalar)" : "Başarılı",
+                                                            description: res.message || `${res.recalculated_count} kupon yeniden hesaplandı.`,
+                                                            variant: hasErrors ? "destructive" : "default"
+                                                        })
                                                         const eList = await fetchEvents()
                                                         setEvents(eList)
                                                     } catch (e: any) {
-                                                        toast({ title: "Hata", description: e?.response?.data?.detail || "Puanlar yeniden hesaplanamadı", variant: "destructive" })
+                                                        const detail = e?.response?.data?.detail
+                                                        const errMsg = typeof detail === 'string' ? detail : (detail?.message || detail?.msg || JSON.stringify(detail) || "Puanlar yeniden hesaplanamadı")
+                                                        toast({ title: "Hata", description: errMsg, variant: "destructive" })
                                                     }
                                                 }} title="Puanları Yeniden Hesapla">
                                                     <RefreshCw className="h-4 w-4" /> Puanları Yeniden Hesapla
@@ -1993,7 +2006,19 @@ export default function AdminPage() {
 
                                             {/* TAB 4: CONTENT RULES */}
                                             {modalTab === 'content_rules' && (
-                                                <div className="animate-in fade-in slide-in-from-right-4">
+                                                <div className="animate-in fade-in slide-in-from-right-4 space-y-6">
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-bold text-muted-foreground uppercase">Turnuva kuralları (HTML)</label>
+                                                        <p className="text-xs text-muted-foreground leading-relaxed">
+                                                            Bu alan doluysa kullanıcı arayüzünde madde madde kurallar yerine bu HTML gösterilir. Listeler, başlıklar ve linkler için uygundur.
+                                                        </p>
+                                                        <textarea
+                                                            value={newEvent.content_rules_html}
+                                                            onChange={e => setNewEvent({ ...newEvent, content_rules_html: e.target.value })}
+                                                            placeholder={'Örn: <h3>Başlık</h3><p>Paragraf</p><ul><li>Madde</li></ul>'}
+                                                            className="flex min-h-[180px] w-full rounded-md border border-input bg-black/20 px-3 py-2 text-sm font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                                        />
+                                                    </div>
                                                     <ContentRuleEditor
                                                         rules={newEvent.content_rules}
                                                         onChange={(content_rules) => setNewEvent({ ...newEvent, content_rules })}
@@ -2251,7 +2276,19 @@ export default function AdminPage() {
 
                                             {/* TAB 4: CONTENT RULES */}
                                             {modalTab === 'content_rules' && (
-                                                <div className="animate-in fade-in slide-in-from-right-4">
+                                                <div className="animate-in fade-in slide-in-from-right-4 space-y-6">
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-bold text-muted-foreground uppercase">Turnuva kuralları (HTML)</label>
+                                                        <p className="text-xs text-muted-foreground leading-relaxed">
+                                                            Bu alan doluysa kullanıcı arayüzünde madde madde kurallar yerine bu HTML gösterilir. Listeler, başlıklar ve linkler için uygundur.
+                                                        </p>
+                                                        <textarea
+                                                            value={editingEvent.content_rules_html ?? ""}
+                                                            onChange={e => setEditingEvent({ ...editingEvent, content_rules_html: e.target.value })}
+                                                            placeholder={'Örn: <h3>Başlık</h3><p>Paragraf</p><ul><li>Madde</li></ul>'}
+                                                            className="flex min-h-[180px] w-full rounded-md border border-input bg-black/20 px-3 py-2 text-sm font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                                        />
+                                                    </div>
                                                     <ContentRuleEditor
                                                         rules={editingEvent.content_rules || []}
                                                         onChange={(content_rules) => setEditingEvent({ ...editingEvent, content_rules })}

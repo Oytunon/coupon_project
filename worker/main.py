@@ -16,7 +16,7 @@ def start_scheduler():
         asyncio.set_event_loop(loop)
     
     scheduler = AsyncIOScheduler(event_loop=loop)
-    from shared.domain.cleanup import cleanup_expired_magic_tokens, auto_expire_events
+    from shared.domain.cleanup import cleanup_expired_magic_tokens, auto_expire_events, cleanup_old_worker_logs
     
     # Her 15 dakikada bir son 1 saati tara (katılımdan sonra kupon kaçırma riski min)
     scheduler.add_job(
@@ -42,9 +42,17 @@ def start_scheduler():
         id='cleanup_tokens',
         replace_existing=True
     )
+
+    # Her Pazar 02:00'de eski worker logları temizle (son 30 gün tutulur)
+    scheduler.add_job(
+        cleanup_old_worker_logs,
+        trigger=CronTrigger(day_of_week='sun', hour=2, minute=0, timezone='Europe/Istanbul'),
+        id='cleanup_worker_logs',
+        replace_existing=True
+    )
     
     scheduler.start()
-    logger.info("Worker scheduler her 15 dk'da bir (son 1 saat) çalışacak şekilde başlatıldı.")
+    logger.info("Worker scheduler başlatıldı: process_coupons+auto_expire (15dk), cleanup_tokens (01:00), cleanup_worker_logs (Pazar 02:00).")
     return scheduler
 
 

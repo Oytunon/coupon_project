@@ -50,6 +50,9 @@ class Event(Base):
     # Structure: [{"title": "...", "content": "...", "icon": "..."}]
     content_rules = Column(JSONB, nullable=False, default=[])
 
+    # Opsiyonel: tek blok HTML (Turnuva Kuralları). Doluysa client'ta bu önceliklidir.
+    content_rules_html = Column(Text, nullable=True)
+
     # Admin Info
     created_by = Column(Integer, ForeignKey("admin_users.id"), nullable=True)
 

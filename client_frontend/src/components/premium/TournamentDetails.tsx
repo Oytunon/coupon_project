@@ -591,7 +591,12 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                     <h2 className="text-xl md:text-2xl font-bold">Turnuva Kuralları</h2>
                                 </div>
                                 <div className="space-y-4">
-                                    {(() => {
+                                    {event.content_rules_html?.trim() ? (
+                                        <div
+                                            className="rounded-xl border border-[#D9B648]/20 bg-black/40 p-4 md:p-6 text-gray-200 text-sm md:text-base leading-relaxed [&_a]:text-[#D9B648] [&_a]:underline [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-[#F7EBA5] [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-[#F7EBA5] [&_h3]:font-semibold [&_p]:mb-3 [&_strong]:text-[#F7EBA5]"
+                                            dangerouslySetInnerHTML={{ __html: event.content_rules_html }}
+                                        />
+                                    ) : (() => {
                                         const iconMap: Record<string, any> = {
                                             UserPlus, TrendingUp, Ticket, Award, FileText, AlertCircle, Info, Search, Calendar, Clock, Gift, ScrollText
                                         };

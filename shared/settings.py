@@ -17,7 +17,13 @@ class Settings(BaseSettings):
     )
 
     # Veritabanı
+    # DATABASE_URL: Ana bağlantı - API, Worker için
+    # Supabase: Port 6543 (Transaction mode) KULLANIN - 5432 ile "QueuePool limit" hatası olur.
+    # Örnek: postgresql://postgres.xxx:pass@aws-1-eu-central-1.pooler.supabase.com:6543/postgres
     DATABASE_URL: str = "postgresql://coupon_user:coupon_pass@localhost:5432/coupon_db"
+    # DATABASE_URL_DIRECT: Opsiyonel - Migration, uzun scriptler için (5432 Direct)
+    # İki port: 6543=Pooler (yüksek eşzamanlılık), 5432=Direct (migration/script)
+    DATABASE_URL_DIRECT: Optional[str] = None
 
     # Pool ayarları (SQLAlchemy varsayılanları)
     DB_POOL_SIZE: int = 5

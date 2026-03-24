@@ -2,6 +2,9 @@
 SSH üzerinden event puanlarını yeniden hesaplar.
 Admin panel yerine doğrudan sunucuda çalıştır - timeout/connection limit atlanır.
 
+DATABASE_URL_DIRECT (5432) tanımlıysa onu kullanır - ana trafikten izole.
+İki port: 6543=API/Worker, 5432=Migration/Recalculate
+
 Kullanım:
   docker exec -it coupon_worker_prod python scripts/recalculate_event_points.py 70
 
@@ -22,7 +25,7 @@ def main():
 
     event_id = int(sys.argv[1])
 
-    from shared.database import SessionLocal
+    from shared.database import SessionLocalDirect
     from shared.models.event import Event
     from shared.models.coupon import Coupon
     from shared.models.coupon_event_result import CouponEventResult
@@ -31,7 +34,8 @@ def main():
     from shared.domain.scoring_engine import calculate_points_for_event
     from sqlalchemy import func
 
-    db = SessionLocal()
+    # DIRECT (5432) kullan - ana trafikten izole, uzun transaction için
+    db = SessionLocalDirect()
     try:
         event = db.query(Event).filter(Event.id == event_id).first()
         if not event:
@@ -60,6 +64,9 @@ def main():
                 recalculated_count += 1
             except Exception as e:
                 errors.append(f"Coupon id={cer.coupon_id}: {str(e)}")
+
+        # CER güncellemelerini DB'ye yaz - total_points SUM sorgusu yeni değerleri görsün
+        db.flush()
 
         enrollments = db.query(EventParticipant).filter(EventParticipant.event_id == event_id).all()
         for ep in enrollments:

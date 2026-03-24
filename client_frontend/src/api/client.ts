@@ -27,6 +27,8 @@ export type PublicEvent = {
         [key: string]: any
     }
     content_rules?: { title: string; content: string; icon: string }[]
+    /** Doluysa Turnuva Kurallarında bu HTML önceliklidir (admin güvenilir kaynak). */
+    content_rules_html?: string | null
 }
 
 

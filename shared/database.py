@@ -46,19 +46,25 @@ def get_engine_kwargs(db_url: str) -> dict:
         kwargs["poolclass"] = None
         kwargs["connect_args"] = {"check_same_thread": False}
     else:
-        # Supabase pooler (6543): NullPool - her istekte yeni bağlantı, SSL kapanma sorunu yok
+        # Supabase pooler (6543): NullPool - Transaction mode, Supabase kendi pool'unu kullanır.
+        # API için 6543 ÖNERİLİR - paralel istekler sorunsuz çalışır.
         if is_supabase_pooler(db_url):
             kwargs["poolclass"] = NullPool
             kwargs["connect_args"] = {"connect_timeout": 10}
+            logger.info("Supabase Transaction mode (6543): NullPool - önerilen üretim ayarı")
         else:
             # Normal PostgreSQL/MySQL: QueuePool
-            # Supabase Session mode (5432): MaxClients sınırı - API+Worker+RewardWorker paylaşıyor
+            # Supabase Session mode (5432): pool_size 2+1 çok düşük - paralel istekler timeout olur.
+            # Frontend aynı anda 4-6 istek atıyor (events, rewards, coupons, enrollments) -> en az 5-6 bağlantı gerekli.
             pool_size = settings.DB_POOL_SIZE
             max_overflow = settings.DB_MAX_OVERFLOW
             if is_supabase_session_mode(db_url):
-                pool_size = 2
-                max_overflow = 1
-                logger.info(f"Supabase Session mode (5432): pool_size={pool_size}, max_overflow={max_overflow}")
+                pool_size = max(5, settings.DB_POOL_SIZE)  # En az 5 (frontend paralel istekler için)
+                max_overflow = max(5, settings.DB_MAX_OVERFLOW)
+                logger.warning(
+                    f"Supabase Session mode (5432): pool_size={pool_size}, max_overflow={max_overflow}. "
+                    "Paralel timeout sorunları için DATABASE_URL portunu 6543 yapın (Transaction mode)."
+                )
             kwargs["poolclass"] = QueuePool
             kwargs["pool_size"] = pool_size
             kwargs["max_overflow"] = max_overflow
@@ -68,11 +74,21 @@ def get_engine_kwargs(db_url: str) -> dict:
     
     return kwargs
 
-# Engine oluştur
+# Engine 1: Ana (API, Worker) - DATABASE_URL, genelde 6543 Pooler
 engine = create_engine(
     settings.DATABASE_URL,
     **get_engine_kwargs(settings.DATABASE_URL)
 )
+
+# Engine 2: Direct (Migration, uzun scriptler) - DATABASE_URL_DIRECT, genelde 5432
+# Ayarlanmamışsa ana engine kullanılır
+engine_direct = None
+if settings.DATABASE_URL_DIRECT and settings.DATABASE_URL_DIRECT != settings.DATABASE_URL:
+    engine_direct = create_engine(
+        settings.DATABASE_URL_DIRECT,
+        **get_engine_kwargs(settings.DATABASE_URL_DIRECT)
+    )
+    logger.info("Dual-port: engine_direct (5432) migration/script için ayrıldı")
 
 # Connection retry mekanizması
 @event.listens_for(engine, "connect")
@@ -83,9 +99,17 @@ def set_sqlite_pragma(dbapi_conn, connection_record):
         cursor.execute("PRAGMA foreign_keys=ON")
         cursor.close()
 
-# Session factory
+# Session factory - Ana (API, Worker)
 SessionLocal = sessionmaker(
     bind=engine,
+    autoflush=False,
+    autocommit=False,
+    expire_on_commit=False
+)
+
+# Session factory - Direct (Migration, recalculate vb.)
+SessionLocalDirect = sessionmaker(
+    bind=engine_direct or engine,
     autoflush=False,
     autocommit=False,
     expire_on_commit=False
@@ -132,6 +156,20 @@ def get_db_session():
             except OperationalError as e:
                 # Bağlantı sunucu tarafından kapatılmış olabilir - sessizce geç
                 logger.debug(f"Session close failed (connection already closed): {e}")
+
+
+def get_db_session_direct():
+    """Direct connection (5432) - Migration, recalculate gibi uzun işlemler için."""
+    db = None
+    try:
+        db = SessionLocalDirect()
+        yield db
+    finally:
+        if db:
+            try:
+                db.close()
+            except OperationalError:
+                pass
 
 
 def check_database_health() -> bool:

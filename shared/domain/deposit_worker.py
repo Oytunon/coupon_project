@@ -6,6 +6,7 @@ TOPLU çekim: API'den tek seferde (pagination ile) tüm yatırımlar alınır, k
 - scan_hours verilmezse (manuel): min_joined'tan bugüne tam tarama, REPLACE.
 """
 import logging
+import time
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from typing import Optional
@@ -38,26 +39,36 @@ async def process_deposits(
     def update_job_status(status: str, processed: int = 0, saved: int = 0, error: Optional[str] = None, total: int = 0, _db=None):
         if not job_id:
             return
-        log_db = _db if _db is not None else SessionLocal()
-        own = _db is None
-        try:
-            job = log_db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
-            if job:
-                job.status = status
-                job.processed_count += processed
-                job.saved_count += saved
-                if total > 0:
-                    job.total_count = total
-                if error:
-                    job.error_message = str(error)
-                if status in ("completed", "failed", "cancelled"):
-                    job.completed_at = datetime.now(timezone.utc)
-                log_db.commit()
-        except Exception as ex:
-            logger.error(f"Deposit job update error: {ex}")
-        finally:
-            if own:
-                log_db.close()
+        max_retries = 3 if status in ("completed", "failed", "cancelled") else 1
+        for attempt in range(max_retries):
+            log_db = _db if (_db is not None and attempt == 0) else SessionLocal()
+            own = _db is None or attempt > 0
+            try:
+                job = log_db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
+                if job:
+                    job.status = status
+                    job.processed_count += processed
+                    job.saved_count += saved
+                    if total > 0:
+                        job.total_count = total
+                    if error:
+                        job.error_message = str(error)
+                    if status in ("completed", "failed", "cancelled"):
+                        job.completed_at = datetime.now(timezone.utc)
+                    log_db.commit()
+                break
+            except Exception as ex:
+                logger.error(f"Deposit job update error (attempt {attempt + 1}/{max_retries}): {ex}")
+                if attempt < max_retries - 1 and status in ("completed", "failed", "cancelled"):
+                    time.sleep(2)
+                else:
+                    break
+            finally:
+                if own:
+                    try:
+                        log_db.close()
+                    except Exception:
+                        pass
 
     try:
         if not job_id:
