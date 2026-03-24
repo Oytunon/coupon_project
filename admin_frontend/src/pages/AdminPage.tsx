@@ -153,6 +153,11 @@ const distributeRewards = async (eventId: number) => {
     return res.data
 }
 
+const fetchRewardPreview = async (eventId: number) => {
+    const res = await apiClient.get(`/admin/events/${eventId}/reward-preview`)
+    return res.data
+}
+
 const fetchRewardHistory = async (eventId: number) => {
     const res = await apiClient.get(`/admin/events/${eventId}/reward-history`)
     return res.data
@@ -451,6 +456,10 @@ export default function AdminPage() {
     const [editingEvent, setEditingEvent] = useState<any>(null)
     const [showHistoryModal, setShowHistoryModal] = useState(false)
     const [historyEvent, setHistoryEvent] = useState<any>(null)
+    const [showRewardPreviewModal, setShowRewardPreviewModal] = useState(false)
+    const [rewardPreviewEvent, setRewardPreviewEvent] = useState<any>(null)
+    const [rewardPreviewData, setRewardPreviewData] = useState<any>(null)
+    const [rewardPreviewLoading, setRewardPreviewLoading] = useState(false)
     const [rewardPoolEvent, setRewardPoolEvent] = useState<any>(null)
 
     const [viewEventId, setViewEventId] = useState<number | null>(null)
@@ -1487,7 +1496,7 @@ export default function AdminPage() {
                                                 <Button size="icon" variant="ghost"
                                                     className={`${event.reward_status === 'processing' ? 'opacity-30 cursor-not-allowed' : 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10'}`}
                                                     disabled={event.reward_status === 'processing'}
-                                                    onClick={() => {
+                                                    onClick={async () => {
                                                         if (event.status !== 'ended') {
                                                             toast({
                                                                 title: "Uyarı",
@@ -1496,9 +1505,24 @@ export default function AdminPage() {
                                                             });
                                                             return;
                                                         }
-                                                        distributeRewards(event.id).then(() => toast({ title: "Başarılı", description: "Ödül dağıtımı sıraya alındı." }));
+                                                        setRewardPreviewEvent(event);
+                                                        setRewardPreviewData(null);
+                                                        setShowRewardPreviewModal(true);
+                                                        setRewardPreviewLoading(true);
+                                                        try {
+                                                            const data = await fetchRewardPreview(event.id);
+                                                            setRewardPreviewData(data);
+                                                        } catch (e: any) {
+                                                            const d = e?.response?.data?.detail;
+                                                            const msg = typeof d === 'string' ? d : (e?.message || 'Önizleme yüklenemedi');
+                                                            toast({ title: "Hata", description: msg, variant: "destructive" });
+                                                            setShowRewardPreviewModal(false);
+                                                            setRewardPreviewEvent(null);
+                                                        } finally {
+                                                            setRewardPreviewLoading(false);
+                                                        }
                                                     }}
-                                                    title={event.reward_status === 'processing' ? "Dağıtım devam ediyor..." : "Ödülleri Dağıt"}
+                                                    title={event.reward_status === 'processing' ? "Dağıtım devam ediyor..." : "Ödülleri Dağıt (önizleme)"}
                                                 >
                                                     <Gift className="h-4 w-4" />
                                                 </Button>
@@ -2375,6 +2399,134 @@ export default function AdminPage() {
                                             <Download className="h-4 w-4" /> Excel'e Aktar
                                         </Button>
                                         <Button variant="outline" onClick={() => setShowHistoryModal(false)}>Kapat</Button>
+                                    </div>
+                                </Card>
+                            </div>
+                        )}
+
+                        {showRewardPreviewModal && rewardPreviewEvent && (
+                            <div
+                                className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+                                onClick={() => { setShowRewardPreviewModal(false); setRewardPreviewEvent(null); setRewardPreviewData(null); }}
+                            >
+                                <Card className="bg-card border-white/10 w-full max-w-4xl shadow-2xl max-h-[92vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+                                    <CardHeader className="flex-shrink-0 border-b border-white/5">
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Gift className="h-6 w-6 text-emerald-400" />
+                                            Ödül dağıtım önizlemesi
+                                        </CardTitle>
+                                        <CardDescription>
+                                            {rewardPreviewEvent.name} — Sıralama 1. den itibaren listelenir. Aşağıdaki &quot;Dağıtım sırası&quot; worker ile birebir aynıdır. Kontrol edip onaylayın.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="overflow-y-auto custom-scrollbar flex-1 min-h-0 py-4 space-y-6">
+                                        {rewardPreviewLoading ? (
+                                            <div className="py-20 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+                                                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                                                Önizleme hesaplanıyor…
+                                            </div>
+                                        ) : rewardPreviewData ? (
+                                            <>
+                                                <div className="flex flex-wrap gap-3 text-sm">
+                                                    <Badge variant="outline">Katılımcı: {rewardPreviewData.participant_count}</Badge>
+                                                    <Badge variant="outline">Tanımlı kural: {rewardPreviewData.rules_count}</Badge>
+                                                    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Ödül alacak kişi: {rewardPreviewData.payout_count}</Badge>
+                                                </div>
+                                                {rewardPreviewData.payout_count === 0 && (
+                                                    <Alert className="border-amber-500/30 bg-amber-500/5">
+                                                        <AlertCircle className="h-4 w-4" />
+                                                        <AlertTitle>Uyarı</AlertTitle>
+                                                        <AlertDescription>
+                                                            Kimseye ödül düşmüyor. Ödül kurallarını (Ödüller sekmesi) ve liderlik puanlarını kontrol edin.
+                                                        </AlertDescription>
+                                                    </Alert>
+                                                )}
+                                                <div>
+                                                    <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Liderlik sırası (1 → 2 → 3 …)</h4>
+                                                    <div className="overflow-x-auto rounded-lg border border-white/10">
+                                                        <table className="w-full text-left text-xs">
+                                                            <thead className="bg-white/5 text-muted-foreground uppercase text-[10px]">
+                                                                <tr>
+                                                                    <th className="px-3 py-2">Sıra</th>
+                                                                    <th className="px-3 py-2">Kullanıcı</th>
+                                                                    <th className="px-3 py-2">Puan</th>
+                                                                    <th className="px-3 py-2">Ödül?</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="divide-y divide-white/5">
+                                                                {(rewardPreviewData.leaderboard || []).map((row: any) => (
+                                                                    <tr key={row.client_id} className={row.receives_payout ? 'bg-emerald-500/5' : ''}>
+                                                                        <td className="px-3 py-2 font-mono font-bold text-primary">#{row.rank}</td>
+                                                                        <td className="px-3 py-2 font-medium">{row.username}</td>
+                                                                        <td className="px-3 py-2">{Number(row.points).toLocaleString('tr-TR')}</td>
+                                                                        <td className="px-3 py-2">{row.receives_payout ? 'Evet' : '—'}</td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Gerçek dağıtım sırası (onay sonrası bu sırada gönderilir)</h4>
+                                                    <div className="overflow-x-auto rounded-lg border border-emerald-500/20">
+                                                        <table className="w-full text-left text-xs">
+                                                            <thead className="bg-emerald-500/10 text-emerald-200 uppercase text-[10px]">
+                                                                <tr>
+                                                                    <th className="px-3 py-2">#</th>
+                                                                    <th className="px-3 py-2">Sıra</th>
+                                                                    <th className="px-3 py-2">Kullanıcı</th>
+                                                                    <th className="px-3 py-2">Tür</th>
+                                                                    <th className="px-3 py-2">Miktar</th>
+                                                                    <th className="px-3 py-2">Kriter</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="divide-y divide-white/5">
+                                                                {(rewardPreviewData.payouts || []).map((p: any) => (
+                                                                    <tr key={`${p.sequence}-${p.client_id}`}>
+                                                                        <td className="px-3 py-2 font-mono">{p.sequence}</td>
+                                                                        <td className="px-3 py-2 font-bold text-primary">#{p.rank}</td>
+                                                                        <td className="px-3 py-2">{p.username}</td>
+                                                                        <td className="px-3 py-2 uppercase">{p.reward_type}</td>
+                                                                        <td className="px-3 py-2 font-bold text-emerald-400">{p.amount}</td>
+                                                                        <td className="px-3 py-2 text-muted-foreground">{p.criteria_type}={p.criteria_value}</td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        ) : null}
+                                    </CardContent>
+                                    <div className="p-4 border-t border-white/5 flex flex-wrap justify-end gap-2 flex-shrink-0">
+                                        <Button variant="outline" onClick={() => { setShowRewardPreviewModal(false); setRewardPreviewEvent(null); setRewardPreviewData(null); }}>
+                                            İptal
+                                        </Button>
+                                        <Button
+                                            className="bg-emerald-600 hover:bg-emerald-500 text-white"
+                                            disabled={rewardPreviewLoading || !rewardPreviewData || rewardPreviewEvent?.reward_status === 'processing'}
+                                            onClick={async () => {
+                                                if (!rewardPreviewEvent) return;
+                                                try {
+                                                    await distributeRewards(rewardPreviewEvent.id);
+                                                    toast({
+                                                        title: "Kuyruğa alındı",
+                                                        description: "Ödüller arka planda dağıtılıyor; işlem süresi kural sayısına göre değişir. Durum rozetinden takip edebilirsiniz.",
+                                                    });
+                                                    setShowRewardPreviewModal(false);
+                                                    setRewardPreviewEvent(null);
+                                                    setRewardPreviewData(null);
+                                                    const eList = await fetchEvents();
+                                                    setEvents(eList);
+                                                } catch (e: any) {
+                                                    const d = e?.response?.data?.detail;
+                                                    const msg = typeof d === 'string' ? d : (e?.message || 'Dağıtım başlatılamadı');
+                                                    toast({ title: "Hata", description: msg, variant: "destructive" });
+                                                }
+                                            }}
+                                        >
+                                            Onayla ve dağıt
+                                        </Button>
                                     </div>
                                 </Card>
                             </div>

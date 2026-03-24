@@ -685,6 +685,32 @@ async def run_event_worker(
     return {"status": "initiated", "message": "Worker started", "job_id": job.id}
 
 
+@router.get("/{event_id}/reward-preview")
+async def get_reward_distribution_preview(
+    event_id: int,
+    db: Session = Depends(get_db_session),
+    _: AdminUser = Depends(get_require_full_admin)
+):
+    """
+    Ödül dağıtım önizlemesi: liderlik sırası (1., 2., …) ve worker ile aynı mantıkta kimin ne alacağı.
+    Onaydan önce admin panelde gösterilir.
+    """
+    from shared.domain.reward_distribution import compute_reward_distribution_plan
+
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(404, "Event not found")
+    if event.status != "ended":
+        raise HTTPException(
+            400,
+            "Önizleme için etkinlik bitmiş olmalıdır (Status: Ended). Önce kampanyayı sonlandırın.",
+        )
+    data = compute_reward_distribution_plan(db, event_id)
+    if data.get("error") == "event_not_found":
+        raise HTTPException(404, "Event not found")
+    return data
+
+
 @router.post("/{event_id}/distribute-rewards", status_code=202)
 async def distribute_event_rewards(
     event_id: int,
