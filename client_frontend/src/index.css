@@ -59,6 +59,15 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Admin’den gelen Turnuva Kuralları HTML: dikeyde sayfa ile uzasın; geniş tabloda yatay kaydırma */
+  .content-rules-html {
+    max-height: none;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    overflow-x: auto;
+    overflow-y: visible;
+  }
 }
 
 @keyframes shine {
