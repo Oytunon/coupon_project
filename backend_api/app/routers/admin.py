@@ -433,10 +433,27 @@ async def get_event_statistics_api(event_id: int, db: Session = Depends(get_db))
     total_coupons = total_coupons_from_cer + excluded_count
     total_stake = total_stake_from_cer + excluded_stake
 
+    # AKTİF İSTATİSTİK WORKER KONTROLÜ
+    from shared.models.worker_log import WorkerLog
+    active_worker = db.query(WorkerLog).filter(
+        WorkerLog.event_id == event_id,
+        WorkerLog.job_type == "stats",
+        WorkerLog.status.in_(["pending", "running"])
+    ).order_by(WorkerLog.id.desc()).first()
+
+    active_worker_data = None
+    if active_worker:
+        active_worker_data = {
+            "id": active_worker.id,
+            "status": active_worker.status,
+            "created_at": active_worker.created_at.isoformat() if active_worker.created_at else None,
+        }
+
     return {
         "event_id": event_id,
         "event_name": event.name,
         "status": event.status or "draft",
+        "active_worker": active_worker_data,
         "katilim": {
             "total_participants": total_participants,
             "participants_with_points": participants_with_points,

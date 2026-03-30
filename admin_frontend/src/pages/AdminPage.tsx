@@ -128,8 +128,8 @@ const recalculateEventPoints = async (eventId: number) => {
     return res.data
 }
 
-const runEventWorker = async (eventId: number) => {
-    const res = await apiClient.post(`/admin/events/${eventId}/worker`)
+const runEventWorker = async (eventId: number, dates?: { start_date?: string, end_date?: string }) => {
+    const res = await apiClient.post(`/admin/events/${eventId}/worker`, dates || {})
     return res.data
 }
 
@@ -337,6 +337,11 @@ export default function AdminPage() {
     const [workerStartTime, setWorkerStartTime] = useState<number | null>(null)
     const [workerElapsedSeconds, setWorkerElapsedSeconds] = useState(0)
     const [workerEstimatedSeconds, setWorkerEstimatedSeconds] = useState<number | null>(null)
+
+    // Manual Worker Date Modal states
+    const [showWorkerDateModal, setShowWorkerDateModal] = useState(false)
+    const [workerDateEvent, setWorkerDateEvent] = useState<any | null>(null)
+    const [workerDates, setWorkerDates] = useState({ start_date: "", end_date: "" })
 
     useEffect(() => {
         if (!showWorkerModal || !workerStartTime) return
@@ -801,9 +806,9 @@ export default function AdminPage() {
         }
     }
 
-    const handleRunWorker = async (event: any) => {
+    const handleRunWorker = async (event: any, dates?: { start_date?: string, end_date?: string }) => {
         try {
-            const res = await runEventWorker(event.id)
+            const res = await runEventWorker(event.id, dates)
             const jobId = res.job_id
 
             setWorkerJob({ id: jobId, status: 'pending', total: 0, processed: 0, saved: 0, event_name: event.name })
@@ -1471,7 +1476,11 @@ export default function AdminPage() {
 
 
                                             {adminRole !== 'moderator' && (
-                                                <Button size="sm" variant="outline" className="border-yellow-800 text-yellow-500 hover:bg-yellow-500/10 font-bold gap-2" onClick={() => handleRunWorker(event)} title="Kuponları Çek">
+                                                <Button size="sm" variant="outline" className="border-yellow-800 text-yellow-500 hover:bg-yellow-500/10 font-bold gap-2" onClick={() => {
+                                                    setWorkerDateEvent(event)
+                                                    setWorkerDates({ start_date: "", end_date: "" })
+                                                    setShowWorkerDateModal(true)
+                                                }} title="Kuponları Çek">
                                                     <RefreshCw className="h-4 w-4" /> Kuponları Çek
                                                 </Button>
                                             )}
@@ -1729,6 +1738,49 @@ export default function AdminPage() {
                                         ) : statisticsData ? (
                                             <>
                                                 <div className="space-y-4">
+                                                    {statisticsData.active_worker && (
+                                                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-2 flex items-center justify-between animate-pulse">
+                                                            <div className="flex items-center gap-3">
+                                                                <Loader2 className="h-5 w-5 text-blue-400 animate-spin" />
+                                                                <div>
+                                                                    <div className="font-bold text-blue-400">İstatistik ve Yatırım Senkronizasyonu Devam Ediyor...</div>
+                                                                    <div className="text-xs text-blue-400/80 mt-0.5">
+                                                                        Arka planda sistem verileri çekiyor. Verilerin tam ve doğru yansıması için işlemin bitmesini bekleyin. 
+                                                                        <span className="ml-2 font-mono opacity-70">
+                                                                            (Başlangıç: {statisticsData.active_worker.created_at ? new Date(statisticsData.active_worker.created_at).toLocaleString("tr-TR", {hour: '2-digit', minute: '2-digit'}) : 'Bilinmiyor'})
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <Button 
+                                                                    variant="destructive" 
+                                                                    size="sm" 
+                                                                    className="h-7 text-xs font-bold"
+                                                                    onClick={async () => {
+                                                                        if(!confirm("Gerçekten iptal etmek istiyor musunuz? İşlem iptal edilecek ve baştan başlatmanız gerekecektir.")) return;
+                                                                        try {
+                                                                            await apiClient.post(`/admin/worker-jobs/${statisticsData.active_worker.id}/cancel`);
+                                                                            toast({title: "İptal Ediliyor", description: "Worker durdurma komutu gönderildi. Birkaç saniye içinde arka plan işlemi sonlanacaktır."});
+                                                                            
+                                                                            // UI'ı güncellemek için stats'i tekrar çek
+                                                                            const eList = await fetchEvents();
+                                                                            setEvents(eList);
+                                                                            const res = await apiClient.get(`/admin/events/${statisticsEventId}/stats`);
+                                                                            setStatisticsData(res.data);
+                                                                        } catch(e: any) {
+                                                                            toast({title: "Hata", description: "Worker iptal edilemedi.", variant: "destructive"});
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    İptal Et
+                                                                </Button>
+                                                                <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/30 font-bold uppercase">
+                                                                    {statisticsData.active_worker.status}
+                                                                </Badge>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                     <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                                                         <div className="flex justify-between items-center">
                                                             <div>
@@ -3145,6 +3197,55 @@ export default function AdminPage() {
                     </Card>
                 </div>
             )}
+            {showWorkerDateModal && workerDateEvent && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+                    <Card className="bg-slate-900 border-white/10 shadow-2xl w-full max-w-md">
+                        <CardHeader>
+                            <CardTitle className="text-xl font-bold flex items-center gap-2">
+                                <RefreshCw className="h-5 w-5 text-yellow-500" />
+                                Kupon Çekim Başlat
+                            </CardTitle>
+                            <CardDescription>
+                                {workerDateEvent.name} için kupon çekimi başlatılacak. Hangi tarihler arasını taramak istediğinizi seçin (boş bırakırsanız varsayılan son 2 saatlık kazanan kuponları çeker).
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-muted-foreground uppercase">Başlangıç Tarihi</label>
+                                <Input
+                                    type="datetime-local"
+                                    value={workerDates.start_date}
+                                    onChange={e => setWorkerDates(prev => ({ ...prev, start_date: e.target.value }))}
+                                    className="bg-black/20"
+                                />
+                                <p className="text-xs text-muted-foreground italic">Zorunlu değil. Formatta lokal saatinizi seçin.</p>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-muted-foreground uppercase">Bitiş Tarihi</label>
+                                <Input
+                                    type="datetime-local"
+                                    value={workerDates.end_date}
+                                    onChange={e => setWorkerDates(prev => ({ ...prev, end_date: e.target.value }))}
+                                    className="bg-black/20"
+                                />
+                            </div>
+                        </CardContent>
+                        <CardFooter className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                            <Button variant="ghost" onClick={() => setShowWorkerDateModal(false)}>İptal</Button>
+                            <Button className="bg-yellow-500 hover:bg-yellow-600 font-bold" onClick={() => {
+                                setShowWorkerDateModal(false)
+                                const dates: any = {}
+                                if (workerDates.start_date) dates.start_date = workerDates.start_date + ":00Z"
+                                if (workerDates.end_date) dates.end_date = workerDates.end_date + ":00Z"
+                                handleRunWorker(workerDateEvent, Object.keys(dates).length > 0 ? dates : undefined)
+                            }}>
+                                <PlayCircle className="h-4 w-4 mr-2" /> Başlat
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </div>
+            )}
+
             {showWorkerModal && workerJob && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
                     <Card className="bg-slate-900/90 border-white/10 shadow-2xl w-full max-w-lg overflow-hidden">

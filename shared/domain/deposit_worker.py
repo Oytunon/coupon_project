@@ -24,10 +24,13 @@ from shared.services.betconstruct import WorkerCancelledException
 logger = logging.getLogger(__name__)
 
 
+import asyncio
+
 async def process_deposits(
     target_event_id: Optional[int] = None,
     job_id: Optional[int] = None,
     scan_hours: Optional[int] = None,
+    cancel_event: Optional[asyncio.Event] = None
 ):
     """
     Event katılımcılarının joined_at sonrası toplam yatırımlarını toplu çeker ve event_participant_deposits'e yazar.
@@ -169,7 +172,13 @@ async def process_deposits(
         # Manuel (full): MaxRows=500, 2sn gecikme → ~183 sayfa, ~6 dk. Otomatik: 200, 4sn.
         max_rows = None if incremental else MANUAL_MAX_ROWS
         page_delay = None if incremental else MANUAL_PAGE_DELAY_SEC
-        docs = await fetch_deposits_bulk(from_dt=from_dt, to_dt=to_dt, max_rows=max_rows, page_delay=page_delay)
+        docs = await fetch_deposits_bulk(from_dt=from_dt, to_dt=to_dt, max_rows=max_rows, page_delay=page_delay, cancel_event=cancel_event)
+
+        if cancel_event and cancel_event.is_set():
+            logger.info("[Deposit Worker] İşlem iptal edildiği için kayıtlar veritabanına işlenmiyor.")
+            if job_id:
+                update_job_status("cancelled")
+            return
 
         db = SessionLocal()  # Yazma için yeni session (önceki ~30 dk idle kalmıştı)
 

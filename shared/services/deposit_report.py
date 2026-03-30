@@ -53,12 +53,14 @@ def _parse_created_local(s: str) -> Optional[datetime]:
         return None
 
 
+import asyncio
 async def fetch_deposits_bulk(
     from_dt: datetime,
     to_dt: datetime,
     http_client: Optional[httpx.AsyncClient] = None,
     page_delay: Optional[float] = None,
     max_rows: Optional[int] = None,
+    cancel_event: Optional[asyncio.Event] = None
 ) -> list[dict]:
     """
     Tüm yatırımları toplu çeker (ClientId boş). Pagination ile.
@@ -82,6 +84,10 @@ async def fetch_deposits_bulk(
 
     try:
         while True:
+            if cancel_event and cancel_event.is_set():
+                logger.warning("[Deposit API] Toplu yatırım çekim işlemi kullanıcı tarafından iptal edildi.")
+                break
+
             page_num += 1
             body = {
                 "AmountFrom": "",

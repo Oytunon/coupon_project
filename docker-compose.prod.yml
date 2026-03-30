@@ -9,6 +9,9 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     volumes:
       - ./media_data:/app/media
 
@@ -20,6 +23,9 @@ services:
     restart: always
     env_file:
       - .env
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
 
   reward_worker:
     build:
@@ -29,6 +35,9 @@ services:
     restart: always
     env_file:
       - .env
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
 
   stats_worker:
     build:
@@ -38,4 +47,7 @@ services:
     restart: always
     env_file:
       - .env
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
   # Frontends are deployed to Vercel

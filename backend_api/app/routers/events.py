@@ -650,13 +650,18 @@ async def recalculate_event_points(
         raise HTTPException(500, f"Puanlar yeniden hesaplanamadı: {str(e)}")
 
 
+class WorkerRunRequest(BaseModel):
+    start_date: Optional[str] = Field(None, description="Başlangıç Tarihi (ISO formatında veya API'nin kabul ettiği string)")
+    end_date: Optional[str] = Field(None, description="Bitiş Tarihi (ISO formatında veya API'nin kabul ettiği string)")
+
 @router.post("/{event_id}/worker", status_code=202)
 async def run_event_worker(
     event_id: int,
+    body: Optional[WorkerRunRequest] = None,
     db: Session = Depends(get_db_session),
     _: AdminUser = Depends(get_require_full_admin)
 ):
-    """Worker'ı manuel tetikle."""
+    """Worker'ı manuel tetikle (Opsiyonel tarih aralığı ile)."""
     from shared.models.worker_log import WorkerLog
     from shared.domain.scoring_engine import process_coupons
     
@@ -675,13 +680,23 @@ async def run_event_worker(
             }
         )
     
-    job = WorkerLog(event_id=event_id, status="pending")
+    job_type = "coupon"
+    job = WorkerLog(event_id=event_id, status="pending", job_type=job_type)
     db.add(job)
     db.commit()
     db.refresh(job)
 
+    start_date_val = body.start_date if body else None
+    end_date_val = body.end_date if body else None
+
     import asyncio
-    asyncio.create_task(process_coupons(target_event_id=event_id, job_id=job.id, scan_hours=24))
+    asyncio.create_task(process_coupons(
+        target_event_id=event_id, 
+        job_id=job.id, 
+        scan_hours=24,
+        start_date_override=start_date_val,
+        end_date_override=end_date_val
+    ))
     return {"status": "initiated", "message": "Worker started", "job_id": job.id}
 
 

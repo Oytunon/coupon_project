@@ -53,13 +53,37 @@ async def run_worker():
                     end_date_utc3 = (event.end_date + tr_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
                     
                 db.close() 
+
+                cancel_event = asyncio.Event()
+
+                async def cancellation_poller(j_id, c_event):
+                    try:
+                        while not c_event.is_set():
+                            local_db = SessionLocal()
+                            try:
+                                from shared.models.worker_log import WorkerLog
+                                current_job = local_db.query(WorkerLog).filter(WorkerLog.id == j_id).first()
+                                if current_job and current_job.status in ("cancelled", "completed", "failed"):
+                                    c_event.set()
+                                    logger.warning(f"Stats Worker JobID={j_id} durumu '{current_job.status}' oldu, işlem iptal ediliyor.")
+                            except Exception as ex:
+                                pass
+                            finally:
+                                local_db.close()
+                            await asyncio.sleep(5)
+                    except asyncio.CancelledError:
+                        pass
+                
+                poller_task = asyncio.create_task(cancellation_poller(job_id, cancel_event))
                 
                 # 1. Deposit motorunu Manuel Tam Tarama modunda çalıştır (scan_hours=None)
                 logger.info(f"Adım 1: Yatırım (Deposit) Çekimi Başlatılıyor... [JobID={job_id}]")
-                await process_deposits(target_event_id=event_id, job_id=job_id, scan_hours=None)
+                await process_deposits(target_event_id=event_id, job_id=job_id, scan_hours=None, cancel_event=cancel_event)
                 
-                # 2. Kayıp Kuponları (State=3) çek - Deposit tamamlandıktan hemen sonra
-                if start_date_utc3 and end_date_utc3:
+                if cancel_event.is_set():
+                    logger.warning(f"[JobID={job_id}] İşlem iptal edildiğinden Adım 2 (Kayıp Kupon) atlanıyor.")
+                elif start_date_utc3 and end_date_utc3:
+                    # 2. Kayıp Kuponları (State=3) çek - Deposit tamamlandıktan hemen sonra
                     logger.info(f"Adım 2: Kayıp Kupon (State=3) Çekimi Başlatılıyor... Tarih: {start_date_utc3} - {end_date_utc3}")
                     from shared.domain.scoring_engine import process_coupons
                     try:
@@ -78,6 +102,9 @@ async def run_worker():
                         logger.error(f"Kayıp Kupon Çekimi Sırasında Hata: {pc_err}")
                 else:
                     logger.warning("Event verisi bulunamadı, Kayıp kupon çekimi atlandı.")
+
+                if poller_task and not poller_task.done():
+                    poller_task.cancel()
                 
             else:
                 db.close()
