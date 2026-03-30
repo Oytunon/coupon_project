@@ -324,10 +324,26 @@ async def process_coupons(
             poller_task = asyncio.create_task(_cancellation_poller(job_id, cancel_event))
 
         db.close()  # Uzun GetBetReport öncesi kapat (Supabase idle timeout)
+        db = None   # Referansı temizle — SessionLocal() başarısız olursa eski kapalı session'a erişim engellensin
 
         # state_filter: 4=Won, 3=Lost, None=Won+Lost (event_lost_coupons için)
         import time
         t_start = time.perf_counter()
+        
+        # OTIMIZASYON: Eğer dışarıdan bir filtre zorlanmadıysa ve aktif etkinliklerin HİÇBİRİNDE kaybeden kupon (loss_point_multiplier)
+        # çarpanı yoksa (yani hepsi 0 ise), API limitlerini yememek adına sadece Kazanan (Won = 4) kuponları çek.
+        if state_filter is None and active_events:
+            any_loss_points = False
+            for e in active_events:
+                loss_multiplier = float(getattr(e, 'loss_point_multiplier', 0) or 0)
+                if loss_multiplier != 0:
+                    any_loss_points = True
+                    break
+            
+            if not any_loss_points:
+                state_filter = 4
+                logger.info("[Worker] OPTİMİZASYON: Aktif etkinliklerde kayıp çarpanı 0 olduğu için API'den SADECE KAZANAN (Won) kuponlar çekilecek.")
+
         # Tarih override, scan_hours>=24 veya manuel (job_id): MaxRows=500 + 4sn sayfa arası (504 önlemek için)
         use_pagination = (start_date_override and end_date_override) or scan_hours >= 24 or job_id is not None
         max_rows = 500 if use_pagination else 0
@@ -699,22 +715,13 @@ async def process_coupons(
         if job_id:
             update_job_status("running", processed=len(bets), saved=total_saved, _db=db)
 
-        # Kupon işleri bittikten sonra deposit senkronu (sadece otomatik cron'da)
-        # Manuel run'da veya skip_deposits=True (backfill) ile deposit atlanır.
-        # Otomatik (scan_hours=1): son 1 saat incremental.
-        if not is_manual_run and not skip_deposits:
-            try:
-                from shared.domain.deposit_worker import process_deposits
-                dep_scan = scan_hours if scan_hours < 24 else 24
-                await process_deposits(target_event_id=target_event_id, job_id=job_id, scan_hours=dep_scan)
-            except Exception as dep_err:
-                logger.warning(f"[Worker] Deposit senkron hatası (kuponlar tamamlandı): {dep_err}")
         if job_id:
             update_job_status("completed", processed=len(bets), saved=total_saved, _db=db)
     except WorkerCancelledException as wc:
         logger.info(f"   [WORKER] Interrupted by cancellation: {wc}")
         try:
-            db.rollback()
+            if db is not None:
+                db.rollback()
         except Exception:
             pass
         if job_id:
@@ -731,7 +738,8 @@ async def process_coupons(
             logger.warning(f"⏳ Rate limit hatası tespit edildi. 5 dk cooldown başlatıldı.")
     finally:
         try:
-            db.close()
+            if db is not None:
+                db.close()
         except Exception:
             pass
         # Poller task'i temizle

@@ -16,8 +16,8 @@ def get_event_metrics(db: Session, event_id: int):
 
     # Aggregates from Coupon
     c_total = db.query(func.count(Coupon.id)).filter(Coupon.event_id == event_id).scalar() or 0
-    c_won = db.query(func.count(Coupon.id)).filter(Coupon.event_id == event_id, Coupon.state == "Won").scalar() or 0
-    c_lost = db.query(func.count(Coupon.id)).filter(Coupon.event_id == event_id, Coupon.state == "Lost").scalar() or 0
+    c_won = db.query(func.count(Coupon.id)).filter(Coupon.event_id == event_id, func.lower(Coupon.state) == "won").scalar() or 0
+    c_lost = db.query(func.count(Coupon.id)).filter(Coupon.event_id == event_id, func.lower(Coupon.state) == "lost").scalar() or 0
     c_stake = db.query(func.sum(Coupon.stake)).filter(Coupon.event_id == event_id).scalar() or 0.0
     
     # Participants

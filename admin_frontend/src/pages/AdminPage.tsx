@@ -133,6 +133,11 @@ const runEventWorker = async (eventId: number) => {
     return res.data
 }
 
+const runStatsWorker = async (eventId: number) => {
+    const res = await apiClient.post(`/admin/events/${eventId}/sync-stats`)
+    return res.data
+}
+
 const getEventStats = async (eventId: number) => {
     const res = await apiClient.get(`/admin/events/${eventId}/stats`)
     return res.data
@@ -1468,6 +1473,18 @@ export default function AdminPage() {
                                             {adminRole !== 'moderator' && (
                                                 <Button size="sm" variant="outline" className="border-yellow-800 text-yellow-500 hover:bg-yellow-500/10 font-bold gap-2" onClick={() => handleRunWorker(event)} title="Kuponları Çek">
                                                     <RefreshCw className="h-4 w-4" /> Kuponları Çek
+                                                </Button>
+                                            )}
+                                            {adminRole !== 'moderator' && (
+                                                <Button size="sm" variant="outline" className="border-blue-800 text-blue-500 hover:bg-blue-500/10 font-bold gap-2" onClick={async () => {
+                                                    try {
+                                                        const res = await runStatsWorker(event.id);
+                                                        toast({ title: "Başlatıldı", description: res.message || "İstatistik İşçisi sıraya alındı." });
+                                                    } catch(e: any) {
+                                                        toast({ title: "Hata", description: typeof e?.response?.data?.detail === 'object' ? e.response.data.detail.message : (e?.response?.data?.detail || "Başlatılamadı"), variant: "destructive" });
+                                                    }
+                                                }} title="İstatistik ve Yatırımları Topla">
+                                                    <BarChart3 className="h-4 w-4" /> İstatistikleri Topla
                                                 </Button>
                                             )}
                                             {adminRole !== 'moderator' && (

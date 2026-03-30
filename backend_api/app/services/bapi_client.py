@@ -2,6 +2,7 @@
 import requests
 import json
 import logging
+import time
 from typing import Optional
 from shared.settings import settings
 
@@ -49,30 +50,49 @@ class BapiClient:
             "PaymentSystemId": None
         }
         
-        try:
-            # Debug: Log exact payload and headers
-            import json
-            json_body = json.dumps(payload)
-            masked_headers = self._get_headers().copy()
-            if "Authorization" in masked_headers:
-                token = masked_headers["Authorization"]
-                masked_headers["Authorization"] = token[:10] + "***" if token else "None"
-            
-            logger.info(f"BAPI Request URL: {url}")
-            logger.info(f"BAPI Request Headers: {masked_headers}")
-            logger.info(f"BAPI Request Body (Raw): {json_body}")
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                json_body = json.dumps(payload)
+                masked_headers = self._get_headers().copy()
+                if "Authorization" in masked_headers:
+                    token = masked_headers["Authorization"]
+                    masked_headers["Authorization"] = token[:10] + "***" if token else "None"
 
-            logger.info(f"Sending cash reward to Client {client_id}: {amount} {currency}")
-            response = requests.post(url, json=payload, headers=self._get_headers(), timeout=10)
-            
-            # Raise for status code errors
-            response.raise_for_status()
-            
-            return response.json()
-            
-        except requests.exceptions.RequestException as e:
-            logger.error(f"BAPI Request Success Failed: {str(e)} - Body: {payload}")
-            raise e
+                logger.info(f"BAPI Request URL: {url}")
+                logger.info(f"BAPI Request Headers: {masked_headers}")
+                logger.info(f"BAPI Request Body (Raw): {json_body}")
+                logger.info(f"Sending cash reward to Client {client_id}: {amount} {currency} (attempt {attempt + 1}/{max_retries})")
+
+                response = requests.post(url, json=payload, headers=self._get_headers(), timeout=15)
+                response.raise_for_status()
+                return response.json()
+
+            except requests.exceptions.Timeout as e:
+                logger.warning(f"BAPI cash reward timeout for Client {client_id} (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)  # 1s, 2s, 4s
+                    continue
+                logger.error(f"BAPI cash reward failed after {max_retries} attempts for Client {client_id}")
+                raise
+            except requests.exceptions.ConnectionError as e:
+                logger.warning(f"BAPI cash reward connection error for Client {client_id} (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)
+                    continue
+                logger.error(f"BAPI cash reward failed after {max_retries} attempts for Client {client_id}")
+                raise
+            except requests.exceptions.HTTPError as e:
+                # 503 → geçici sunucu hatası, retry yap. Diğer 4xx/5xx → kalıcı hata, retry etme
+                if response.status_code == 503 and attempt < max_retries - 1:
+                    logger.warning(f"BAPI cash reward 503 for Client {client_id}, retry {attempt + 1}/{max_retries}")
+                    time.sleep(2 ** attempt)
+                    continue
+                logger.error(f"BAPI cash reward HTTP error for Client {client_id}: {e} - Body: {payload}")
+                raise
+            except requests.exceptions.RequestException as e:
+                logger.error(f"BAPI cash reward failed for Client {client_id}: {e} - Body: {payload}")
+                raise
     def add_client_to_bonus(self, client_id: int, amount: float, bonus_id: int, bonus_type: int, note: str = "Reward Distribution") -> dict:
         """
         Add a client to a bonus (Free Spin, Free Bet, etc.) via BAPI.
@@ -105,17 +125,39 @@ class BapiClient:
             "Type": bonus_type
         }
         
-        try:
-            # Debug: Log exact payload
-            json_body = json.dumps(payload)
-            logger.info(f"BAPI Bonus Request URL: {url}")
-            logger.info(f"BAPI Bonus Request Body: {json_body}")
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                json_body = json.dumps(payload)
+                logger.info(f"BAPI Bonus Request URL: {url}")
+                logger.info(f"BAPI Bonus Request Body: {json_body}")
+                logger.info(f"Adding Client {client_id} to bonus {bonus_id} (attempt {attempt + 1}/{max_retries})")
 
-            response = requests.post(url, json=payload, headers=self._get_headers(), timeout=10)
-            response.raise_for_status()
-            
-            return response.json()
-            
-        except requests.exceptions.RequestException as e:
-            logger.error(f"BAPI Bonus Request Failed: {str(e)} - Body: {payload}")
-            raise e
+                response = requests.post(url, json=payload, headers=self._get_headers(), timeout=15)
+                response.raise_for_status()
+                return response.json()
+
+            except requests.exceptions.Timeout as e:
+                logger.warning(f"BAPI bonus timeout for Client {client_id} (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)
+                    continue
+                logger.error(f"BAPI bonus failed after {max_retries} attempts for Client {client_id}")
+                raise
+            except requests.exceptions.ConnectionError as e:
+                logger.warning(f"BAPI bonus connection error for Client {client_id} (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)
+                    continue
+                logger.error(f"BAPI bonus failed after {max_retries} attempts for Client {client_id}")
+                raise
+            except requests.exceptions.HTTPError as e:
+                if response.status_code == 503 and attempt < max_retries - 1:
+                    logger.warning(f"BAPI bonus 503 for Client {client_id}, retry {attempt + 1}/{max_retries}")
+                    time.sleep(2 ** attempt)
+                    continue
+                logger.error(f"BAPI bonus HTTP error for Client {client_id}: {e} - Body: {payload}")
+                raise
+            except requests.exceptions.RequestException as e:
+                logger.error(f"BAPI bonus failed for Client {client_id}: {e} - Body: {payload}")
+                raise

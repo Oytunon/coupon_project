@@ -6,6 +6,7 @@ class WorkerLog(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     event_id = Column(Integer, nullable=True) # None means all events (cron)
+    job_type = Column(String, default="coupon") # "coupon" veya "stats"
     status = Column(String, default="pending") # pending, running, completed, failed
     processed_count = Column(Integer, default=0)
     saved_count = Column(Integer, default=0)

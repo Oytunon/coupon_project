@@ -685,6 +685,41 @@ async def run_event_worker(
     return {"status": "initiated", "message": "Worker started", "job_id": job.id}
 
 
+@router.post("/{event_id}/sync-stats", status_code=202)
+async def run_stats_worker(
+    event_id: int,
+    db: Session = Depends(get_db_session),
+    _: AdminUser = Depends(get_require_full_admin)
+):
+    """İstatistik/Yatırım Worker'ını manuel tetikle."""
+    from shared.models.worker_log import WorkerLog
+    
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(404, "Event not found")
+    
+    # Eşzamanlılık kilidi: Başka bir stats worker çalışıyor mu?
+    running_job = db.query(WorkerLog).filter(
+        WorkerLog.status.in_(["running", "pending"]),
+        WorkerLog.job_type == "stats"
+    ).first()
+    if running_job:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": f"Halihazırda çalışan bir istatistik senkronizasyonu var (Job ID: {running_job.id}).",
+                "running_job_id": running_job.id,
+            }
+        )
+    
+    job = WorkerLog(event_id=event_id, job_type="stats", status="pending")
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+
+    return {"status": "initiated", "message": "Stats worker started", "job_id": job.id}
+
+
 @router.get("/{event_id}/reward-preview")
 async def get_reward_distribution_preview(
     event_id: int,

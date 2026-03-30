@@ -124,6 +124,14 @@ async def process_deposits(
 
         min_joined = min(ja for per_client in client_to_enrollments.values() for _, _, ja in per_client)
         now_utc = datetime.now(timezone.utc)
+        
+        # En geç biten etkinliğin bitiş tarihini bul (Etkinlik bitmişse, bittikten sonrasını aramaya gerek yok)
+        max_end_date = max(e.end_date for e in active_events)
+        if max_end_date.tzinfo is None:
+            max_end_date = max_end_date.replace(tzinfo=timezone.utc)
+        
+        # Taramayı şu an ile etkinlik bitiş tarihi (hangisi daha erkense) ile sınırla
+        to_dt = min(now_utc, max_end_date)
 
         # Tarih aralığı: scan_hours varsa incremental (son N saat), yoksa tam tarama
         event_ids = [e.id for e in active_events]
@@ -153,7 +161,7 @@ async def process_deposits(
 
         db.close()  # Uzun API çekimi öncesi kapat (Supabase idle timeout)
 
-        logger.info(f"[Deposit Worker] Event(ler): {event_ids} | Katılımcı: {len(enrolled_client_ids)} | Tarih: {from_dt.strftime('%Y-%m-%d %H:%M')} - {now_utc.strftime('%Y-%m-%d %H:%M')} UTC | {'incremental' if incremental else 'full'}")
+        logger.info(f"[Deposit Worker] Event(ler): {event_ids} | Katılımcı: {len(enrolled_client_ids)} | Tarih: {from_dt.strftime('%Y-%m-%d %H:%M')} - {to_dt.strftime('%Y-%m-%d %H:%M')} UTC | {'incremental' if incremental else 'full'}")
 
         if job_id:
             update_job_status("running", total=len(enrolled_client_ids))
@@ -161,7 +169,7 @@ async def process_deposits(
         # Manuel (full): MaxRows=500, 2sn gecikme → ~183 sayfa, ~6 dk. Otomatik: 200, 4sn.
         max_rows = None if incremental else MANUAL_MAX_ROWS
         page_delay = None if incremental else MANUAL_PAGE_DELAY_SEC
-        docs = await fetch_deposits_bulk(from_dt=from_dt, to_dt=now_utc, max_rows=max_rows, page_delay=page_delay)
+        docs = await fetch_deposits_bulk(from_dt=from_dt, to_dt=to_dt, max_rows=max_rows, page_delay=page_delay)
 
         db = SessionLocal()  # Yazma için yeni session (önceki ~30 dk idle kalmıştı)
 

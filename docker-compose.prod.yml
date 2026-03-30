@@ -29,4 +29,13 @@ services:
     restart: always
     env_file:
       - .env
+
+  stats_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.stats_worker
+    container_name: coupon_stats_worker_prod
+    restart: always
+    env_file:
+      - .env
   # Frontends are deployed to Vercel
