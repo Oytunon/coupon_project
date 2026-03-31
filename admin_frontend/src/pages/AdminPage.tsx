@@ -879,6 +879,76 @@ export default function AdminPage() {
         }
     }
 
+    const handleRunStatsWorker = async (event: any) => {
+        try {
+            const res = await runStatsWorker(event.id)
+            const jobId = res.job_id
+
+            setWorkerJob({ id: jobId, status: 'pending', total: 0, processed: 0, saved: 0, event_name: event.name + " (İstatistik)" })
+            setShowWorkerModal(true)
+            setWorkerStartTime(Date.now())
+            setWorkerElapsedSeconds(0)
+            setWorkerEstimatedSeconds(180) // deposit and stats scanning takes longer
+
+            let pollFailCount = 0
+            const MAX_POLL_FAILS = 10
+            const checkStatus = setInterval(async () => {
+                try {
+                    const statusRes = await apiClient.get(`/admin/worker-jobs/${jobId}`)
+                    pollFailCount = 0
+                    const job = statusRes.data
+
+                    setWorkerJob((prev: any) => ({ ...prev, ...job, event_name: event.name + " (İstatistik)" }))
+
+                    if (job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled') {
+                        clearInterval(checkStatus)
+                        if (job.status === 'completed') {
+                            toast({
+                                title: "İşlem Tamamlandı",
+                                description: `İstatistikler ve yatırımlar güncellendi.`,
+                                duration: 5000
+                            })
+                            try {
+                                const s = await fetchAdminStats().catch(() => null)
+                                setStats(s)
+                            } catch (refreshErr) {}
+                        }
+                    }
+                } catch (e) {
+                    console.error("Status check failed", e)
+                    pollFailCount++
+                    if (pollFailCount >= MAX_POLL_FAILS) {
+                        clearInterval(checkStatus)
+                        toast({ title: "Bağlantı hatası", description: "İşlem durumu alınamadı. Sayfayı yenileyin.", variant: "destructive" })
+                    }
+                }
+            }, 5000)
+
+        } catch (err: any) {
+            if (err.response?.status === 409) {
+                const d = err.response?.data?.detail
+                const jobId = typeof d === 'object' && d?.running_job_id ? d.running_job_id : null
+                const msg = typeof d === 'object' ? d?.message : d
+                if (jobId) {
+                    setWorkerConflict({ jobId, event })
+                } else {
+                    toast({
+                        title: "Worker Çalışıyor",
+                        description: msg || "İstatistik işlemi zaten çalışıyor.",
+                        variant: "destructive",
+                        duration: 5000
+                    })
+                }
+            } else {
+                toast({
+                    title: "Hata",
+                    description: err.response?.data?.detail || "İşlem başlatılamadı",
+                    variant: "destructive"
+                })
+            }
+        }
+    }
+
     const handleImageUpload = async (eventId: number, file: File, isEdit: boolean) => {
         setImageUploadLoading(true)
         try {
@@ -1485,14 +1555,7 @@ export default function AdminPage() {
                                                 </Button>
                                             )}
                                             {adminRole !== 'moderator' && (
-                                                <Button size="sm" variant="outline" className="border-blue-800 text-blue-500 hover:bg-blue-500/10 font-bold gap-2" onClick={async () => {
-                                                    try {
-                                                        const res = await runStatsWorker(event.id);
-                                                        toast({ title: "Başlatıldı", description: res.message || "İstatistik İşçisi sıraya alındı." });
-                                                    } catch(e: any) {
-                                                        toast({ title: "Hata", description: typeof e?.response?.data?.detail === 'object' ? e.response.data.detail.message : (e?.response?.data?.detail || "Başlatılamadı"), variant: "destructive" });
-                                                    }
-                                                }} title="İstatistik ve Yatırımları Topla">
+                                                <Button size="sm" variant="outline" className="border-blue-800 text-blue-500 hover:bg-blue-500/10 font-bold gap-2" onClick={() => handleRunStatsWorker(event)} title="İstatistik ve Yatırımları Topla">
                                                     <BarChart3 className="h-4 w-4" /> İstatistikleri Topla
                                                 </Button>
                                             )}

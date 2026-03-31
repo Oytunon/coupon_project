@@ -152,6 +152,10 @@ async def process_deposits(
             if (eid, pid) in participant_keys and ep.last_synced_at
         ]
         if start_override and end_override:
+            if start_override.tzinfo is None:
+                start_override = start_override.replace(tzinfo=timezone.utc)
+            if end_override.tzinfo is None:
+                end_override = end_override.replace(tzinfo=timezone.utc)
             from_dt = start_override
             to_dt = min(to_dt, end_override)
             incremental = False
