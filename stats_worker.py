@@ -132,7 +132,8 @@ async def run_worker():
                             scan_hours=None, 
                             cancel_event=cancel_event,
                             start_override=current_dep_dt,
-                            end_override=next_dep_dt
+                            end_override=next_dep_dt,
+                            skip_completion=True  # Stats worker adım 2 de caliscak, erken completed yapma
                         )
                         gc.collect()
                         await asyncio.sleep(2)
@@ -140,7 +141,7 @@ async def run_worker():
                         current_dep_dt = next_dep_dt
                         dep_chunk_index += 1
                 else:
-                    await process_deposits(target_event_id=event_id, job_id=job_id, scan_hours=None, cancel_event=cancel_event)
+                    await process_deposits(target_event_id=event_id, job_id=job_id, scan_hours=None, cancel_event=cancel_event, skip_completion=True)
                 if cancel_event.is_set():
                     logger.warning(f"[JobID={job_id}] İşlem iptal edildiğinden Adım 2 (Kayıp Kupon) atlanıyor.")
                 elif start_date_utc3 and end_date_utc3:

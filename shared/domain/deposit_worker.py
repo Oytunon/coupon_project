@@ -32,7 +32,8 @@ async def process_deposits(
     scan_hours: Optional[int] = None,
     cancel_event: Optional[asyncio.Event] = None,
     start_override: Optional[datetime] = None,
-    end_override: Optional[datetime] = None
+    end_override: Optional[datetime] = None,
+    skip_completion: bool = False  # stats_worker'dan parcali cagrildiginda True yapilir
 ):
     """
     Event katılımcılarının joined_at sonrası toplam yatırımlarını toplu çeker ve event_participant_deposits'e yazar.
@@ -237,7 +238,8 @@ async def process_deposits(
 
         db.commit()
         if job_id:
-            update_job_status("completed", processed=len(docs), saved=saved, _db=db)
+            if not skip_completion:
+                update_job_status("completed", processed=len(docs), saved=saved, _db=db)
         logger.info(f"[Deposit Worker] Tamamlandı | API kayıt: {len(docs)} | Güncellenen: {saved} | Toplam yatırım: {total_deposit_sum:,.2f} TRY")
 
     except WorkerCancelledException:
