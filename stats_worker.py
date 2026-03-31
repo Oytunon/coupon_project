@@ -135,7 +135,7 @@ async def run_worker():
                             start_override=current_dep_dt,
                             end_override=next_dep_dt,
                             skip_completion=True,
-                            force_incremental=(dep_chunk_index > 1)  # İlk parça REPLACE, sonrakiler ADD
+                            force_incremental=True  # Her zaman ADD - eski veriyi silme
                         )
                         gc.collect()
                         await asyncio.sleep(2)
