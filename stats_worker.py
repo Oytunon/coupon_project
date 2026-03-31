@@ -43,14 +43,48 @@ async def run_worker():
                 from shared.models.event import Event
                 from datetime import timedelta
                 
+                import json
+                
                 event = db.query(Event).filter(Event.id == event_id).first()
                 start_date_utc3 = None
                 end_date_utc3 = None
-                if event:
+                
+                # Default event dates
+                if event and event.start_date and event.end_date:
                     # Betconstruct Local = UTC+3 
                     tr_offset = timedelta(hours=3)
-                    start_date_utc3 = (event.start_date + tr_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
-                    end_date_utc3 = (event.end_date + tr_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
+                    start_date_utc3 = event.start_date
+                    end_date_utc3 = event.end_date
+                
+                # Manual overrides pass in via error_message temporarily
+                if job.error_message:
+                    try:
+                        params = json.loads(job.error_message)
+                        if "start_date" in params and params["start_date"]:
+                            from datetime import datetime
+                            # expected format e.g. 2026-03-31T03:38:00Z -> parse to naive UTC
+                            dt = datetime.fromisoformat(params["start_date"].replace("Z", "+00:00"))
+                            # Convert to naive without tz to match event.start_date
+                            start_date_utc3 = dt.replace(tzinfo=None)
+                        if "end_date" in params and params["end_date"]:
+                            from datetime import datetime
+                            dt = datetime.fromisoformat(params["end_date"].replace("Z", "+00:00"))
+                            end_date_utc3 = dt.replace(tzinfo=None)
+                    except Exception as e:
+                        logger.warning(f"Failed to parse override params: {e}")
+                    
+                    # Clear out the temporary storage 
+                    job.error_message = None
+                    db.commit()
+                    
+                # To string after override check (for the coupon worker step 2 which expects string UTC+3)
+                start_date_utc3_str = None
+                end_date_utc3_str = None
+                if start_date_utc3 and end_date_utc3:
+                    if 'tr_offset' not in locals():
+                        tr_offset = timedelta(hours=3)
+                    start_date_utc3_str = (start_date_utc3 + tr_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
+                    end_date_utc3_str = (end_date_utc3 + tr_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
                     
                 db.close() 
 
@@ -78,11 +112,11 @@ async def run_worker():
                 
                 # 1. Deposit motorunu Manuel Tam Tarama modunda çalıştır (scan_hours=None)
                 logger.info(f"Adım 1: Yatırım (Deposit) Çekimi Başlatılıyor... [JobID={job_id}] (GÜN GÜN BÖLÜNEREK)")
-                if event.start_date and event.end_date:
+                if start_date_utc3 and end_date_utc3:
                     from datetime import timedelta
                     import gc
-                    current_dep_dt = event.start_date
-                    dep_end_dt = event.end_date
+                    current_dep_dt = start_date_utc3
+                    dep_end_dt = end_date_utc3
                     dep_chunk_index = 1
                     
                     while current_dep_dt < dep_end_dt:
@@ -109,7 +143,7 @@ async def run_worker():
                     await process_deposits(target_event_id=event_id, job_id=job_id, scan_hours=None, cancel_event=cancel_event)
                 if cancel_event.is_set():
                     logger.warning(f"[JobID={job_id}] İşlem iptal edildiğinden Adım 2 (Kayıp Kupon) atlanıyor.")
-                elif event.start_date and event.end_date:
+                elif start_date_utc3 and end_date_utc3:
                     # 2. Kayıp Kuponları (State=3) çek - Gün gün bölerek, RAM tasarrufu için
                     from datetime import timedelta
                     import gc
@@ -117,8 +151,8 @@ async def run_worker():
                     
                     logger.info(f"Adım 2: Kayıp Kupon (State=3) Çekimi Başlatılıyor... (GÜN GÜN BÖLÜNEREK)")
                     try:
-                        current_dt = event.start_date
-                        end_dt = event.end_date
+                        current_dt = start_date_utc3
+                        end_dt = end_date_utc3
                         
                         chunk_index = 1
                         while current_dt < end_dt:
@@ -127,6 +161,10 @@ async def run_worker():
                                 break
                                 
                             next_dt = min(current_dt + timedelta(days=1), end_dt)
+                            
+                            # process_coupons expects UTC+3 string matching API behavior
+                            if 'tr_offset' not in locals():
+                                tr_offset = timedelta(hours=3)
                             
                             chunk_start_utc3 = (current_dt + tr_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
                             chunk_end_utc3 = (next_dt + tr_offset).strftime("%Y-%m-%dT%H:%M:%SZ")

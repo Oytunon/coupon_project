@@ -703,11 +703,13 @@ async def run_event_worker(
 @router.post("/{event_id}/sync-stats", status_code=202)
 async def run_stats_worker(
     event_id: int,
+    body: Optional[WorkerRunRequest] = None,
     db: Session = Depends(get_db_session),
     _: AdminUser = Depends(get_require_full_admin)
 ):
     """İstatistik/Yatırım Worker'ını manuel tetikle."""
     from shared.models.worker_log import WorkerLog
+    import json
     
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
@@ -726,8 +728,21 @@ async def run_stats_worker(
                 "running_job_id": running_job.id,
             }
         )
-    
-    job = WorkerLog(event_id=event_id, job_type="stats", status="pending")
+
+    # Parametreleri geçici olarak error_message içinde sakla (migration olmadan pass etmek için)
+    params_json = None
+    if body and (body.start_date or body.end_date):
+        params_json = json.dumps({
+            "start_date": body.start_date,
+            "end_date": body.end_date
+        })
+
+    job = WorkerLog(
+        event_id=event_id, 
+        job_type="stats", 
+        status="pending",
+        error_message=params_json
+    )
     db.add(job)
     db.commit()
     db.refresh(job)

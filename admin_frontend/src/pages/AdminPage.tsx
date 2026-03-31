@@ -41,7 +41,7 @@ import {
     Loader2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -342,6 +342,7 @@ export default function AdminPage() {
     const [showWorkerDateModal, setShowWorkerDateModal] = useState(false)
     const [workerDateEvent, setWorkerDateEvent] = useState<any | null>(null)
     const [workerDates, setWorkerDates] = useState({ start_date: "", end_date: "" })
+    const [workerDateMode, setWorkerDateMode] = useState<"coupon" | "stats">("coupon")
 
     useEffect(() => {
         if (!showWorkerModal || !workerStartTime) return
@@ -879,10 +880,10 @@ export default function AdminPage() {
         }
     }
 
-    const handleRunStatsWorker = async (event: any) => {
+    const handleRunStatsWorker = async (event: any, dates?: { start_date?: string, end_date?: string }) => {
         try {
-            const res = await runStatsWorker(event.id)
-            const jobId = res.job_id
+            const res = await apiClient.post(`/admin/events/${event.id}/sync-stats`, dates || {})
+            const jobId = res.data.job_id
 
             setWorkerJob({ id: jobId, status: 'pending', total: 0, processed: 0, saved: 0, event_name: event.name + " (İstatistik)" })
             setShowWorkerModal(true)
@@ -1555,7 +1556,12 @@ export default function AdminPage() {
                                                 </Button>
                                             )}
                                             {adminRole !== 'moderator' && (
-                                                <Button size="sm" variant="outline" className="border-blue-800 text-blue-500 hover:bg-blue-500/10 font-bold gap-2" onClick={() => handleRunStatsWorker(event)} title="İstatistik ve Yatırımları Topla">
+                                                <Button size="sm" variant="outline" className="border-blue-800 text-blue-500 hover:bg-blue-500/10 font-bold gap-2" onClick={() => {
+                                                    setWorkerDateEvent(event)
+                                                    setWorkerDateMode("stats")
+                                                    setWorkerDates({ start_date: "", end_date: "" })
+                                                    setShowWorkerDateModal(true)
+                                                }} title="İstatistik ve Yatırımları Topla (Tarih Seçmeli)">
                                                     <BarChart3 className="h-4 w-4" /> İstatistikleri Topla
                                                 </Button>
                                             )}
@@ -3265,11 +3271,18 @@ export default function AdminPage() {
                     <Card className="bg-slate-900 border-white/10 shadow-2xl w-full max-w-md">
                         <CardHeader>
                             <CardTitle className="text-xl font-bold flex items-center gap-2">
-                                <RefreshCw className="h-5 w-5 text-yellow-500" />
-                                Kupon Çekim Başlat
+                                {workerDateMode === "stats" ? (
+                                    <><BarChart3 className="h-5 w-5 text-blue-500" /> İstatistik ve Yatırım Topla</>
+                                ) : (
+                                    <><RefreshCw className="h-5 w-5 text-yellow-500" /> Kupon Çekim Başlat</>
+                                )}
                             </CardTitle>
                             <CardDescription>
-                                {workerDateEvent.name} için kupon çekimi başlatılacak. Hangi tarihler arasını taramak istediğinizi seçin (boş bırakırsanız varsayılan son 2 saatlık kazanan kuponları çeker).
+                                {workerDateMode === "stats" ? (
+                                    `${workerDateEvent.name} için istatistik ve yatırımlar hesaplanacak. Hangi tarihler arasını taramak istediğinizi seçin (Tüm etkinlik süresini taramak için boş bırakın).`
+                                ) : (
+                                    `${workerDateEvent.name} için kupon çekimi başlatılacak. Hangi tarihler arasını taramak istediğinizi seçin (boş bırakırsanız varsayılan son 2 saatlık kazanan kuponları çeker).`
+                                )}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -3295,12 +3308,17 @@ export default function AdminPage() {
                         </CardContent>
                         <CardFooter className="flex justify-end gap-3 pt-4 border-t border-white/5">
                             <Button variant="ghost" onClick={() => setShowWorkerDateModal(false)}>İptal</Button>
-                            <Button className="bg-yellow-500 hover:bg-yellow-600 font-bold" onClick={() => {
+                            <Button className={`font-bold ${workerDateMode === "stats" ? "bg-blue-600 hover:bg-blue-700" : "bg-yellow-500 hover:bg-yellow-600"}`} onClick={() => {
                                 setShowWorkerDateModal(false)
                                 const dates: any = {}
                                 if (workerDates.start_date) dates.start_date = workerDates.start_date + ":00Z"
                                 if (workerDates.end_date) dates.end_date = workerDates.end_date + ":00Z"
-                                handleRunWorker(workerDateEvent, Object.keys(dates).length > 0 ? dates : undefined)
+                                
+                                if (workerDateMode === "stats") {
+                                    handleRunStatsWorker(workerDateEvent, Object.keys(dates).length > 0 ? dates : undefined)
+                                } else {
+                                    handleRunWorker(workerDateEvent, Object.keys(dates).length > 0 ? dates : undefined)
+                                }
                             }}>
                                 <PlayCircle className="h-4 w-4 mr-2" /> Başlat
                             </Button>
