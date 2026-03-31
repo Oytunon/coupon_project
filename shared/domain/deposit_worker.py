@@ -33,7 +33,8 @@ async def process_deposits(
     cancel_event: Optional[asyncio.Event] = None,
     start_override: Optional[datetime] = None,
     end_override: Optional[datetime] = None,
-    skip_completion: bool = False  # stats_worker'dan parcali cagrildiginda True yapilir
+    skip_completion: bool = False,  # stats_worker'dan parcali cagrildiginda True yapilir
+    force_incremental: bool = False  # Gun gun bolumde ilk parca False, sonrakiler True (var olana ekle)
 ):
     """
     Event katılımcılarının joined_at sonrası toplam yatırımlarını toplu çeker ve event_participant_deposits'e yazar.
@@ -159,7 +160,7 @@ async def process_deposits(
                 end_override = end_override.replace(tzinfo=timezone.utc)
             from_dt = start_override
             to_dt = min(to_dt, end_override)
-            incremental = False
+            incremental = force_incremental  # İlk parça=False(replace), sonrakiler=True(add)
         elif scan_hours is not None and synced_ats:
             min_synced = min(synced_ats)
             if min_synced.tzinfo is None:

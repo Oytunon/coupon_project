@@ -110,7 +110,8 @@ async def run_worker():
                 
                 poller_task = asyncio.create_task(cancellation_poller(job_id, cancel_event))
                 
-                # 1. Deposit motorunu Manuel Tam Tarama modunda çalıştır (scan_hours=None)
+                # 1. Deposit motorunu Manuel Tam Tarama modunda çalıştır (GÜN GÜN BÖLÜNEREK)
+                # İlk parça: REPLACE (sıfırdan başla), sonraki parçalar: ADD (var olana ekle) → eski veri kaybolmaz!
                 logger.info(f"Adım 1: Yatırım (Deposit) Çekimi Başlatılıyor... [JobID={job_id}] (GÜN GÜN BÖLÜNEREK)")
                 if start_date_utc3 and end_date_utc3:
                     from datetime import timedelta
@@ -118,30 +119,37 @@ async def run_worker():
                     current_dep_dt = start_date_utc3
                     dep_end_dt = end_date_utc3
                     dep_chunk_index = 1
-                    
+
                     while current_dep_dt < dep_end_dt:
                         if cancel_event.is_set():
                             break
-                            
+
                         next_dep_dt = min(current_dep_dt + timedelta(days=1), dep_end_dt)
                         logger.info(f" -> [Deposit Parça {dep_chunk_index}] Günlük Çekiliyor: {current_dep_dt.strftime('%Y-%m-%d')} - {next_dep_dt.strftime('%Y-%m-%d')}")
-                        
+
                         await process_deposits(
-                            target_event_id=event_id, 
-                            job_id=job_id, 
-                            scan_hours=None, 
+                            target_event_id=event_id,
+                            job_id=job_id,
+                            scan_hours=None,
                             cancel_event=cancel_event,
                             start_override=current_dep_dt,
                             end_override=next_dep_dt,
-                            skip_completion=True  # Stats worker adım 2 de caliscak, erken completed yapma
+                            skip_completion=True,
+                            force_incremental=(dep_chunk_index > 1)  # İlk parça REPLACE, sonrakiler ADD
                         )
                         gc.collect()
                         await asyncio.sleep(2)
-                        
+
                         current_dep_dt = next_dep_dt
                         dep_chunk_index += 1
                 else:
-                    await process_deposits(target_event_id=event_id, job_id=job_id, scan_hours=None, cancel_event=cancel_event, skip_completion=True)
+                    await process_deposits(
+                        target_event_id=event_id,
+                        job_id=job_id,
+                        scan_hours=None,
+                        cancel_event=cancel_event,
+                        skip_completion=True
+                    )
                 if cancel_event.is_set():
                     logger.warning(f"[JobID={job_id}] İşlem iptal edildiğinden Adım 2 (Kayıp Kupon) atlanıyor.")
                 elif start_date_utc3 and end_date_utc3:
