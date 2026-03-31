@@ -30,7 +30,9 @@ async def process_deposits(
     target_event_id: Optional[int] = None,
     job_id: Optional[int] = None,
     scan_hours: Optional[int] = None,
-    cancel_event: Optional[asyncio.Event] = None
+    cancel_event: Optional[asyncio.Event] = None,
+    start_override: Optional[datetime] = None,
+    end_override: Optional[datetime] = None
 ):
     """
     Event katılımcılarının joined_at sonrası toplam yatırımlarını toplu çeker ve event_participant_deposits'e yazar.
@@ -149,7 +151,11 @@ async def process_deposits(
             ep.last_synced_at for (eid, pid), ep in existing_deposits.items()
             if (eid, pid) in participant_keys and ep.last_synced_at
         ]
-        if scan_hours is not None and synced_ats:
+        if start_override and end_override:
+            from_dt = start_override
+            to_dt = min(to_dt, end_override)
+            incremental = False
+        elif scan_hours is not None and synced_ats:
             min_synced = min(synced_ats)
             if min_synced.tzinfo is None:
                 min_synced = min_synced.replace(tzinfo=timezone.utc)

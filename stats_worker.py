@@ -77,27 +77,78 @@ async def run_worker():
                 poller_task = asyncio.create_task(cancellation_poller(job_id, cancel_event))
                 
                 # 1. Deposit motorunu Manuel Tam Tarama modunda çalıştır (scan_hours=None)
-                logger.info(f"Adım 1: Yatırım (Deposit) Çekimi Başlatılıyor... [JobID={job_id}]")
-                await process_deposits(target_event_id=event_id, job_id=job_id, scan_hours=None, cancel_event=cancel_event)
-                
+                logger.info(f"Adım 1: Yatırım (Deposit) Çekimi Başlatılıyor... [JobID={job_id}] (GÜN GÜN BÖLÜNEREK)")
+                if event.start_date and event.end_date:
+                    from datetime import timedelta
+                    import gc
+                    current_dep_dt = event.start_date
+                    dep_end_dt = event.end_date
+                    dep_chunk_index = 1
+                    
+                    while current_dep_dt < dep_end_dt:
+                        if cancel_event.is_set():
+                            break
+                            
+                        next_dep_dt = min(current_dep_dt + timedelta(days=1), dep_end_dt)
+                        logger.info(f" -> [Deposit Parça {dep_chunk_index}] Günlük Çekiliyor: {current_dep_dt.strftime('%Y-%m-%d')} - {next_dep_dt.strftime('%Y-%m-%d')}")
+                        
+                        await process_deposits(
+                            target_event_id=event_id, 
+                            job_id=job_id, 
+                            scan_hours=None, 
+                            cancel_event=cancel_event,
+                            start_override=current_dep_dt,
+                            end_override=next_dep_dt
+                        )
+                        gc.collect()
+                        await asyncio.sleep(2)
+                        
+                        current_dep_dt = next_dep_dt
+                        dep_chunk_index += 1
+                else:
+                    await process_deposits(target_event_id=event_id, job_id=job_id, scan_hours=None, cancel_event=cancel_event)
                 if cancel_event.is_set():
                     logger.warning(f"[JobID={job_id}] İşlem iptal edildiğinden Adım 2 (Kayıp Kupon) atlanıyor.")
-                elif start_date_utc3 and end_date_utc3:
-                    # 2. Kayıp Kuponları (State=3) çek - Deposit tamamlandıktan hemen sonra
-                    logger.info(f"Adım 2: Kayıp Kupon (State=3) Çekimi Başlatılıyor... Tarih: {start_date_utc3} - {end_date_utc3}")
+                elif event.start_date and event.end_date:
+                    # 2. Kayıp Kuponları (State=3) çek - Gün gün bölerek, RAM tasarrufu için
+                    from datetime import timedelta
+                    import gc
                     from shared.domain.scoring_engine import process_coupons
+                    
+                    logger.info(f"Adım 2: Kayıp Kupon (State=3) Çekimi Başlatılıyor... (GÜN GÜN BÖLÜNEREK)")
                     try:
-                        # process_coupons içindeki pagination (max_rows=500 ve page_delay=4.0s) kullanılarak güvenle çekilir.
-                        await process_coupons(
-                            target_event_id=event_id,
-                            job_id=job_id,
-                            start_date_override=start_date_utc3,
-                            end_date_override=end_date_utc3,
-                            state_filter=3,
-                            skip_concurrency_check=True, # Zaten izole worker
-                            skip_deposits=True # Deposit az önce çekildi
-                        )
-                        logger.info("İstatistik İşlemleri (Deposit + Kayıp Kuponlar) başarıyla tamamlandı.")
+                        current_dt = event.start_date
+                        end_dt = event.end_date
+                        
+                        chunk_index = 1
+                        while current_dt < end_dt:
+                            if cancel_event.is_set():
+                                logger.warning(f"[{job_id}] Kayıp kupon çekimi kullanıcı tarafından iptal edildi.")
+                                break
+                                
+                            next_dt = min(current_dt + timedelta(days=1), end_dt)
+                            
+                            chunk_start_utc3 = (current_dt + tr_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
+                            chunk_end_utc3 = (next_dt + tr_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
+                            
+                            logger.info(f" -> [Parça {chunk_index}] Günlük Çekiliyor: {chunk_start_utc3} - {chunk_end_utc3}")
+                            await process_coupons(
+                                target_event_id=event_id,
+                                job_id=job_id,
+                                start_date_override=chunk_start_utc3,
+                                end_date_override=chunk_end_utc3,
+                                state_filter=3,
+                                skip_concurrency_check=True, # Zaten izole worker
+                                skip_deposits=True # Deposit az önce çekildi
+                            )
+                            # Çekilen 1 günlük veri işlendi. RAM'i temizle ve bir sonraki güne geç.
+                            gc.collect()
+                            await asyncio.sleep(2)
+                            
+                            current_dt = next_dt
+                            chunk_index += 1
+                            
+                        logger.info("İstatistik İşlemleri (Deposit + Kayıp Kuponlar GÜN GÜN) başarıyla tamamlandı.")
                     except Exception as pc_err:
                         logger.error(f"Kayıp Kupon Çekimi Sırasında Hata: {pc_err}")
                 else:
