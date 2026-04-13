@@ -1562,16 +1562,7 @@ export default function AdminPage() {
                                                     <RefreshCw className="h-4 w-4" /> Kuponları Çek
                                                 </Button>
                                             )}
-                                            {adminRole !== 'moderator' && (
-                                                <Button size="sm" variant="outline" className="border-blue-800 text-blue-500 hover:bg-blue-500/10 font-bold gap-2" onClick={() => {
-                                                    setWorkerDateEvent(event)
-                                                    setWorkerDateMode("stats")
-                                                    setWorkerDates({ start_date: "", end_date: "" })
-                                                    setShowWorkerDateModal(true)
-                                                }} title="İstatistik ve Yatırımları Topla (Tarih Seçmeli)">
-                                                    <BarChart3 className="h-4 w-4" /> İstatistikleri Topla
-                                                </Button>
-                                            )}
+
                                             {adminRole !== 'moderator' && (
                                                 <Button size="sm" variant="outline" className="border-emerald-800 text-emerald-500 hover:bg-emerald-500/10 gap-2" onClick={async () => {
                                                     try {
@@ -1945,6 +1936,22 @@ export default function AdminPage() {
                                         ) : null}
                                     </CardContent>
                                     <div className="p-4 border-t border-white/5 flex justify-end gap-2">
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            className="border-blue-800 text-blue-500 hover:bg-blue-500/10 gap-2"
+                                            onClick={() => {
+                                                const event = events.find(e => e.id === statisticsEventId);
+                                                if (event) {
+                                                    setWorkerDateEvent(event)
+                                                    setWorkerDateMode("stats")
+                                                    setWorkerDates({ start_date: "", end_date: "" })
+                                                    setShowWorkerDateModal(true)
+                                                }
+                                            }}
+                                        >
+                                            <BarChart3 className="h-4 w-4" /> Verileri Güncelle
+                                        </Button>
                                         <Button variant="outline" size="sm" disabled={loadingStatistics || !statisticsData} onClick={() => statisticsEventId && handleExportStatistics(statisticsEventId, events.find(e => e.id === statisticsEventId)?.name || "turnuva")} className="gap-2">
                                             <Download className="h-4 w-4" /> Excel İndir
                                         </Button>
