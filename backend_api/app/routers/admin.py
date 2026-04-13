@@ -770,3 +770,46 @@ async def delete_html_template(template_id: int, db: Session = Depends(get_db), 
     db.delete(template)
     db.commit()
     return {"status": "success"}
+
+
+# ─── Ödül Şablon Endpointleri ──────────────────────────────────────────────
+
+class RewardTemplateCreate(BaseModel):
+    name: str
+    reward_data: list
+
+
+@router.get("/reward-templates")
+async def list_reward_templates(db: Session = Depends(get_db)):
+    from shared.models.reward_template import RewardTemplate
+    templates = db.query(RewardTemplate).order_by(RewardTemplate.created_at.desc()).all()
+    return [
+        {
+            "id": t.id,
+            "name": t.name,
+            "reward_data": t.reward_data,
+            "created_at": t.created_at.isoformat() if t.created_at else None
+        }
+        for t in templates
+    ]
+
+
+@router.post("/reward-templates")
+async def create_reward_template(data: RewardTemplateCreate, db: Session = Depends(get_db)):
+    from shared.models.reward_template import RewardTemplate
+    template = RewardTemplate(name=data.name, reward_data=data.reward_data)
+    db.add(template)
+    db.commit()
+    db.refresh(template)
+    return {"id": template.id, "name": template.name, "created_at": template.created_at.isoformat()}
+
+
+@router.delete("/reward-templates/{template_id}")
+async def delete_reward_template(template_id: int, db: Session = Depends(get_db), _: AdminUser = Depends(get_require_full_admin)):
+    from shared.models.reward_template import RewardTemplate
+    template = db.query(RewardTemplate).filter(RewardTemplate.id == template_id).first()
+    if not template:
+        raise HTTPException(status_code=404, detail="Şablon bulunamadı")
+    db.delete(template)
+    db.commit()
+    return {"status": "success"}
