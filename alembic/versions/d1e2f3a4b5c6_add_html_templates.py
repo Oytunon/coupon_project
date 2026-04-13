@@ -15,14 +15,18 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        'html_templates',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('name', sa.String(length=200), nullable=False),
-        sa.Column('html_content', sa.Text(), nullable=False),
-        sa.Column('created_at', sa.DateTime(), server_default=sa.func.now(), nullable=False),
-        sa.PrimaryKeyConstraint('id')
-    )
+    # Tablo var mı diye kontrol et (DuplicateTable hatasını önlemek için)
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    if 'html_templates' not in inspector.get_table_names():
+        op.create_table(
+            'html_templates',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('name', sa.String(length=200), nullable=False),
+            sa.Column('html_content', sa.Text(), nullable=False),
+            sa.Column('created_at', sa.DateTime(), server_default=sa.func.now(), nullable=False),
+            sa.PrimaryKeyConstraint('id')
+        )
     op.create_index(op.f('ix_html_templates_id'), 'html_templates', ['id'], unique=False)
 
 
