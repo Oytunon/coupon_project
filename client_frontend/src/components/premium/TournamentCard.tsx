@@ -164,6 +164,21 @@ export function TournamentCard({
                                 </div>
                             )}
 
+                            {/* Join Button (Mobile) */}
+                            {status === 'active' && !isJoined && !isUpcoming && !isExpired && (
+                                <div className="px-1 mt-1">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onJoin?.(id);
+                                        }}
+                                        className="w-full py-2 bg-[#D9B648] hover:bg-[#F7EBA5] text-black font-black font-oswald text-sm rounded-lg shadow-[0_0_15px_rgba(255,184,0,0.5)] transition-all active:scale-95 animate-pulse uppercase"
+                                    >
+                                        HEMEN KATIL
+                                    </button>
+                                </div>
+                            )}
+
                             {/* Countdown */}
                             <div className="mt-auto">
                                 {status === 'active' && !isExpired ? (
