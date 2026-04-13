@@ -1514,16 +1514,16 @@ export default function AdminPage() {
                                             )}
                                         </div>
                                         <div className="flex-1">
-                                            <div className="flex items-center gap-3 mb-1">
-                                                <Badge variant="outline" className={`font-bold ${event.status === 'active' ? 'bg-green-500/10 text-green-500 border-green-500/20' : event.status === 'draft' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 'text-muted-foreground'}`}>
-                                                    {event.status.toUpperCase()}
-                                                </Badge>
-                                                <span className="text-xs text-muted-foreground font-mono">ID: {event.id} | Slug: {event.slug}</span>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <CardTitle className="text-xl font-bold">{event.name}</CardTitle>
+                                                <span className="text-[10px] text-muted-foreground/40 font-mono mt-1">#{event.id}</span>
                                             </div>
-                                            <CardTitle className="text-xl font-bold">{event.name}</CardTitle>
-                                            <CardDescription>{event.description || "Açıklama yok"}</CardDescription>
                                         </div>
-                                        <div className="flex gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant="outline" className={`font-bold h-7 ${event.status === 'active' ? 'bg-green-500/10 text-green-500 border-green-500/20' : event.status === 'draft' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : 'text-muted-foreground'}`}>
+                                                {event.status.toUpperCase()}
+                                            </Badge>
+                                            <div className="flex gap-2">
                                             {/* Status Actions */}
                                             {adminRole !== 'moderator' && event.status === 'draft' && (
                                                 <Button size="sm" variant="outline" className="border-green-800 text-green-500 hover:bg-green-500/10" onClick={() => handleEventStatus(event.id, 'active')}>
@@ -1635,7 +1635,8 @@ export default function AdminPage() {
                                                 </>
                                             )}
                                         </div>
-                                    </CardHeader>
+                                    </div>
+                                </CardHeader>
                                     <CardContent>
                                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                                             <div className="space-y-1">
