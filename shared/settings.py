@@ -44,6 +44,7 @@ class Settings(BaseSettings):
 
     # Betconstruct
     BAPI_TOKEN: Optional[str] = None
+    STATS_BAPI_TOKEN: Optional[str] = None
     BAPI_CLIENT_INFO_URL: str = "https://backofficewebadmin.betconstruct.com/api/en/Client/GetClients"
     BAPI_DEPOSIT_URL: str = "https://backofficewebadmin.betconstruct.com/api/en/Client/GetClientTransactionsV1"
     BAPI_BET_HISTORY_URL: str = "https://backofficewebadmin.betconstruct.com/api/en/Report/GetBetHistory"

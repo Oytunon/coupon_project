@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from shared.settings import settings
-from shared.services.betconstruct import get_headers, _interruptible_sleep
+from shared.services.betconstruct import get_stats_headers, _interruptible_sleep
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +117,7 @@ async def fetch_deposits_bulk(
                 try:
                     r = await http_client.post(
                         settings.BAPI_DEPOSIT_REPORT_URL,
-                        headers=get_headers(),
+                        headers=get_stats_headers(),
                         json=body,
                     )
                     r.raise_for_status()
@@ -225,7 +225,7 @@ async def fetch_deposits_for_client(
 
             r = await http_client.post(
                 settings.BAPI_DEPOSIT_REPORT_URL,
-                headers=get_headers(),
+                headers=get_stats_headers(),
                 json=body,
             )
             r.raise_for_status()

@@ -727,3 +727,46 @@ async def get_event_reward_history(
                     })
     
     return all_rewards
+
+
+# ─── HTML Şablon Endpointleri ──────────────────────────────────────────────
+
+class HtmlTemplateCreate(BaseModel):
+    name: str
+    html_content: str
+
+
+@router.get("/html-templates")
+async def list_html_templates(db: Session = Depends(get_db)):
+    from shared.models.html_template import HtmlTemplate
+    templates = db.query(HtmlTemplate).order_by(HtmlTemplate.created_at.desc()).all()
+    return [
+        {
+            "id": t.id,
+            "name": t.name,
+            "html_content": t.html_content,
+            "created_at": t.created_at.isoformat() if t.created_at else None
+        }
+        for t in templates
+    ]
+
+
+@router.post("/html-templates")
+async def create_html_template(data: HtmlTemplateCreate, db: Session = Depends(get_db)):
+    from shared.models.html_template import HtmlTemplate
+    template = HtmlTemplate(name=data.name, html_content=data.html_content)
+    db.add(template)
+    db.commit()
+    db.refresh(template)
+    return {"id": template.id, "name": template.name, "created_at": template.created_at.isoformat()}
+
+
+@router.delete("/html-templates/{template_id}")
+async def delete_html_template(template_id: int, db: Session = Depends(get_db), _: AdminUser = Depends(get_require_full_admin)):
+    from shared.models.html_template import HtmlTemplate
+    template = db.query(HtmlTemplate).filter(HtmlTemplate.id == template_id).first()
+    if not template:
+        raise HTTPException(status_code=404, detail="Şablon bulunamadı")
+    db.delete(template)
+    db.commit()
+    return {"status": "success"}

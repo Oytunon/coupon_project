@@ -445,7 +445,7 @@ export default function AdminPage() {
         rules: {
             min_stake: 100,
             min_odd: 1.5,
-            min_combination: 2,
+            min_combination: 0,
             max_combination: null as number | null,
             allowed_league_ids: [] as number[],
             yan_bahis_ids: [] as number[],
@@ -484,6 +484,13 @@ export default function AdminPage() {
     const [statisticsEventId, setStatisticsEventId] = useState<number | null>(null)
     const [statisticsData, setStatisticsData] = useState<any>(null)
     const [loadingStatistics, setLoadingStatistics] = useState(false)
+
+    // HTML Şablon states
+    const [htmlTemplates, setHtmlTemplates] = useState<any[]>([])
+    const [showTemplateDropdown, setShowTemplateDropdown] = useState(false)
+    const [savingTemplate, setSavingTemplate] = useState(false)
+    const [newTemplateName, setNewTemplateName] = useState("")
+    const [showSaveTemplateInput, setShowSaveTemplateInput] = useState(false)
 
     const [imageUploadLoading, setImageUploadLoading] = useState(false)
     const [tempImageFile, setTempImageFile] = useState<File | null>(null)
@@ -1720,9 +1727,11 @@ export default function AdminPage() {
                                         <Button size="sm" variant="outline" onClick={() => handleViewDetails(event)} className="gap-2 border-purple-500/30 text-purple-400 hover:bg-purple-500/10">
                                             <Eye className="h-4 w-4" /> Detayları Gör
                                         </Button>
-                                        <Button size="sm" variant="outline" onClick={() => handleOpenStatistics(event)} className="gap-2 border-blue-500/30 text-blue-400 hover:bg-blue-500/10">
-                                            <BarChart3 className="h-4 w-4" /> İstatistikler
-                                        </Button>
+                                        {adminRole !== 'moderator' && (
+                                            <Button size="sm" variant="outline" onClick={() => handleOpenStatistics(event)} className="gap-2 border-blue-500/30 text-blue-400 hover:bg-blue-500/10">
+                                                <BarChart3 className="h-4 w-4" /> İstatistikler
+                                            </Button>
+                                        )}
                                         {adminRole !== 'moderator' && (
                                             <Button size="sm" variant="outline" onClick={() => { setManualCouponEventId(event.id); setShowManualCouponModal(true); setManualCouponBetId(""); }} className="gap-2 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
                                                 <Plus className="h-4 w-4" /> Manuel kupon ekleme
@@ -1969,15 +1978,7 @@ export default function AdminPage() {
                                                         <Input value={newEvent.name} onChange={e => setNewEvent({ ...newEvent, name: e.target.value })} required placeholder="Örn: Hafta Sonu Ligi" className="bg-black/20" />
                                                     </div>
 
-                                                    <div className="space-y-2">
-                                                        <label className="text-xs font-bold text-muted-foreground">Açıklama</label>
-                                                        <textarea
-                                                            value={newEvent.description}
-                                                            onChange={e => setNewEvent({ ...newEvent, description: e.target.value })}
-                                                            placeholder="Kampanya detayları..."
-                                                            className="flex min-h-[80px] w-full rounded-md border border-input bg-black/20 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                                        />
-                                                    </div>
+                                                    {/* Açıklama (Description) field removed as requested */}
 
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div className="space-y-2">
@@ -2170,7 +2171,80 @@ export default function AdminPage() {
                                             {modalTab === 'content_rules' && (
                                                 <div className="animate-in fade-in slide-in-from-right-4 space-y-6">
                                                     <div className="space-y-2">
-                                                        <label className="text-xs font-bold text-muted-foreground uppercase">Turnuva kuralları (HTML)</label>
+                                                        {/* Başlık + Şablon butonları */}
+                                                        <div className="flex items-center justify-between">
+                                                            <label className="text-xs font-bold text-muted-foreground uppercase">Turnuva kuralları (HTML)</label>
+                                                            <div className="flex items-center gap-2 relative">
+                                                                {/* Şablonu Kaydet */}
+                                                                {showSaveTemplateInput ? (
+                                                                    <div className="flex items-center gap-1">
+                                                                        <input
+                                                                            autoFocus
+                                                                            type="text"
+                                                                            placeholder="Şablon adı..."
+                                                                            value={newTemplateName}
+                                                                            onChange={e => setNewTemplateName(e.target.value)}
+                                                                            className="h-7 w-36 rounded border border-white/20 bg-black/40 px-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-primary"
+                                                                        />
+                                                                        <Button
+                                                                            type="button" size="sm"
+                                                                            disabled={savingTemplate || !newTemplateName.trim() || !newEvent.content_rules_html?.trim()}
+                                                                            className="h-7 px-2 text-xs bg-primary/80 hover:bg-primary"
+                                                                            onClick={async () => {
+                                                                                setSavingTemplate(true)
+                                                                                try {
+                                                                                    await apiClient.post('/admin/html-templates', { name: newTemplateName.trim(), html_content: newEvent.content_rules_html })
+                                                                                    const res = await apiClient.get('/admin/html-templates')
+                                                                                    setHtmlTemplates(res.data)
+                                                                                    setNewTemplateName("")
+                                                                                    setShowSaveTemplateInput(false)
+                                                                                    toast({ title: "Şablon kaydedildi" })
+                                                                                } catch { toast({ title: "Hata", variant: "destructive" }) }
+                                                                                finally { setSavingTemplate(false) }
+                                                                            }}
+                                                                        >Kaydet</Button>
+                                                                        <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { setShowSaveTemplateInput(false); setNewTemplateName("") }}>İptal</Button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-xs gap-1 border-white/20 text-white/60 hover:text-white"
+                                                                        onClick={() => setShowSaveTemplateInput(true)}>
+                                                                        💾 Şablon Kaydet
+                                                                    </Button>
+                                                                )}
+                                                                {/* Kaydedilen Şablonlar */}
+                                                                <div className="relative">
+                                                                    <Button type="button" size="sm" variant="outline"
+                                                                        className="h-7 px-2 text-xs gap-1 border-white/20 text-white/60 hover:text-white"
+                                                                        onClick={async () => {
+                                                                            if (!showTemplateDropdown) {
+                                                                                const res = await apiClient.get('/admin/html-templates')
+                                                                                setHtmlTemplates(res.data)
+                                                                            }
+                                                                            setShowTemplateDropdown(v => !v)
+                                                                        }}
+                                                                    >📋 Kaydedilen Şablonlar ▾</Button>
+                                                                    {showTemplateDropdown && (
+                                                                        <div className="absolute right-0 top-8 z-50 w-64 rounded-lg border border-white/10 bg-[#1a1a2e] shadow-2xl py-1">
+                                                                            {htmlTemplates.length === 0 ? (
+                                                                                <p className="px-3 py-2 text-xs text-muted-foreground italic">Henüz şablon kaydedilmemiş.</p>
+                                                                            ) : htmlTemplates.map(t => (
+                                                                                <div key={t.id} className="flex items-center justify-between px-3 py-2 hover:bg-white/5 group">
+                                                                                    <button type="button" className="text-xs text-left text-white/80 hover:text-white flex-1 truncate"
+                                                                                        onClick={() => { setNewEvent({ ...newEvent, content_rules_html: t.html_content }); setShowTemplateDropdown(false) }}
+                                                                                    >{t.name}</button>
+                                                                                    <button type="button" className="ml-2 text-red-400/50 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                                                                        onClick={async () => {
+                                                                                            await apiClient.delete(`/admin/html-templates/${t.id}`)
+                                                                                            const res = await apiClient.get('/admin/html-templates')
+                                                                                            setHtmlTemplates(res.data)
+                                                                                        }}>🗑️</button>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                         <p className="text-xs text-muted-foreground leading-relaxed">
                                                             Bu alan doluysa kullanıcı arayüzünde madde madde kurallar yerine bu HTML gösterilir. Listeler, başlıklar ve linkler için uygundur.
                                                         </p>
@@ -2224,20 +2298,7 @@ export default function AdminPage() {
                                                         <Input value={editingEvent.name} onChange={e => setEditingEvent({ ...editingEvent, name: e.target.value })} required className="bg-black/20" />
                                                     </div>
 
-                                                    <div className="space-y-2">
-                                                        <label className="text-xs font-bold text-muted-foreground">Açıklama</label>
-                                                        <textarea
-                                                            value={editingEvent.description}
-                                                            onChange={e => setEditingEvent({ ...editingEvent, description: e.target.value })}
-                                                            placeholder="Kampanya detayları..."
-                                                            className="flex min-h-[80px] w-full rounded-md border border-input bg-black/20 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                                        />
-                                                    </div>
-
-                                                    <div className="space-y-2">
-                                                        <label className="text-xs font-bold text-muted-foreground">Event Key / Slug</label>
-                                                        <Input value={editingEvent.slug} onChange={e => setEditingEvent({ ...editingEvent, slug: e.target.value })} required className="bg-black/20 font-mono" />
-                                                    </div>
+                                                    {/* Açıklama and Slug fields removed as requested */}
 
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div className="space-y-2">
@@ -2440,7 +2501,80 @@ export default function AdminPage() {
                                             {modalTab === 'content_rules' && (
                                                 <div className="animate-in fade-in slide-in-from-right-4 space-y-6">
                                                     <div className="space-y-2">
-                                                        <label className="text-xs font-bold text-muted-foreground uppercase">Turnuva kuralları (HTML)</label>
+                                                        {/* Başlık + Şablon butonları */}
+                                                        <div className="flex items-center justify-between">
+                                                            <label className="text-xs font-bold text-muted-foreground uppercase">Turnuva kuralları (HTML)</label>
+                                                            <div className="flex items-center gap-2 relative">
+                                                                {/* Şablonu Kaydet */}
+                                                                {showSaveTemplateInput ? (
+                                                                    <div className="flex items-center gap-1">
+                                                                        <input
+                                                                            autoFocus
+                                                                            type="text"
+                                                                            placeholder="Şablon adı..."
+                                                                            value={newTemplateName}
+                                                                            onChange={e => setNewTemplateName(e.target.value)}
+                                                                            className="h-7 w-36 rounded border border-white/20 bg-black/40 px-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-primary"
+                                                                        />
+                                                                        <Button
+                                                                            type="button" size="sm"
+                                                                            disabled={savingTemplate || !newTemplateName.trim() || !(editingEvent.content_rules_html ?? "")?.trim()}
+                                                                            className="h-7 px-2 text-xs bg-primary/80 hover:bg-primary"
+                                                                            onClick={async () => {
+                                                                                setSavingTemplate(true)
+                                                                                try {
+                                                                                    await apiClient.post('/admin/html-templates', { name: newTemplateName.trim(), html_content: editingEvent.content_rules_html })
+                                                                                    const res = await apiClient.get('/admin/html-templates')
+                                                                                    setHtmlTemplates(res.data)
+                                                                                    setNewTemplateName("")
+                                                                                    setShowSaveTemplateInput(false)
+                                                                                    toast({ title: "Şablon kaydedildi" })
+                                                                                } catch { toast({ title: "Hata", variant: "destructive" }) }
+                                                                                finally { setSavingTemplate(false) }
+                                                                            }}
+                                                                        >Kaydet</Button>
+                                                                        <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { setShowSaveTemplateInput(false); setNewTemplateName("") }}>İptal</Button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <Button type="button" size="sm" variant="outline" className="h-7 px-2 text-xs gap-1 border-white/20 text-white/60 hover:text-white"
+                                                                        onClick={() => setShowSaveTemplateInput(true)}>
+                                                                        💾 Şablon Kaydet
+                                                                    </Button>
+                                                                )}
+                                                                {/* Kaydedilen Şablonlar */}
+                                                                <div className="relative">
+                                                                    <Button type="button" size="sm" variant="outline"
+                                                                        className="h-7 px-2 text-xs gap-1 border-white/20 text-white/60 hover:text-white"
+                                                                        onClick={async () => {
+                                                                            if (!showTemplateDropdown) {
+                                                                                const res = await apiClient.get('/admin/html-templates')
+                                                                                setHtmlTemplates(res.data)
+                                                                            }
+                                                                            setShowTemplateDropdown(v => !v)
+                                                                        }}
+                                                                    >📋 Kaydedilen Şablonlar ▾</Button>
+                                                                    {showTemplateDropdown && (
+                                                                        <div className="absolute right-0 top-8 z-50 w-64 rounded-lg border border-white/10 bg-[#1a1a2e] shadow-2xl py-1">
+                                                                            {htmlTemplates.length === 0 ? (
+                                                                                <p className="px-3 py-2 text-xs text-muted-foreground italic">Henüz şablon kaydedilmemiş.</p>
+                                                                            ) : htmlTemplates.map(t => (
+                                                                                <div key={t.id} className="flex items-center justify-between px-3 py-2 hover:bg-white/5 group">
+                                                                                    <button type="button" className="text-xs text-left text-white/80 hover:text-white flex-1 truncate"
+                                                                                        onClick={() => { setEditingEvent({ ...editingEvent, content_rules_html: t.html_content }); setShowTemplateDropdown(false) }}
+                                                                                    >{t.name}</button>
+                                                                                    <button type="button" className="ml-2 text-red-400/50 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                                                                                        onClick={async () => {
+                                                                                            await apiClient.delete(`/admin/html-templates/${t.id}`)
+                                                                                            const res = await apiClient.get('/admin/html-templates')
+                                                                                            setHtmlTemplates(res.data)
+                                                                                        }}>🗑️</button>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                         <p className="text-xs text-muted-foreground leading-relaxed">
                                                             Bu alan doluysa kullanıcı arayüzünde madde madde kurallar yerine bu HTML gösterilir. Listeler, başlıklar ve linkler için uygundur.
                                                         </p>

@@ -12,4 +12,5 @@ from shared.models.excluded_bet_cache import ExcludedBetCache
 from shared.models.event_lost_coupon import EventLostCoupon
 from shared.models.event_excluded_from_ranking import EventExcludedFromRanking
 from shared.models.event_participant_deposit import EventParticipantDeposit
+from shared.models.html_template import HtmlTemplate
 from .league import League

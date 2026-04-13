@@ -94,6 +94,29 @@ def get_report_headers():
     } | ({"Authentication": settings.BAPI_TOKEN} if settings.BAPI_TOKEN else {})
 
 
+def get_stats_headers():
+    """İstatistik işlemleri için özel Betconstruct API header'larını hazırlar."""
+    headers = {
+        "Content-Type": "application/json;charset=UTF-8",
+    }
+    token = settings.STATS_BAPI_TOKEN or settings.BAPI_TOKEN
+    if token:
+        headers["Authentication"] = token
+    return headers
+
+
+def get_stats_report_headers():
+    """İstatistik GetBetReport için gerekli header'lar (Origin/Referer)."""
+    token = settings.STATS_BAPI_TOKEN or settings.BAPI_TOKEN
+    return {
+        "Content-Type": "application/json;charset=UTF-8",
+        "Accept": "application/json, text/plain, */*",
+        "Origin": "https://backoffice.betconstruct.com",
+        "Referer": "https://backoffice.betconstruct.com/",
+        "X-Requested-With": "XMLHttpRequest",
+    } | ({"Authentication": token} if token else {})
+
+
 async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_retries: int = 4) -> Dict[str, Any]:
     """Betconstruct'tan bahis geçmişini çeker (GetBetHistory). Kullanılmıyor - GetBetReport kullanılıyor."""
     try:
@@ -137,7 +160,7 @@ async def fetch_bet_history(client_id: int, start_date: str, end_date: str, max_
                         "ToCurrencyId": "TRY"
                     }
 
-                    r = await client.post(settings.BAPI_BET_HISTORY_URL, headers=get_headers(), json=body)
+                    r = await client.post(settings.BAPI_BET_HISTORY_URL, headers=get_stats_headers(), json=body)
                     
                     if _is_rate_limited_response(r):
                         await _set_rate_limit_cooldown()
@@ -294,7 +317,7 @@ async def fetch_bet_report(
                 try:
                     await _wait_if_rate_limited()
                     async with httpx.AsyncClient(timeout=180) as client:
-                        r = await client.post(settings.BAPI_BET_REPORT_URL, headers=get_report_headers(), json=body)
+                        r = await client.post(settings.BAPI_BET_REPORT_URL, headers=get_stats_report_headers(), json=body)
                     if _is_rate_limited_response(r):
                         await _set_rate_limit_cooldown()
                         if attempt < max_retries:
@@ -349,10 +372,10 @@ async def fetch_bet_selections(bet_id: str, http_client: httpx.AsyncClient = Non
     
     try:
         if http_client:
-            r = await http_client.post(settings.BAPI_BET_SELECTIONS_URL, headers=get_headers(), json=body)
+            r = await http_client.post(settings.BAPI_BET_SELECTIONS_URL, headers=get_stats_headers(), json=body)
         else:
             async with httpx.AsyncClient(timeout=30) as client:
-                r = await client.post(settings.BAPI_BET_SELECTIONS_URL, headers=get_headers(), json=body)
+                r = await client.post(settings.BAPI_BET_SELECTIONS_URL, headers=get_stats_headers(), json=body)
         
         # Rate limit kontrolü
         if _is_rate_limited_response(r):
