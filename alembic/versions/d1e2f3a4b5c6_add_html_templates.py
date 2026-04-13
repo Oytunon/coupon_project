@@ -27,7 +27,7 @@ def upgrade() -> None:
             sa.Column('created_at', sa.DateTime(), server_default=sa.func.now(), nullable=False),
             sa.PrimaryKeyConstraint('id')
         )
-    op.create_index(op.f('ix_html_templates_id'), 'html_templates', ['id'], unique=False)
+        op.create_index(op.f('ix_html_templates_id'), 'html_templates', ['id'], unique=False)
 
 
 def downgrade() -> None:
