@@ -25,18 +25,30 @@ logger = logging.getLogger(__name__)
 # Stale job sonrası cooldown - rate limit toparlanması için yeni job hemen başlamasın
 _stale_cooldown_until = None
 
+
+def _type_int_from_bet_dict(bet_data: dict) -> int:
+    """Betconstruct Type: API int veya string dönebilir; TypeName dile bağlı — kullanma."""
+    t = bet_data.get("Type", 1)
+    if isinstance(t, int) and t in (1, 2, 3):
+        return t
+    if isinstance(t, str):
+        if t in ("1", "2", "3"):
+            return int(t)
+        try:
+            ti = int(t)
+            if ti in (1, 2, 3):
+                return ti
+        except ValueError:
+            pass
+    return 1
+
+
 def _is_multi_coupon(coupon: Coupon) -> bool:
     """Kupon multi/kombine mi kontrol eder."""
     if (coupon.combination_count or 0) > 1:
         return True
     bet_data = coupon.bet_data or {}
-    type_val = bet_data.get("Type", 1)
-    type_name = str(bet_data.get("TypeName", "")).lower()
-    if type_val in (2, 3):
-        return True
-    if type_name in ("multiple", "combo", "accumulator", "kombine", "parlay"):
-        return True
-    return False
+    return _type_int_from_bet_dict(bet_data) in (2, 3)
 
 
 def _has_asian_selection(coupon: Coupon) -> bool:
@@ -362,8 +374,8 @@ async def process_coupons(
         if job_id:
             update_job_status("running", processed=len(bets), _db=db)
         enrolled_count = len(enrolled_client_ids)
-        single_count = sum(1 for b in bets if b.get("Type") == 1 or (str(b.get("TypeName", "")).lower() == "single"))
-        multi_count = sum(1 for b in bets if b.get("Type") in (2, 3) or (str(b.get("TypeName", "")).lower() in ("multiple", "combo", "accumulator", "kombine", "parlay")))
+        single_count = sum(1 for b in bets if _type_int_from_bet_dict(b) == 1)
+        multi_count = sum(1 for b in bets if _type_int_from_bet_dict(b) in (2, 3))
         other_count = len(bets) - single_count - multi_count
         won_api = sum(1 for b in bets if b.get("State") == 4 or "won" in str(b.get("StateName", "")).lower())
         lost_api = sum(1 for b in bets if b.get("State") == 3 or "lost" in str(b.get("StateName", "")).lower())
