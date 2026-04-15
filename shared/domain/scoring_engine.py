@@ -12,7 +12,14 @@ from shared.database import SessionLocal
 from shared.models.coupon import Coupon
 from shared.models.participant import Participant
 from shared.models.enrollment import EventParticipant
-from shared.services.betconstruct import fetch_bet_report, fetch_bet_selections_batch, WorkerCancelledException, set_active_cancel_event, _interruptible_sleep
+from shared.services.betconstruct import (
+    ReportAuthMode,
+    fetch_bet_report,
+    fetch_bet_selections_batch,
+    WorkerCancelledException,
+    set_active_cancel_event,
+    _interruptible_sleep,
+)
 from shared.models.worker_log import WorkerLog
 from shared.models.event import Event
 from shared.models.coupon_event_result import CouponEventResult
@@ -179,6 +186,7 @@ async def process_coupons(
     skip_concurrency_check: bool = False,
     skip_deposits: bool = False,
     skip_job_finalize: bool = False,
+    report_auth_mode: ReportAuthMode = "stats_first",
 ):
     """
     Kuponları işleyen ana fonksiyon.
@@ -188,6 +196,8 @@ async def process_coupons(
     Override verildiğinde MaxRows=500 ve sayfa gecikmesi kullanılır.
     skip_job_finalize: True ise başarılı bitişte WorkerLog'u completed yapmaz (stats_worker gün gün
     çağrılarında aynı job_id kullanıldığında iptal pollerinin yanlış tetiklenmesini önler).
+    report_auth_mode: GetBetReport / GetBetSelections için token — stats_first (STATS or BAPI),
+    bapi_only (yalnız BAPI; zamanlanmış 15 dk worker).
     """
     is_manual_run = job_id is not None  # API'den tetiklenen manuel run'da deposit atlanır
     db = SessionLocal()
@@ -365,7 +375,15 @@ async def process_coupons(
         page_delay = 4.0 if use_pagination else 0
         state_label = "Won only" if state_filter == 4 else "Lost only" if state_filter == 3 else "Won+Lost"
         logger.info(f"[Worker] GetBetReport başlatılıyor | Tarih: {start_str} - {end_str} | State: {state_label} | Katılımcı: {len(participants)} | Pagination: {max_rows or 'off'}")
-        bet_report_data = await fetch_bet_report(start_str, end_str, include_selections=True, state_filter=state_filter, max_rows=max_rows, page_delay_seconds=page_delay)
+        bet_report_data = await fetch_bet_report(
+            start_str,
+            end_str,
+            include_selections=True,
+            state_filter=state_filter,
+            max_rows=max_rows,
+            page_delay_seconds=page_delay,
+            auth_mode=report_auth_mode,
+        )
 
         db = SessionLocal()  # Yazma için yeni session (önceki idle kalmıştı)
         t_api = time.perf_counter() - t_start
@@ -535,7 +553,9 @@ async def process_coupons(
             logger.info(f"[Worker] {len(bet_ids_needing_fetch)} kupon için selection fetch (GetBetReport'ta eksikti)")
             await _interruptible_sleep(1.0)
             async with httpx.AsyncClient(timeout=30) as http_client:
-                fetched = await fetch_bet_selections_batch(bet_ids_needing_fetch, http_client)
+                fetched = await fetch_bet_selections_batch(
+                    bet_ids_needing_fetch, http_client, auth_mode=report_auth_mode
+                )
                 selections_cache.update(fetched)
 
         # Phase 3: Process each bet with cached selections

@@ -42,15 +42,19 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
 
-    # Betconstruct — iki token: hangi endpoint hangisini kullanır?
+    # Betconstruct — iki token + rapor auth modu (shared/services/betconstruct.py ReportAuthMode)
     #
     # BAPI_TOKEN: shared/services/bapi.py (GetClients, GetClientTransactions), bapi_client ödül vb.
     #
-    # STATS_BAPI_TOKEN: İKİSİ DOLUYSA rapor tarafında ÖNCELİKLİ. shared/services/betconstruct.py içinde
-    #   get_stats_headers() ve get_stats_report_headers() → STATS_BAPI_TOKEN or BAPI_TOKEN
-    #   Kullanıldığı yerler: GetBetReport, GetBetHistory, GetBetSelections, GetDepositsWithdrawalsWithPaging
-    # Oto worker + manuel worker + manuel kupon: GetBetReport için AYNI kural (ikisi de fetch_bet_report).
-    # İkisi aynı anahtarsa .env'de STATS_BAPI_TOKEN satırını kaldırmak yeterli (sadece BAPI_TOKEN kalır).
+    # STATS_BAPI_TOKEN: Rapor çağrılarında auth_mode=stats_first iken önce bu, yoksa BAPI_TOKEN.
+    #
+    # GetBetReport / GetBetSelections (process_coupons):
+    #   - Zamanlanmış 15 dk worker (worker/main.py): report_auth_mode=bapi_only → yalnız BAPI_TOKEN (zorunlu).
+    #   - Admin manuel worker, stats_worker kayıp kupon, manuel kupon ekleme: stats_first (STATS or BAPI).
+    #
+    # deposit_report (yatırım toplu): get_stats_headers() varsayılan stats_first — istatistik senkronu STATS öncelikli.
+    #
+    # Cron için yalnız STATS tanımlı BAPI boşsa: process_coupons ValueError verir; BAPI_TOKEN .env'de olmalı.
     BAPI_TOKEN: Optional[str] = None
     STATS_BAPI_TOKEN: Optional[str] = None
     BAPI_CLIENT_INFO_URL: str = "https://backofficewebadmin.betconstruct.com/api/en/Client/GetClients"

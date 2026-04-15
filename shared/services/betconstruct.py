@@ -2,8 +2,23 @@ import asyncio
 import httpx
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Literal
+
 from shared.settings import settings
+
+# GetBetReport / GetBetSelections: cron kupon worker sadece BAPI; manuel worker ve istatistik STATS öncelikli.
+ReportAuthMode = Literal["stats_first", "bapi_only"]
+
+
+def _stats_auth_token(auth_mode: ReportAuthMode) -> Optional[str]:
+    if auth_mode == "bapi_only":
+        if not settings.BAPI_TOKEN:
+            raise ValueError(
+                "BAPI_TOKEN zorunlu (report_auth_mode=bapi_only — zamanlanmış kupon worker). "
+                ".env içinde BAPI_TOKEN tanımlı olmalı."
+            )
+        return settings.BAPI_TOKEN
+    return settings.STATS_BAPI_TOKEN or settings.BAPI_TOKEN
 
 logger = logging.getLogger(__name__)
 
@@ -94,20 +109,20 @@ def get_report_headers():
     } | ({"Authentication": settings.BAPI_TOKEN} if settings.BAPI_TOKEN else {})
 
 
-def get_stats_headers():
+def get_stats_headers(auth_mode: ReportAuthMode = "stats_first"):
     """İstatistik işlemleri için özel Betconstruct API header'larını hazırlar."""
     headers = {
         "Content-Type": "application/json;charset=UTF-8",
     }
-    token = settings.STATS_BAPI_TOKEN or settings.BAPI_TOKEN
+    token = _stats_auth_token(auth_mode)
     if token:
         headers["Authentication"] = token
     return headers
 
 
-def get_stats_report_headers():
+def get_stats_report_headers(auth_mode: ReportAuthMode = "stats_first"):
     """İstatistik GetBetReport için gerekli header'lar (Origin/Referer)."""
-    token = settings.STATS_BAPI_TOKEN or settings.BAPI_TOKEN
+    token = _stats_auth_token(auth_mode)
     return {
         "Content-Type": "application/json;charset=UTF-8",
         "Accept": "application/json, text/plain, */*",
@@ -221,12 +236,14 @@ async def fetch_bet_report(
     max_retries: int = 4,
     max_rows: int = 0,
     page_delay_seconds: float = 0,
+    auth_mode: ReportAuthMode = "stats_first",
 ) -> Dict[str, Any]:
     """
     GetBetReport API - Kuponları çeker (tüm kullanıcılar).
     max_rows=0: Tek istek, tüm kayıtlar (504 riski büyük aralıklarda).
     max_rows=500: Sayfalama ile çek, sayfalar arası page_delay_seconds bekler (manuel worker için).
     State=4 sadece Won, State=3 sadece Lost.
+    auth_mode: stats_first (STATS or BAPI) veya bapi_only (yalnız BAPI — zamanlanmış kupon worker).
     """
     try:
         # Girdi: 2026-03-08T21:00:00Z veya 2026-03-08 -> Çıktı: DD-MM-YY - HH:MM:SS
@@ -317,7 +334,11 @@ async def fetch_bet_report(
                 try:
                     await _wait_if_rate_limited()
                     async with httpx.AsyncClient(timeout=180) as client:
-                        r = await client.post(settings.BAPI_BET_REPORT_URL, headers=get_stats_report_headers(), json=body)
+                        r = await client.post(
+                            settings.BAPI_BET_REPORT_URL,
+                            headers=get_stats_report_headers(auth_mode),
+                            json=body,
+                        )
                     if _is_rate_limited_response(r):
                         await _set_rate_limit_cooldown()
                         if attempt < max_retries:
@@ -361,7 +382,11 @@ async def fetch_bet_report(
     return {"Bets": all_bets}
 
 
-async def fetch_bet_selections(bet_id: str, http_client: httpx.AsyncClient = None) -> Dict[str, Any]:
+async def fetch_bet_selections(
+    bet_id: str,
+    http_client: httpx.AsyncClient = None,
+    auth_mode: ReportAuthMode = "stats_first",
+) -> Dict[str, Any]:
     """Betconstruct'tan bahis seçim detaylarını çeker."""
     body = {
         "BetId": bet_id
@@ -371,11 +396,12 @@ async def fetch_bet_selections(bet_id: str, http_client: httpx.AsyncClient = Non
     await _wait_if_rate_limited()
     
     try:
+        hdrs = get_stats_headers(auth_mode)
         if http_client:
-            r = await http_client.post(settings.BAPI_BET_SELECTIONS_URL, headers=get_stats_headers(), json=body)
+            r = await http_client.post(settings.BAPI_BET_SELECTIONS_URL, headers=hdrs, json=body)
         else:
             async with httpx.AsyncClient(timeout=30) as client:
-                r = await client.post(settings.BAPI_BET_SELECTIONS_URL, headers=get_stats_headers(), json=body)
+                r = await client.post(settings.BAPI_BET_SELECTIONS_URL, headers=hdrs, json=body)
         
         # Rate limit kontrolü
         if _is_rate_limited_response(r):
@@ -405,10 +431,11 @@ async def fetch_bet_selections(bet_id: str, http_client: httpx.AsyncClient = Non
 
 
 async def fetch_bet_selections_batch(
-    bet_ids: list, 
+    bet_ids: list,
     http_client: httpx.AsyncClient = None,
     max_retries: int = 4,
-    cooldown: int = 120
+    cooldown: int = 120,
+    auth_mode: ReportAuthMode = "stats_first",
 ) -> Dict[str, Dict]:
     """
     Bet selection detaylarını sıralı çeker.
@@ -426,7 +453,7 @@ async def fetch_bet_selections_batch(
         for attempt in range(max_retries + 1):
             try:
                 await _wait_if_rate_limited()
-                data = await fetch_bet_selections(bid, http_client)
+                data = await fetch_bet_selections(bid, http_client, auth_mode=auth_mode)
                 results[bid] = data
                 return
             except httpx.HTTPStatusError as e:

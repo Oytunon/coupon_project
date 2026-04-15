@@ -23,7 +23,7 @@ def start_scheduler():
         process_coupons,
         trigger=CronTrigger(minute='*/15', timezone='Europe/Istanbul'),
         id='process_coupons',
-        kwargs={"scan_hours": 1},
+        kwargs={"scan_hours": 1, "report_auth_mode": "bapi_only"},
         replace_existing=True
     )
 
@@ -60,7 +60,7 @@ async def run_worker_once():
     """
     Worker'ı bir kez çalıştırır (test için).
     """
-    await process_coupons()
+    await process_coupons(scan_hours=1, report_auth_mode="bapi_only")
 
 
 if __name__ == "__main__":
