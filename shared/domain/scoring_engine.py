@@ -413,16 +413,10 @@ async def process_coupons(
                 if is_bonus_money or wagering_bonus_id is not None or bonus_amount > 0 or free_bet_amount > 0:
                     continue
                 type_val = bet_history.get("Type", 1)
-                type_name = str(bet_history.get("TypeName", "")).lower()
-                # 1=Single, 2=Multiple, 3=Accumulator/Kombine - Betconstruct farklı değerler kullanabilir
                 allowed_int_types = [1, 2, 3]
-                allowed_str_types = ["single", "multiple", "combo", "accumulator", "kombine", "parlay"]
                 if isinstance(type_val, int) and type_val not in allowed_int_types:
                     continue
-                if isinstance(type_val, str):
-                    if type_val.lower() not in allowed_str_types and type_val not in ["1", "2", "3"]:
-                        continue
-                if type_name and type_name not in allowed_str_types:
+                if isinstance(type_val, str) and type_val not in ["1", "2", "3"]:
                     continue
                 amount = float(bet_history.get("Amount", 0.0) or 0.0)
                 try:
