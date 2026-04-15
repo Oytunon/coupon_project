@@ -166,6 +166,7 @@ async def process_coupons(
     state_filter: Optional[int] = None,
     skip_concurrency_check: bool = False,
     skip_deposits: bool = False,
+    skip_job_finalize: bool = False,
 ):
     """
     Kuponları işleyen ana fonksiyon.
@@ -173,6 +174,8 @@ async def process_coupons(
     start_date_override, end_date_override: Belirli tarih aralığı (YYYY-MM-DDTHH:MM:SS veya DD-MM-YY HH:MM).
     state_filter: 4=Won only, 3=Lost only, None=Won+Lost (varsayılan).
     Override verildiğinde MaxRows=500 ve sayfa gecikmesi kullanılır.
+    skip_job_finalize: True ise başarılı bitişte WorkerLog'u completed yapmaz (stats_worker gün gün
+    çağrılarında aynı job_id kullanıldığında iptal pollerinin yanlış tetiklenmesini önler).
     """
     is_manual_run = job_id is not None  # API'den tetiklenen manuel run'da deposit atlanır
     db = SessionLocal()
@@ -709,7 +712,7 @@ async def process_coupons(
         if job_id:
             update_job_status("running", processed=len(bets), saved=total_saved, _db=db)
 
-        if job_id:
+        if job_id and not skip_job_finalize:
             update_job_status("completed", processed=len(bets), saved=total_saved, _db=db)
     except WorkerCancelledException as wc:
         logger.info(f"   [WORKER] Interrupted by cancellation: {wc}")

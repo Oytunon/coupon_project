@@ -162,39 +162,55 @@ async def run_worker():
                     try:
                         current_dt = start_date_utc3
                         end_dt = end_date_utc3
-                        
-                        chunk_index = 1
-                        while current_dt < end_dt:
-                            if cancel_event.is_set():
-                                logger.warning(f"[{job_id}] Kayıp kupon çekimi kullanıcı tarafından iptal edildi.")
-                                break
-                                
-                            next_dt = min(current_dt + timedelta(days=1), end_dt)
-                            
-                            # process_coupons expects UTC+3 string matching API behavior
-                            if 'tr_offset' not in locals():
-                                tr_offset = timedelta(hours=3)
-                            
-                            chunk_start_utc3 = (current_dt + tr_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
-                            chunk_end_utc3 = (next_dt + tr_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
-                            
-                            logger.info(f" -> [Parça {chunk_index}] Günlük Çekiliyor: {chunk_start_utc3} - {chunk_end_utc3}")
+                        tr_offset = timedelta(hours=3)
+
+                        # Başlangıç == bitiş: while'e hiç girilmezdi; tek pencerede çek
+                        if current_dt >= end_dt and not cancel_event.is_set():
+                            chunk_start_utc3 = (start_date_utc3 + tr_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
+                            chunk_end_utc3 = (end_date_utc3 + tr_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
+                            logger.info(f" -> [Parça 1] Tek aralık: {chunk_start_utc3} - {chunk_end_utc3}")
                             await process_coupons(
                                 target_event_id=event_id,
                                 job_id=job_id,
                                 start_date_override=chunk_start_utc3,
                                 end_date_override=chunk_end_utc3,
                                 state_filter=3,
-                                skip_concurrency_check=True, # Zaten izole worker
-                                skip_deposits=True # Deposit az önce çekildi
+                                skip_concurrency_check=True,
+                                skip_deposits=True,
+                                skip_job_finalize=False,
                             )
-                            # Çekilen 1 günlük veri işlendi. RAM'i temizle ve bir sonraki güne geç.
-                            gc.collect()
-                            await asyncio.sleep(2)
-                            
-                            current_dt = next_dt
-                            chunk_index += 1
-                            
+                        else:
+                            chunk_index = 1
+                            while current_dt < end_dt:
+                                if cancel_event.is_set():
+                                    logger.warning(f"[{job_id}] Kayıp kupon çekimi kullanıcı tarafından iptal edildi.")
+                                    break
+
+                                next_dt = min(current_dt + timedelta(days=1), end_dt)
+
+                                chunk_start_utc3 = (current_dt + tr_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
+                                chunk_end_utc3 = (next_dt + tr_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+                                logger.info(f" -> [Parça {chunk_index}] Günlük Çekiliyor: {chunk_start_utc3} - {chunk_end_utc3}")
+                                # Aynı job_id ile gün gün çağrı: ara parçalarda completed yazma — yoksa iptal polleri
+                                # "completed" görüp cancel_event set ediyor, kalan günler atlanıyordu.
+                                is_last_lost_chunk = next_dt >= end_dt
+                                await process_coupons(
+                                    target_event_id=event_id,
+                                    job_id=job_id,
+                                    start_date_override=chunk_start_utc3,
+                                    end_date_override=chunk_end_utc3,
+                                    state_filter=3,
+                                    skip_concurrency_check=True, # Zaten izole worker
+                                    skip_deposits=True, # Deposit az önce çekildi
+                                    skip_job_finalize=not is_last_lost_chunk,
+                                )
+                                gc.collect()
+                                await asyncio.sleep(2)
+
+                                current_dt = next_dt
+                                chunk_index += 1
+
                         logger.info("İstatistik İşlemleri (Deposit + Kayıp Kuponlar GÜN GÜN) başarıyla tamamlandı.")
                     except Exception as pc_err:
                         logger.error(f"Kayıp Kupon Çekimi Sırasında Hata: {pc_err}")
@@ -203,6 +219,21 @@ async def run_worker():
 
                 if poller_task and not poller_task.done():
                     poller_task.cancel()
+
+                # Deposit skip_completion=True veya kayıp döngüsü hiç girmediyse job "running" kalabilir;
+                # son parça process_coupons zaten completed yazmış olabilir.
+                if not cancel_event.is_set():
+                    from datetime import datetime as _dt_utc
+                    fin_db = SessionLocal()
+                    try:
+                        j = fin_db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
+                        if j and j.status == "running":
+                            j.status = "completed"
+                            j.completed_at = _dt_utc.utcnow()
+                            fin_db.commit()
+                            logger.info(f"[JobID={job_id}] Stats görevi tamamlandı (running → completed).")
+                    finally:
+                        fin_db.close()
                 
             else:
                 db.close()
