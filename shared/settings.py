@@ -42,7 +42,15 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
 
-    # Betconstruct
+    # Betconstruct — iki token: hangi endpoint hangisini kullanır?
+    #
+    # BAPI_TOKEN: shared/services/bapi.py (GetClients, GetClientTransactions), bapi_client ödül vb.
+    #
+    # STATS_BAPI_TOKEN: İKİSİ DOLUYSA rapor tarafında ÖNCELİKLİ. shared/services/betconstruct.py içinde
+    #   get_stats_headers() ve get_stats_report_headers() → STATS_BAPI_TOKEN or BAPI_TOKEN
+    #   Kullanıldığı yerler: GetBetReport, GetBetHistory, GetBetSelections, GetDepositsWithdrawalsWithPaging
+    # Oto worker + manuel worker + manuel kupon: GetBetReport için AYNI kural (ikisi de fetch_bet_report).
+    # İkisi aynı anahtarsa .env'de STATS_BAPI_TOKEN satırını kaldırmak yeterli (sadece BAPI_TOKEN kalır).
     BAPI_TOKEN: Optional[str] = None
     STATS_BAPI_TOKEN: Optional[str] = None
     BAPI_CLIENT_INFO_URL: str = "https://backofficewebadmin.betconstruct.com/api/en/Client/GetClients"
