@@ -451,6 +451,7 @@ async def get_event_statistics_api(event_id: int, db: Session = Depends(get_db))
 
     last_worker = db.query(WorkerLog).filter(
         WorkerLog.event_id == event_id,
+        WorkerLog.job_type == "stats",
         WorkerLog.status == "completed"
     ).order_by(WorkerLog.completed_at.desc()).first()
     
