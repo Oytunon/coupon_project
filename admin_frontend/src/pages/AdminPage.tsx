@@ -1940,27 +1940,35 @@ export default function AdminPage() {
                                             </>
                                         ) : null}
                                     </CardContent>
-                                    <div className="p-4 border-t border-white/5 flex justify-end gap-2">
-                                        <Button 
-                                            variant="outline" 
-                                            size="sm" 
-                                            className="border-blue-800 text-blue-500 hover:bg-blue-500/10 gap-2"
-                                            onClick={() => {
-                                                const event = events.find(e => e.id === statisticsEventId);
-                                                if (event) {
-                                                    setWorkerDateEvent(event)
-                                                    setWorkerDateMode("stats")
-                                                    setWorkerDates({ start_date: "", end_date: "" })
-                                                    setShowWorkerDateModal(true)
-                                                }
-                                            }}
-                                        >
-                                            <BarChart3 className="h-4 w-4" /> Verileri Güncelle
-                                        </Button>
-                                        <Button variant="outline" size="sm" disabled={loadingStatistics || !statisticsData} onClick={() => statisticsEventId && handleExportStatistics(statisticsEventId, events.find(e => e.id === statisticsEventId)?.name || "turnuva")} className="gap-2">
-                                            <Download className="h-4 w-4" /> Excel İndir
-                                        </Button>
-                                        <Button variant="ghost" size="sm" onClick={() => setStatisticsEventId(null)}>Kapat</Button>
+                                    <div className="p-4 border-t border-white/5 flex items-center justify-between">
+                                        <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                            <Clock className="w-3.5 h-3.5" />
+                                            {statisticsData?.last_updated_at
+                                                ? `Son Güncelleme: ${new Date(statisticsData.last_updated_at).toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}`
+                                                : "Son Güncelleme: Henüz yapılmadı"}
+                                        </div>
+                                        <div className="flex justify-end gap-2">
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm" 
+                                                className="border-blue-800 text-blue-500 hover:bg-blue-500/10 gap-2"
+                                                onClick={() => {
+                                                    const event = events.find(e => e.id === statisticsEventId);
+                                                    if (event) {
+                                                        setWorkerDateEvent(event)
+                                                        setWorkerDateMode("stats")
+                                                        setWorkerDates({ start_date: "", end_date: "" })
+                                                        setShowWorkerDateModal(true)
+                                                    }
+                                                }}
+                                            >
+                                                <BarChart3 className="h-4 w-4" /> Verileri Güncelle
+                                            </Button>
+                                            <Button variant="outline" size="sm" disabled={loadingStatistics || !statisticsData} onClick={() => statisticsEventId && handleExportStatistics(statisticsEventId, events.find(e => e.id === statisticsEventId)?.name || "turnuva")} className="gap-2">
+                                                <Download className="h-4 w-4" /> Excel İndir
+                                            </Button>
+                                            <Button variant="ghost" size="sm" onClick={() => setStatisticsEventId(null)}>Kapat</Button>
+                                        </div>
                                     </div>
                                 </Card>
                             </div>
