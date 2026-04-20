@@ -479,11 +479,11 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                                 <TrendingUp className="w-4 h-4 text-[#D9B648] shrink-0" />
                                                 <span className="text-[#D9B648] text-xs md:text-sm font-semibold">Geçerli Bahisler</span>
                                             </div>
-                                            <p className="text-[#F7EBA5] text-xs md:text-sm">
-                                                <span className="font-medium">Minimum:</span> <span className="font-bold text-[#D9B648] whitespace-nowrap">{event.rules?.min_stake || 100} TL</span>
-                                                <span className="mx-2 text-gray-500">|</span>
-                                                <span className="font-medium">Maksimum:</span> <span className="font-bold text-[#D9B648]">∞</span>
-                                            </p>
+                                            <div className="text-[#F7EBA5] text-xs md:text-sm flex flex-col md:flex-row md:items-center">
+                                                <div><span className="font-medium">Minimum:</span> <span className="font-bold text-[#D9B648] whitespace-nowrap">{event.rules?.min_stake || 100} TL</span></div>
+                                                <span className="hidden md:inline mx-2 text-gray-500">|</span>
+                                                <div><span className="font-medium">Maksimum:</span> <span className="font-bold text-[#D9B648]">∞</span></div>
+                                            </div>
                                         </div>
                                         <div className="flex-1 min-w-0 pl-3 md:pl-4">
                                             <div className="flex items-center gap-2 mb-2">
