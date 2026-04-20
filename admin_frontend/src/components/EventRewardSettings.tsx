@@ -28,8 +28,8 @@ export function EventRewardSettings({ rewards = [], onChange }: EventRewardSetti
         reward_type: "cash",
         amount: 100,
         currency: "TRY",
-        criteria_type: "rank",
-        criteria_value: 10
+        criteria_type: "rank_exact",
+        criteria_value: 1
     })
 
     const { toast } = useToast()
