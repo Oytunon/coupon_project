@@ -1423,11 +1423,15 @@ export default function AdminPage() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className={`grid grid-cols-1 md:grid-cols-2 ${adminRole === 'moderator' ? 'lg:grid-cols-2' : 'lg:grid-cols-4'} gap-4`}>
                             <StatCard title="Katılımcı" value={eventStats?.total_participants ?? 0} icon={Users} color="text-blue-500" />
                             <StatCard title="Toplam Kupon" value={eventStats?.total_coupons ?? 0} icon={FileText} color="text-purple-500" />
-                            <StatCard title="Toplam Bahis" value={`₺${eventStats?.total_stake ?? 0}`} icon={History} color="text-green-500" />
-                            <StatCard title="Dağıtılan Puan" value={eventStats?.total_points_distributed ?? 0} icon={Trophy} color="text-yellow-500" />
+                            {adminRole !== 'moderator' && (
+                                <>
+                                    <StatCard title="Toplam Bahis" value={`₺${eventStats?.total_stake ?? 0}`} icon={History} color="text-green-500" />
+                                    <StatCard title="Dağıtılan Puan" value={eventStats?.total_points_distributed ?? 0} icon={Trophy} color="text-yellow-500" />
+                                </>
+                            )}
                         </div>
 
                         <Card className="bg-card/50 border-white/5 backdrop-blur-xl">
