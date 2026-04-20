@@ -1943,9 +1943,15 @@ export default function AdminPage() {
                                     <div className="p-4 border-t border-white/5 flex items-center justify-between">
                                         <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                                             <Clock className="w-3.5 h-3.5" />
-                                            {statisticsData?.last_updated_at
-                                                ? `Son Güncelleme: ${new Date(statisticsData.last_updated_at).toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}`
-                                                : "Son Güncelleme: Henüz yapılmadı"}
+                                            {statisticsData?.last_updated_at ? (
+                                                <>
+                                                    <span className="font-bold">Son Güncelleme:</span> {new Date(statisticsData.last_updated_at).toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span className="font-bold">Son Güncelleme:</span> Henüz yapılmadı
+                                                </>
+                                            )}
                                         </div>
                                         <div className="flex justify-end gap-2">
                                             <Button 
