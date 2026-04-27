@@ -2761,7 +2761,23 @@ export default function AdminPage() {
                                                                         <td className="px-3 py-2 font-mono font-bold text-primary">#{row.rank}</td>
                                                                         <td className="px-3 py-2 font-medium">{row.username}</td>
                                                                         <td className="px-3 py-2">{Number(row.points).toLocaleString('tr-TR')}</td>
-                                                                        <td className="px-3 py-2">{row.receives_payout ? 'Evet' : '—'}</td>
+                                                                        <td className="px-3 py-2">
+                                                                            {row.receives_payout ? (() => {
+                                                                                const payouts = rewardPreviewData.payouts?.filter((p: any) => p.client_id === row.client_id) || [];
+                                                                                if (payouts.length > 0) {
+                                                                                    return (
+                                                                                        <div className="flex flex-col">
+                                                                                            {payouts.map((p: any, idx: number) => (
+                                                                                                <span key={idx} className="text-emerald-400 font-bold whitespace-nowrap">
+                                                                                                    {p.amount} {p.reward_type === 'cash' ? 'TRY' : p.reward_type?.toUpperCase()}
+                                                                                                </span>
+                                                                                            ))}
+                                                                                        </div>
+                                                                                    );
+                                                                                }
+                                                                                return <span className="text-emerald-400 font-bold">Evet</span>;
+                                                                            })() : '—'}
+                                                                        </td>
                                                                     </tr>
                                                                 ))}
                                                             </tbody>
