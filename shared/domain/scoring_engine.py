@@ -93,6 +93,20 @@ def calculate_points_for_event(
     formula = rules.get("scoring_formula", "simple")
     state = (coupon.state or "open").lower()
     
+    # --- ÖZEL MAÇ ÇARPANI MANTIĞI ---
+    extra_multiplier = 1.0
+    special_multipliers = rules.get("special_match_multipliers", {})
+    if state == 'won' and special_multipliers:
+        bet_data = coupon.bet_data or {}
+        selections = bet_data.get("Selections") or bet_data.get("BetSelections") or []
+        for sel in selections:
+            match_id = str(sel.get("MatchId") or "")
+            if match_id and match_id in special_multipliers:
+                try:
+                    extra_multiplier *= float(special_multipliers[match_id])
+                except (ValueError, TypeError):
+                    pass
+
     # Multi + (Asya veya iade) + kazanç: puan = WinningAmount
     use_winning_amount = (
         state == 'won'
@@ -107,13 +121,16 @@ def calculate_points_for_event(
                 bet_data.get("WinningAmount") or bet_data.get("WinAmount") or bet_data.get("Payout") or 0
             ) or 0.0
         if winning_amount > 0:
-            final_points = round(winning_amount, 2)
+            final_points = round(winning_amount * extra_multiplier, 2)
             formula_str = "WinningAmount (multi+Asian/Returned)"
+            if extra_multiplier != 1.0:
+                formula_str += f" * {extra_multiplier} (Special Match)"
+
             return final_points, {
                 "formula": formula,
                 "formula_str": formula_str,
                 "base_points": round(winning_amount, 4),
-                "multiplier": 1.0,
+                "multiplier": extra_multiplier,
                 "state": state,
                 "final_points": final_points,
                 "truncated_odds": round(coupon.odds, 3),
@@ -147,7 +164,11 @@ def calculate_points_for_event(
         formula_str = "(stake * odds) - stake"
     
     # round: floor ile 1694.999... → 1694.99 oluyordu (750×2.26=1695 olmalı)
-    final_points = round(base_points * multiplier, 2)
+    final_points = round(base_points * multiplier * extra_multiplier, 2)
+    
+    if extra_multiplier != 1.0:
+        formula_str += f" * {extra_multiplier} (Special Match)"
+        multiplier *= extra_multiplier
     
     return final_points, {
         "formula": formula,
