@@ -1651,10 +1651,13 @@ export default function AdminPage() {
                                                 </div>
                                             </div>
                                             <div className="space-y-1">
-                                                <span className="text-xs text-muted-foreground uppercase font-bold text-[10px] tracking-wider">Görüntülenme Bitiş</span>
-                                                <div className="flex items-center gap-2 text-sm font-medium">
-                                                    <Clock className="h-3.5 w-3.5 text-amber-400" />
-                                                    {event.display_until ? new Date(event.display_until).toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : <span className="text-white/30 italic">Her Zaman</span>}
+                                                <span className="text-xs text-muted-foreground uppercase font-bold text-[10px] tracking-wider">Ödül Dağıtım Durumu</span>
+                                                <div className="pt-1">
+                                                    {event.reward_status === 'completed' && <Badge className="bg-emerald-500/20 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/30">Dağıtıldı</Badge>}
+                                                    {event.reward_status === 'processing' && <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/20 animate-pulse">Dağıtılıyor...</Badge>}
+                                                    {event.reward_status === 'pending' && <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/20">Sırada</Badge>}
+                                                    {event.reward_status === 'failed' && <Badge className="bg-red-500/20 text-red-500 border-red-500/20">Hata!</Badge>}
+                                                    {(event.reward_status === 'none' || !event.reward_status) && <Badge variant="outline" className="text-white/20 border-white/5 font-normal">Dağıtılmadı</Badge>}
                                                 </div>
                                             </div>
                                             <div className="space-y-1">
@@ -1690,16 +1693,6 @@ export default function AdminPage() {
                                                     ) : (
                                                         <span className="text-white/20 italic font-normal">Tanımlanmadı</span>
                                                     )}
-                                                </div>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <span className="text-xs text-muted-foreground uppercase font-bold text-[10px] tracking-wider">Ödül Dağıtım Durumu</span>
-                                                <div className="pt-1">
-                                                    {event.reward_status === 'completed' && <Badge className="bg-emerald-500/20 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/30">Dağıtıldı</Badge>}
-                                                    {event.reward_status === 'processing' && <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/20 animate-pulse">Dağıtılıyor...</Badge>}
-                                                    {event.reward_status === 'pending' && <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/20">Sırada</Badge>}
-                                                    {event.reward_status === 'failed' && <Badge className="bg-red-500/20 text-red-500 border-red-500/20">Hata!</Badge>}
-                                                    {(event.reward_status === 'none' || !event.reward_status) && <Badge variant="outline" className="text-white/20 border-white/5 font-normal">Dağıtılmadı</Badge>}
                                                 </div>
                                             </div>
                                             <div className="space-y-1">
@@ -2022,14 +2015,6 @@ export default function AdminPage() {
                                                     </div>
 
                                                     <div className="space-y-2">
-                                                        <label className="text-xs font-bold text-muted-foreground flex items-center gap-2">
-                                                            <Timer className="h-3 w-3" /> Görüntülenme Bitiş Tarihi
-                                                        </label>
-                                                        <Input type="datetime-local" value={formatDateTimeLocal(newEvent.display_until)} onChange={e => setNewEvent({ ...newEvent, display_until: e.target.value })} className="bg-black/20" />
-                                                        <p className="text-[10px] text-muted-foreground italic">Kampanya bittikten sonra client'te ne zamana kadar görünecek. Boş bırakılırsa her zaman görünür.</p>
-                                                    </div>
-
-                                                    <div className="space-y-2">
                                                         <label className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
                                                             <ImagePlus className="h-3 w-3" /> Kampanya Görseli
                                                         </label>
@@ -2339,14 +2324,6 @@ export default function AdminPage() {
                                                             <label className="text-xs font-bold text-muted-foreground">Bitiş</label>
                                                             <Input type="datetime-local" value={formatDateTimeLocal(editingEvent.end_date)} onChange={e => setEditingEvent({ ...editingEvent, end_date: e.target.value })} required className="bg-black/20" />
                                                         </div>
-                                                    </div>
-
-                                                    <div className="space-y-2">
-                                                        <label className="text-xs font-bold text-muted-foreground flex items-center gap-2">
-                                                            <Timer className="h-3 w-3" /> Görüntülenme Bitiş Tarihi
-                                                        </label>
-                                                        <Input type="datetime-local" value={formatDateTimeLocal(editingEvent.display_until || "")} onChange={e => setEditingEvent({ ...editingEvent, display_until: e.target.value })} className="bg-black/20" />
-                                                        <p className="text-[10px] text-muted-foreground italic">Kampanya bittikten sonra client'te ne zamana kadar görünecek. Boş bırakılırsa her zaman görünür.</p>
                                                     </div>
 
                                                     <div className="space-y-2">
