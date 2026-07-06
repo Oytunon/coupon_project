@@ -1,6 +1,7 @@
 import asyncio
 import httpx
 import logging
+import re
 import time
 from datetime import datetime, timedelta
 from typing import Optional, List, Tuple
@@ -478,23 +479,50 @@ async def process_coupons(
                 except (ValueError, TypeError):
                     sel_count = 1
                 eligible_for_events = []
-                raw_calc = bet_history.get("CalcDateLocal") or bet_history.get("CalcDate")
-                raw_created = bet_history.get("CreatedAt") or bet_history.get("Created")
-                calc_local_to_utc_offset = timedelta(hours=-3)
+                raw_calc_local = bet_history.get("CalcDateLocal")
+                raw_calc_raw = bet_history.get("CalcDate")
+                raw_created_local = bet_history.get("CreatedLocal")
+                raw_created_raw = bet_history.get("Created")
+                tr_local_offset = timedelta(hours=-3)
+                _tz_suffix_re = re.compile(r'([+-])(\d{2}):(\d{2})$')
+
+                def _parse_bet_dt_to_utc(raw_str, assume_tr_local_if_no_offset=False):
+                    s = str(raw_str).strip()
+                    if s.endswith("Z"):
+                        s = s[:-1]
+                    m = _tz_suffix_re.search(s)
+                    if m:
+                        sign = 1 if m.group(1) == "+" else -1
+                        offset = sign * timedelta(hours=int(m.group(2)), minutes=int(m.group(3)))
+                        s = s[:m.start()]
+                    elif assume_tr_local_if_no_offset:
+                        offset = -tr_local_offset  # TR yerel (+3h) damgasız geliyor
+                    else:
+                        offset = timedelta(0)
+                    clean = s.split('.')[0]
+                    dt = datetime.strptime(clean, "%Y-%m-%dT%H:%M:%S") if "T" in clean else datetime.strptime(clean, "%Y-%m-%d %H:%M:%S")
+                    return dt - offset
+
                 bet_calc_dt_utc = None
                 bet_created_dt_utc = None
-                if raw_calc:
+                if raw_calc_local:
                     try:
-                        clean_calc = str(raw_calc).split('.')[0].replace("Z", "").split("+")[0]
-                        bet_calc_dt_parsed = datetime.strptime(clean_calc, "%Y-%m-%dT%H:%M:%S") if "T" in clean_calc else datetime.strptime(clean_calc, "%Y-%m-%d %H:%M:%S")
-                        bet_calc_dt_utc = bet_calc_dt_parsed + calc_local_to_utc_offset
+                        bet_calc_dt_utc = _parse_bet_dt_to_utc(raw_calc_local, assume_tr_local_if_no_offset=True)
                     except Exception as e:
-                        logger.warning(f"Bet {bet_id}: CalcDateLocal parse failed: {raw_calc}, error: {e}")
-                if raw_created:
+                        logger.warning(f"Bet {bet_id}: CalcDateLocal parse failed: {raw_calc_local}, error: {e}")
+                elif raw_calc_raw:
                     try:
-                        clean_created = str(raw_created).split('.')[0].replace("Z", "").split("+")[0]
-                        bet_created_parsed = datetime.strptime(clean_created, "%Y-%m-%dT%H:%M:%S") if "T" in clean_created else datetime.strptime(clean_created, "%Y-%m-%d %H:%M:%S")
-                        bet_created_dt_utc = bet_created_parsed + calc_local_to_utc_offset
+                        bet_calc_dt_utc = _parse_bet_dt_to_utc(raw_calc_raw)
+                    except Exception as e:
+                        logger.warning(f"Bet {bet_id}: CalcDate parse failed: {raw_calc_raw}, error: {e}")
+                if raw_created_local:
+                    try:
+                        bet_created_dt_utc = _parse_bet_dt_to_utc(raw_created_local, assume_tr_local_if_no_offset=True)
+                    except Exception:
+                        pass
+                elif raw_created_raw:
+                    try:
+                        bet_created_dt_utc = _parse_bet_dt_to_utc(raw_created_raw)
                     except Exception:
                         pass
                 if bet_created_dt_utc is None:
