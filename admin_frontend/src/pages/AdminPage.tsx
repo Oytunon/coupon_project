@@ -2109,7 +2109,7 @@ export default function AdminPage() {
                                                                     rules: {
                                                                         ...newEvent.rules,
                                                                         scoring_formula: val as "simple" | "stake_times_odds" | "stake_times_odds_raw" | "net_profit_multiplier" | "stake_floor_thousand",
-                                                                        ...(val === 'stake_floor_thousand' ? { sport_filter: [1], allowed_bet_types: [1, 2], stake_unit_amount: newEvent.rules.stake_unit_amount || 1000 } : {})
+                                                                        ...(val === 'stake_floor_thousand' ? { sport_filter: [1], allowed_bet_types: [1, 2], stake_unit_amount: newEvent.rules.stake_unit_amount || 1000, min_stake: 1000 } : {})
                                                                     },
                                                                     ...(val === 'stake_times_odds_raw' ? { won_point_multiplier: 1, loss_point_multiplier: 0 } : {}),
                                                                     ...(val === 'stake_floor_thousand' ? { won_point_multiplier: 1, loss_point_multiplier: 1 } : {})
@@ -2182,7 +2182,7 @@ export default function AdminPage() {
                                                                     }}
                                                                     className="bg-black/20 border-primary/20"
                                                                 />
-                                                                <p className="text-[9px] text-muted-foreground leading-tight">Puan = floor(bahis / bu tutar) × bu tutar.</p>
+                                                                <p className="text-[9px] text-muted-foreground leading-tight">Bahis bu tutara bölünüp aşağı yuvarlanarak puana çevrilir (örn. 1500 TL → 1000 puan, 2500 TL → 2000 puan).</p>
                                                             </div>
                                                             <div className="space-y-2">
                                                                 <label className="text-xs font-bold text-primary">Branş</label>
@@ -2462,7 +2462,7 @@ export default function AdminPage() {
                                                                     rules: {
                                                                         ...editingEvent.rules,
                                                                         scoring_formula: val as "simple" | "stake_times_odds" | "stake_times_odds_raw" | "net_profit_multiplier" | "stake_floor_thousand",
-                                                                        ...(val === 'stake_floor_thousand' ? { sport_filter: [1], allowed_bet_types: [1, 2], stake_unit_amount: editingEvent.rules.stake_unit_amount || 1000 } : {})
+                                                                        ...(val === 'stake_floor_thousand' ? { sport_filter: [1], allowed_bet_types: [1, 2], stake_unit_amount: editingEvent.rules.stake_unit_amount || 1000, min_stake: 1000 } : {})
                                                                     },
                                                                     ...(val === 'stake_times_odds_raw' ? { won_point_multiplier: 1, loss_point_multiplier: 0 } : {}),
                                                                     ...(val === 'stake_floor_thousand' ? { won_point_multiplier: 1, loss_point_multiplier: 1 } : {})
@@ -2535,7 +2535,7 @@ export default function AdminPage() {
                                                                     }}
                                                                     className="bg-black/20 border-primary/20"
                                                                 />
-                                                                <p className="text-[9px] text-muted-foreground leading-tight">Puan = floor(bahis / bu tutar) × bu tutar.</p>
+                                                                <p className="text-[9px] text-muted-foreground leading-tight">Bahis bu tutara bölünüp aşağı yuvarlanarak puana çevrilir (örn. 1500 TL → 1000 puan, 2500 TL → 2000 puan).</p>
                                                             </div>
                                                             <div className="space-y-2">
                                                                 <label className="text-xs font-bold text-primary">Branş</label>
