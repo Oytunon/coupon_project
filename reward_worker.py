@@ -16,6 +16,7 @@ from shared.models.event import Event
 from shared.models.worker_log import WorkerLog
 from shared.domain.leaderboard import get_event_leaderboard
 from backend_api.app.services.bapi_client import BapiClient
+from shared.settings import settings
 
 # Loglama Ayarları
 logging.basicConfig(
@@ -71,7 +72,9 @@ def process_job(job_id: int):
             db.commit()
             return
 
-        bapi = BapiClient()
+        # Kickoff gibi turnuvalarin yogun taramasindan izole olsun diye odul dagitimi
+        # ayri (STATS) token kullaniyor - BAPI_TOKEN worker taramasina ozgu kalsin.
+        bapi = BapiClient(token=settings.STATS_BAPI_TOKEN)
         success_count = 0
         fail_count = 0
         rewarded_clients = set()
