@@ -219,9 +219,16 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
         return u.substring(0, 2).toUpperCase()
     }
 
-    // Sadece kazanan kuponlar; arama filtresi
-    const wonCoupons = coupons.filter(c => c.state?.toLowerCase() === 'won')
-    const filteredCoupons = wonCoupons.filter(c => {
+    // Puanlanan kuponlar: kazananlar hep gösterilir; kaybedenler SADECE gerçekten puan
+    // kazandıysa gösterilir (örn. Kickoff'ta lost da puan verir, ama loss puanlamayan
+    // turnuvalarda 0 puanlık lost kupon client'ta görünmemeli). Arama filtresi altta.
+    const scoredCoupons = coupons.filter(c => {
+        const state = c.state?.toLowerCase()
+        if (state === 'won') return true
+        if (state === 'lost') return Number(c.calculation || 0) > 0
+        return false
+    })
+    const filteredCoupons = scoredCoupons.filter(c => {
         if (!searchQuery) return true
         const q = searchQuery.toLowerCase().trim()
         const ids = q.split(',').map(s => s.trim()).filter(s => s)
