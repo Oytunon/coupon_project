@@ -449,9 +449,12 @@ export default function AdminPage() {
             max_combination: null as number | null,
             allowed_league_ids: [] as number[],
             yan_bahis_ids: [] as number[],
-            scoring_formula: "stake_times_odds_raw" as "simple" | "stake_times_odds" | "stake_times_odds_raw" | "net_profit_multiplier",
+            scoring_formula: "stake_times_odds_raw" as "simple" | "stake_times_odds" | "stake_times_odds_raw" | "net_profit_multiplier" | "stake_floor_thousand",
             min_deposit: 0,
-            rewards: [] as any[]
+            rewards: [] as any[],
+            sport_filter: null as number[] | null,
+            stake_unit_amount: 1000,
+            allowed_bet_types: null as number[] | null
         },
         content_rules: [] as { title: string; content: string; icon: string }[],
         content_rules_html: "" as string
@@ -2063,6 +2066,11 @@ export default function AdminPage() {
                                                                     <p className="font-medium text-foreground">Bu puan türünde çarpanlar sabittir:</p>
                                                                     <p className="mt-1">Kazanan: x1 · Kaybeden: x0</p>
                                                                 </div>
+                                                            ) : newEvent.rules.scoring_formula === 'stake_floor_thousand' ? (
+                                                                <div className="text-xs text-muted-foreground py-2">
+                                                                    <p className="font-medium text-foreground">Bu puan türünde çarpanlar sabittir:</p>
+                                                                    <p className="mt-1">Kazanan: x1 · Kaybeden: x1 (kazanan/kaybeden farketmeksizin aynı puan)</p>
+                                                                </div>
                                                             ) : (
                                                                 <>
                                                                     <div className="space-y-2">
@@ -2098,8 +2106,13 @@ export default function AdminPage() {
                                                                 value={newEvent.rules.scoring_formula}
                                                                 onValueChange={(val) => setNewEvent({
                                                                     ...newEvent,
-                                                                    rules: { ...newEvent.rules, scoring_formula: val as "simple" | "stake_times_odds" | "stake_times_odds_raw" | "net_profit_multiplier" },
-                                                                    ...(val === 'stake_times_odds_raw' ? { won_point_multiplier: 1, loss_point_multiplier: 0 } : {})
+                                                                    rules: {
+                                                                        ...newEvent.rules,
+                                                                        scoring_formula: val as "simple" | "stake_times_odds" | "stake_times_odds_raw" | "net_profit_multiplier" | "stake_floor_thousand",
+                                                                        ...(val === 'stake_floor_thousand' ? { sport_filter: [1], allowed_bet_types: [1, 2], stake_unit_amount: newEvent.rules.stake_unit_amount || 1000 } : {})
+                                                                    },
+                                                                    ...(val === 'stake_times_odds_raw' ? { won_point_multiplier: 1, loss_point_multiplier: 0 } : {}),
+                                                                    ...(val === 'stake_floor_thousand' ? { won_point_multiplier: 1, loss_point_multiplier: 1 } : {})
                                                                 })}
                                                             >
                                                                 <SelectTrigger className="bg-black/20 border-white/10">
@@ -2110,6 +2123,7 @@ export default function AdminPage() {
                                                                     <SelectItem value="stake_times_odds">Bahis x Oran x Kazanç Çarpanı / 10</SelectItem>
                                                                     <SelectItem value="stake_times_odds_raw">Bahis x Oran = Toplam Puan</SelectItem>
                                                                     <SelectItem value="net_profit_multiplier">Kazanç - Bahis x Kazanç Çarpanı</SelectItem>
+                                                                    <SelectItem value="stake_floor_thousand">Kickoff</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
                                                         </div>
@@ -2154,6 +2168,35 @@ export default function AdminPage() {
                                                             <p className="text-[9px] text-amber-500/60 leading-tight">Yalnızca bu tutar ve üzeri yatırım yapanlar katılabilir (0 = Herkes).</p>
                                                         </div>
                                                     </div>
+
+                                                    {newEvent.rules.scoring_formula === 'stake_floor_thousand' && (
+                                                        <div className="grid grid-cols-2 gap-4 p-4 bg-white/5 rounded-lg border border-white/5">
+                                                            <div className="space-y-2">
+                                                                <label className="text-xs font-bold text-primary">Puan Birimi (TL)</label>
+                                                                <Input
+                                                                    type="number" min="1" step="100"
+                                                                    value={newEvent.rules.stake_unit_amount}
+                                                                    onChange={e => {
+                                                                        const val = parseInt(e.target.value)
+                                                                        setNewEvent({ ...newEvent, rules: { ...newEvent.rules, stake_unit_amount: isNaN(val) ? 1000 : val } })
+                                                                    }}
+                                                                    className="bg-black/20 border-primary/20"
+                                                                />
+                                                                <p className="text-[9px] text-muted-foreground leading-tight">Puan = floor(bahis / bu tutar) × bu tutar.</p>
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <label className="text-xs font-bold text-primary">Branş</label>
+                                                                <Select value="football" onValueChange={() => {}}>
+                                                                    <SelectTrigger className="bg-black/20 border-primary/20">
+                                                                        <SelectValue />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="football">Futbol</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
+                                                        </div>
+                                                    )}
 
                                                     <div className="space-y-2 p-4 bg-emerald-500/5 rounded-lg border border-emerald-500/20">
                                                         <LeagueSelector
@@ -2376,6 +2419,11 @@ export default function AdminPage() {
                                                                     <p className="font-medium text-foreground">Bu puan türünde çarpanlar sabittir:</p>
                                                                     <p className="mt-1">Kazanan: x1 · Kaybeden: x0</p>
                                                                 </div>
+                                                            ) : editingEvent.rules.scoring_formula === 'stake_floor_thousand' ? (
+                                                                <div className="text-xs text-muted-foreground py-2">
+                                                                    <p className="font-medium text-foreground">Bu puan türünde çarpanlar sabittir:</p>
+                                                                    <p className="mt-1">Kazanan: x1 · Kaybeden: x1 (kazanan/kaybeden farketmeksizin aynı puan)</p>
+                                                                </div>
                                                             ) : (
                                                                 <>
                                                                     <div className="space-y-2">
@@ -2411,8 +2459,13 @@ export default function AdminPage() {
                                                                 value={editingEvent.rules.scoring_formula || "simple"}
                                                                 onValueChange={(val) => setEditingEvent({
                                                                     ...editingEvent,
-                                                                    rules: { ...editingEvent.rules, scoring_formula: val as "simple" | "stake_times_odds" | "stake_times_odds_raw" | "net_profit_multiplier" },
-                                                                    ...(val === 'stake_times_odds_raw' ? { won_point_multiplier: 1, loss_point_multiplier: 0 } : {})
+                                                                    rules: {
+                                                                        ...editingEvent.rules,
+                                                                        scoring_formula: val as "simple" | "stake_times_odds" | "stake_times_odds_raw" | "net_profit_multiplier" | "stake_floor_thousand",
+                                                                        ...(val === 'stake_floor_thousand' ? { sport_filter: [1], allowed_bet_types: [1, 2], stake_unit_amount: editingEvent.rules.stake_unit_amount || 1000 } : {})
+                                                                    },
+                                                                    ...(val === 'stake_times_odds_raw' ? { won_point_multiplier: 1, loss_point_multiplier: 0 } : {}),
+                                                                    ...(val === 'stake_floor_thousand' ? { won_point_multiplier: 1, loss_point_multiplier: 1 } : {})
                                                                 })}
                                                             >
                                                                 <SelectTrigger className="bg-black/20 border-white/10">
@@ -2423,6 +2476,7 @@ export default function AdminPage() {
                                                                     <SelectItem value="stake_times_odds">Bahis x Oran x Kazanç Çarpanı / 10</SelectItem>
                                                                     <SelectItem value="stake_times_odds_raw">Bahis x Oran = Toplam Puan</SelectItem>
                                                                     <SelectItem value="net_profit_multiplier">Kazanç - Bahis x Kazanç Çarpanı</SelectItem>
+                                                                    <SelectItem value="stake_floor_thousand">Kickoff</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
                                                         </div>
@@ -2467,6 +2521,35 @@ export default function AdminPage() {
                                                             <p className="text-[9px] text-amber-500/60 leading-tight">Yalnızca bu tutar ve üzeri yatırım yapanlar katılabilir (0 = Herkes).</p>
                                                         </div>
                                                     </div>
+
+                                                    {editingEvent.rules.scoring_formula === 'stake_floor_thousand' && (
+                                                        <div className="grid grid-cols-2 gap-4 p-4 bg-white/5 rounded-lg border border-white/5">
+                                                            <div className="space-y-2">
+                                                                <label className="text-xs font-bold text-primary">Puan Birimi (TL)</label>
+                                                                <Input
+                                                                    type="number" min="1" step="100"
+                                                                    value={editingEvent.rules.stake_unit_amount ?? 1000}
+                                                                    onChange={e => {
+                                                                        const val = parseInt(e.target.value)
+                                                                        setEditingEvent({ ...editingEvent, rules: { ...editingEvent.rules, stake_unit_amount: isNaN(val) ? 1000 : val } })
+                                                                    }}
+                                                                    className="bg-black/20 border-primary/20"
+                                                                />
+                                                                <p className="text-[9px] text-muted-foreground leading-tight">Puan = floor(bahis / bu tutar) × bu tutar.</p>
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <label className="text-xs font-bold text-primary">Branş</label>
+                                                                <Select value="football" onValueChange={() => {}}>
+                                                                    <SelectTrigger className="bg-black/20 border-primary/20">
+                                                                        <SelectValue />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="football">Futbol</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
+                                                        </div>
+                                                    )}
 
                                                     <div className="space-y-2 p-4 bg-emerald-500/5 rounded-lg border border-emerald-500/20">
                                                         <LeagueSelector

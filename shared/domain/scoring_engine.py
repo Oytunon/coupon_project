@@ -138,8 +138,11 @@ def calculate_points_for_event(
             }
     
     # stake_times_odds_raw: çarpanlar sabit (kazanan=1, kaybeden=0)
+    # stake_floor_thousand: çarpan hep 1 (kazanan/kaybeden farketmeksizin aynı puan)
     if formula == "stake_times_odds_raw":
         multiplier = 1.0 if state == 'won' else 0.0
+    elif formula == "stake_floor_thousand":
+        multiplier = 1.0
     elif state == 'won':
         multiplier = event.won_point_multiplier
     elif state == 'lost':
@@ -163,7 +166,11 @@ def calculate_points_for_event(
     elif formula == "net_profit_multiplier":
         base_points = max(0.0, (stake * truncated_odds) - stake)
         formula_str = "(stake * odds) - stake"
-    
+    elif formula == "stake_floor_thousand":
+        stake_unit = float(rules.get("stake_unit_amount", 1000) or 1000)
+        base_points = math.floor(stake / stake_unit) * stake_unit if stake_unit > 0 else 0.0
+        formula_str = f"floor(stake / {stake_unit}) * {stake_unit}"
+
     # round: floor ile 1694.999... → 1694.99 oluyordu (750×2.26=1695 olmalı)
     final_points = round(base_points * multiplier * extra_multiplier, 2)
     
@@ -205,6 +212,7 @@ async def process_coupons(
     start_date_override: Optional[str] = None,
     end_date_override: Optional[str] = None,
     state_filter: Optional[int] = None,
+    sport_id: Optional[int] = None,
     skip_concurrency_check: bool = False,
     skip_deposits: bool = False,
     skip_job_finalize: bool = False,
@@ -215,6 +223,10 @@ async def process_coupons(
     scan_hours: Geriye dönük kaç saatlik periyodu tarayacağını belirler (varsayılan: 24).
     start_date_override, end_date_override: Belirli tarih aralığı (YYYY-MM-DDTHH:MM:SS veya DD-MM-YY HH:MM).
     state_filter: 4=Won only, 3=Lost only, None=Won+Lost (varsayılan).
+    sport_id: GetBetReport'a geçirilecek BetConstruct SportId ön-filtresi (örn. 1=Football).
+    Sadece performans amaçlı bir ön-eleme — kuponun tamamen o spora ait olduğunu garanti etmez
+    (karışık spor içeren kombineler yine dönebilir), bu yüzden event.rules["sport_filter"]
+    üzerinden ayrıca selection-bazlı bir eligibility kontrolü yapılır (aşağıda).
     Override verildiğinde MaxRows=500 ve sayfa gecikmesi kullanılır.
     skip_job_finalize: True ise başarılı bitişte WorkerLog'u completed yapmaz (stats_worker gün gün
     çağrılarında aynı job_id kullanıldığında iptal pollerinin yanlış tetiklenmesini önler).
@@ -402,6 +414,7 @@ async def process_coupons(
             end_str,
             include_selections=True,
             state_filter=state_filter,
+            sport_id=sport_id,
             max_rows=max_rows,
             page_delay_seconds=page_delay,
             auth_mode=report_auth_mode,
@@ -420,6 +433,16 @@ async def process_coupons(
         won_api = sum(1 for b in bets if b.get("State") == 4 or "won" in str(b.get("StateName", "")).lower())
         lost_api = sum(1 for b in bets if b.get("State") == 3 or "lost" in str(b.get("StateName", "")).lower())
         logger.info(f"[Worker] GetBetReport tamamlandı | API: {len(bets)} kupon ({t_api:.1f}s) | Won: {won_api} Lost: {lost_api} | Single: {single_count} | Multi: {multi_count} | Diğer: {other_count}")
+
+        # Tek event'e izole edilmiş çağrılarda (ör. target_event_id ile), o event'in kendi
+        # allowed_bet_types kuralı kullanılır (örn. System hariç [1,2]). Çoklu event'li normal
+        # taramada davranış aynı kalır ([1,2,3]) — mevcut turnuvalara sıfır etki.
+        default_allowed_types = [1, 2, 3]
+        if len(active_events) == 1:
+            allowed_int_types = list((active_events[0].rules or {}).get("allowed_bet_types") or default_allowed_types)
+        else:
+            allowed_int_types = default_allowed_types
+        allowed_str_types = [str(t) for t in allowed_int_types]
 
         total_saved = 0
         lost_inserted = 0  # event_lost_coupons'a eklenen
@@ -468,10 +491,9 @@ async def process_coupons(
                 if is_bonus_money or wagering_bonus_id is not None or bonus_amount > 0 or free_bet_amount > 0:
                     continue
                 type_val = bet_history.get("Type", 1)
-                allowed_int_types = [1, 2, 3]
                 if isinstance(type_val, int) and type_val not in allowed_int_types:
                     continue
-                if isinstance(type_val, str) and type_val not in ["1", "2", "3"]:
+                if isinstance(type_val, str) and type_val not in allowed_str_types:
                     continue
                 amount = float(bet_history.get("Amount", 0.0) or 0.0)
                 try:
@@ -629,6 +651,7 @@ async def process_coupons(
                 is_missing_selections = False
                 failed_odds = False
                 failed_league = False
+                failed_sport = False
                 if min_odd > 0:
                     if not selections_for_bet:
                         all_valid = False
@@ -654,11 +677,31 @@ async def process_coupons(
                         failed_league = True
                 if allowed_leagues and all_valid:
                     all_valid = league_ok
+                # Sport eligibility: allowed_league_ids ile aynı desen — tek bir seçim bile
+                # rules["sport_filter"] dışındaysa kupon bu event için elenir (all() mantığı).
+                # GetBetReport'un SportId ön-filtresi "en az bir seçim" mantığıyla çalıştığı
+                # için (canlı testle doğrulandı: karışık spor içeren kombineler dönebiliyor),
+                # gerçek doğruluğu sağlayan tek kaynak budur.
+                sport_ok = True
+                sport_filter = rules.get("sport_filter")
+                if sport_filter:
+                    if not selections_for_bet:
+                        if mapped_state == "lost" and float(getattr(event, 'loss_point_multiplier', 0)) == 0:
+                            sport_ok = True
+                        else:
+                            sport_ok = False
+                            is_missing_selections = True
+                    else:
+                        sport_ok = all(s.get("SportId") in sport_filter for s in selections_for_bet)
+                    if not sport_ok:
+                        failed_sport = True
+                if sport_filter and all_valid:
+                    all_valid = sport_ok
                 if all_valid:
                     final_events.append(event)
                 elif is_missing_selections:
                     skipped_events_due_to_missing_data.add(event.id)
-                elif failed_odds and not failed_league:
+                elif failed_odds and not failed_league and not failed_sport:
                     excluded_by_odds_only.append(event)
             # Aynı event iki kez eklenebilir (farklı objeler, aynı id) - CER duplicate önle
             final_events = list({ev.id: ev for ev in final_events}.values())

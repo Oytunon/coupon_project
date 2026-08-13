@@ -62,6 +62,9 @@ class EventRules(BaseModel):
     min_deposit: int = 1000
     prize_pool: float = 0.0
     rewards: List[RewardRule] = []
+    sport_filter: Optional[List[int]] = None  # ör. [1] = sadece futbol; None/[] = filtre yok (mevcut davranış)
+    stake_unit_amount: float = 1000.0  # 'stake_floor_thousand' formülü için puan birimi (TL)
+    allowed_bet_types: Optional[List[int]] = None  # ör. [1,2] = Single+Multiple, System hariç; None = [1,2,3] (mevcut davranış)
 
 
 class EventCreate(BaseModel):

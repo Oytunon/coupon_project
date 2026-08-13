@@ -233,6 +233,7 @@ async def fetch_bet_report(
     bet_id: Optional[str] = None,
     include_selections: bool = True,
     state_filter: Optional[int] = None,
+    sport_id: Optional[int] = None,
     max_retries: int = 4,
     max_rows: int = 0,
     page_delay_seconds: float = 0,
@@ -243,6 +244,10 @@ async def fetch_bet_report(
     max_rows=0: Tek istek, tüm kayıtlar (504 riski büyük aralıklarda).
     max_rows=500: Sayfalama ile çek, sayfalar arası page_delay_seconds bekler (manuel worker için).
     State=4 sadece Won, State=3 sadece Lost.
+    sport_id: BetConstruct SportId ön-filtresi (örn. 1=Football). Sadece bir ön-eleme/performans
+    optimizasyonudur — "en az bir seçim bu spor" mantığıyla çalışır, karışık spor içeren kombine
+    kuponları elemez. Kuponun TAMAMEN o spora ait olduğunu garanti etmek için çağıran taraf ayrıca
+    selection bazlı (all()) bir kontrol yapmalıdır.
     auth_mode: stats_first (STATS or BAPI) veya bapi_only (yalnız BAPI — zamanlanmış kupon worker).
     """
     try:
@@ -312,7 +317,7 @@ async def fetch_bet_report(
             "WinningAmountFrom": None,
             "WinningAmountTo": None,
         },
-        "filterBetSelection": {"SportId": None, "RegionId": None, "CompetitionId": None, "MatchId": None},
+        "filterBetSelection": {"SportId": sport_id, "RegionId": None, "CompetitionId": None, "MatchId": None},
         "isCalcTime": True,
         "matchFilter": {"currentSport": None, "currentRegion": None, "currentCompetition": None, "currentMatch": None},
     }

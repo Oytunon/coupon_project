@@ -3,9 +3,40 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from shared.logging_config import setup_logging
 from shared.domain.scoring_engine import process_coupons
+from shared.database import SessionLocal
+from shared.models.event import Event
 
 # Logging setup
 logger = setup_logging("worker")
+
+
+async def run_worker_pipeline(scan_hours: int, report_auth_mode: str):
+    """
+    15 dk cron: önce mevcut process_coupons taraması sıralı (await) olarak tamamlanır,
+    ardından — varsa — sadece futbol (stake_floor_thousand formüllü) event'ler için ayrı,
+    izole bir GetBetReport çağrısı yapılır. Bu ikinci adım try/except ile sarmalı: hata
+    olursa sadece loglanır, ilk taramanın sonuçlarını etkilemez.
+    """
+    await process_coupons(scan_hours=scan_hours, report_auth_mode=report_auth_mode)
+    try:
+        db = SessionLocal()
+        try:
+            football_score_events = [
+                e for e in db.query(Event).filter(Event.status == "active").all()
+                if (e.rules or {}).get("scoring_formula") == "stake_floor_thousand"
+            ]
+        finally:
+            db.close()
+        for e in football_score_events:
+            await process_coupons(
+                target_event_id=e.id,
+                scan_hours=scan_hours,
+                report_auth_mode=report_auth_mode,
+                sport_id=1,
+            )
+    except Exception:
+        logger.exception("[Worker] Futbol puan pipeline hata verdi, mevcut tarama etkilenmedi.")
+
 
 def start_scheduler():
     """APScheduler başlatıcısı."""
@@ -19,8 +50,9 @@ def start_scheduler():
     from shared.domain.cleanup import cleanup_expired_magic_tokens, auto_expire_events, cleanup_old_worker_logs
     
     # Her 15 dakikada bir son 1 saati tara (katılımdan sonra kupon kaçırma riski min)
+    # Ardından (sıralı, aynı job içinde) varsa futbol-puan event'leri ayrı işlenir.
     scheduler.add_job(
-        process_coupons,
+        run_worker_pipeline,
         trigger=CronTrigger(minute='*/15', timezone='Europe/Istanbul'),
         id='process_coupons',
         kwargs={"scan_hours": 1, "report_auth_mode": "bapi_only"},
@@ -60,7 +92,7 @@ async def run_worker_once():
     """
     Worker'ı bir kez çalıştırır (test için).
     """
-    await process_coupons(scan_hours=1, report_auth_mode="bapi_only")
+    await run_worker_pipeline(scan_hours=1, report_auth_mode="bapi_only")
 
 
 if __name__ == "__main__":
