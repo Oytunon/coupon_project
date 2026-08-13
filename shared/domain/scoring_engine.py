@@ -796,7 +796,7 @@ async def process_coupons(
                         cer.points_earned = calc_points
                         cer.points_calculation = calc_details
                         cer.last_checked_at = datetime.utcnow()
-                    if mapped_state == "lost":
+                    if mapped_state == "lost" and float(getattr(event, 'loss_point_multiplier', 0) or 0) != 0:
                         try:
                             exists = db.query(EventLostCoupon).filter(
                                 EventLostCoupon.event_id == event.id,
