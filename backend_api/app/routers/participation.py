@@ -200,5 +200,8 @@ async def get_my_enrollments(
             "slug": event.slug,
             "joined_at": enrollment.joined_at.isoformat() if enrollment and enrollment.joined_at else None
         })
-        
+
+    # En son katılınan turnuva en üstte görünsün
+    results.sort(key=lambda r: r["joined_at"] or "", reverse=True)
+
     return results
