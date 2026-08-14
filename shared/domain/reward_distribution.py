@@ -38,13 +38,14 @@ def compute_reward_distribution_plan(db: Session, event_id: int) -> Dict[str, An
             skipped_rules.append(str(rule_type or "?"))
             continue
 
+        # Sıralamada yer alsa bile hiç puanı olmayan (kupon oynamamış) katılımcı ödül alamaz.
         eligible_users: List[dict] = []
         if criteria_type == "rank":
-            eligible_users = [p for p in participants if p["rank"] <= int(criteria_value)]
+            eligible_users = [p for p in participants if p["rank"] <= int(criteria_value) and p["points"] > 0]
         elif criteria_type == "rank_exact":
-            eligible_users = [p for p in participants if p["rank"] == int(criteria_value)]
+            eligible_users = [p for p in participants if p["rank"] == int(criteria_value) and p["points"] > 0]
         elif criteria_type == "min_points":
-            eligible_users = [p for p in participants if p["points"] >= float(criteria_value)]
+            eligible_users = [p for p in participants if p["points"] >= float(criteria_value) and p["points"] > 0]
 
         for user in eligible_users:
             cid = user["client_id"]

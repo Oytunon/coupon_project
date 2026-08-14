@@ -94,13 +94,14 @@ def process_job(job_id: int):
                 logger.warning(f"Skipping unsupported reward type: {rule_type}")
                 continue
 
+            # Sıralamada yer alsa bile hiç puanı olmayan (kupon oynamamış) katılımcı ödül alamaz.
             eligible_users = []
             if criteria_type == 'rank':
-                eligible_users = [p for p in participants if p['rank'] <= int(criteria_value)]
+                eligible_users = [p for p in participants if p['rank'] <= int(criteria_value) and p['points'] > 0]
             elif criteria_type == 'rank_exact':
-                eligible_users = [p for p in participants if p['rank'] == int(criteria_value)]
+                eligible_users = [p for p in participants if p['rank'] == int(criteria_value) and p['points'] > 0]
             elif criteria_type == 'min_points':
-                eligible_users = [p for p in participants if p['points'] >= float(criteria_value)]
+                eligible_users = [p for p in participants if p['points'] >= float(criteria_value) and p['points'] > 0]
             
             logger.info(f"Rule {rule_type} {criteria_type}={criteria_value} matched {len(eligible_users)} users")
 
