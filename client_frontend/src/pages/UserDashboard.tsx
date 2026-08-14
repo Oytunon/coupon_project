@@ -1170,7 +1170,7 @@ export default function UserDashboard() {
                                                                                 </span>
                                                                                 {reward._winnerCount > 1 && (
                                                                                     <span className="text-[9px] text-neutral-500 mt-0.5">
-                                                                                        Kişi başı · {reward._winnerCount} kişi · Toplam {(Number(reward.amount) * reward._winnerCount).toLocaleString('tr-TR')} {rewardTypeLabel}
+                                                                                        {reward._winnerCount} kişi · Toplam {(Number(reward.amount) * reward._winnerCount).toLocaleString('tr-TR')} {rewardTypeLabel}
                                                                                     </span>
                                                                                 )}
                                                                             </div>
