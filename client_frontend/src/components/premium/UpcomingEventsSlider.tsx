@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { parseEventDate } from '@/utils/dateUtils'
+import { calculateTotalPrize } from '@/utils/rewardUtils'
 
 interface Event {
     id: number
@@ -70,29 +71,6 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
     const m = timeLeft.minutes.toString().padStart(2, '0')
 
     // I'll accept an `onEventSelect` prop.
-
-    // Helper to calculate total prize
-    const calculateTotalPrize = (rules: any) => {
-        if (!rules) return 0;
-
-        let validRules = rules;
-        if (typeof rules === 'string') {
-            try {
-                validRules = JSON.parse(rules);
-            } catch (e) {
-                console.error("Slider failed to parse rules:", e);
-                return 0;
-            }
-        }
-
-        if (!validRules.rewards || !Array.isArray(validRules.rewards)) {
-            return 0;
-        }
-
-        return validRules.rewards.reduce((total: number, reward: any) => {
-            return total + (Number(reward.amount) || 0);
-        }, 0);
-    }
 
     return (
         <div className="w-full max-w-5xl mx-auto px-2 lg:px-4">

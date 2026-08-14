@@ -8,6 +8,7 @@ import { getLeaderboard, getMyCoupons, getRewardWinners } from "@/api/participat
 import React, { useState, useEffect } from "react"
 import { Loader2 } from "lucide-react"
 import { parseEventDate, parseUtcDate } from "@/utils/dateUtils"
+import { buildLabeledRewards, calculateTotalPrize } from "@/utils/rewardUtils"
 
 interface TournamentDetailsProps {
     event: PublicEvent
@@ -18,39 +19,6 @@ interface TournamentDetailsProps {
     onBack: () => void
     username: string
     onJoin: () => void
-}
-
-// Helper to calculate total prize
-const calculateTotalPrize = (rules: any) => {
-    if (!rules) return 0;
-    let validRules = rules;
-    if (typeof rules === 'string') {
-        try { validRules = JSON.parse(rules); } catch { return 0; }
-    }
-    if (!validRules.rewards || !Array.isArray(validRules.rewards)) return 0;
-    return validRules.rewards.reduce((acc: number, curr: any) => acc + (Number(curr.amount) || 0), 0);
-}
-
-// 'rank' kuralları "ilk N kişi" olarak tanımlanır ama sistem "ilk uyan kural" mantığıyla
-// çalıştığı için gerçekte sadece bir önceki kuralın bıraktığı aralığı ödüllendirir.
-// Bu yüzden etiketi ham kesme değeriyle değil, o aralığı yansıtacak şekilde üretiyoruz.
-const buildLabeledRewards = (rewards: any[]) => {
-    let runningMaxRank = 0;
-    return rewards.map((r: any) => {
-        let label = 'Ödül';
-        if (r.criteria_type === 'rank_exact') {
-            label = `${r.criteria_value}. Sıra`;
-            runningMaxRank = Math.max(runningMaxRank, r.criteria_value);
-        } else if (r.criteria_type === 'rank') {
-            const start = runningMaxRank + 1;
-            const end = r.criteria_value;
-            label = start >= end ? `${end}. Sıra` : `${start}. Sıra - ${end}. Sıra`;
-            runningMaxRank = Math.max(runningMaxRank, end);
-        } else if (r.criteria_type === 'min_points') {
-            label = `${r.criteria_value}+ Puan`;
-        }
-        return { ...r, _label: label };
-    });
 }
 
 const CountUpAnimation = ({ target, duration = 2000 }: { target: number, duration?: number }) => {
@@ -1168,6 +1136,11 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                             <div key={idx} className={`bg-gradient-to-br ${bgClass} rounded-xl p-4 md:p-6 text-center border border-[#D9B648]/30`}>
                                                 <div className="text-gray-300 text-xs md:text-sm mb-2 font-semibold">{reward._label}</div>
                                                 <div className="text-3xl md:text-5xl font-black text-[#D9B648]">{(reward.reward_type || '').toLowerCase().includes('spin') ? '' : '₺'}<CountUpAnimation target={Number(reward.amount)} /></div>
+                                                {reward._winnerCount > 1 && (
+                                                    <div className="text-[10px] md:text-xs text-gray-500 mt-1">
+                                                        Kişi başı · {reward._winnerCount} kişi · Toplam ₺{(Number(reward.amount) * reward._winnerCount).toLocaleString('tr-TR')}
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })}
@@ -1181,6 +1154,11 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                         <div key={idx} className="bg-black rounded-xl p-4 md:p-6 text-center border border-[#D9B648]/50">
                                             <div className="text-[#D9B648]/70 text-xs md:text-sm mb-2 font-semibold">{reward._label}</div>
                                             <div className="text-2xl md:text-3xl font-bold text-[#D9B648]">{(reward.reward_type || '').toLowerCase().includes('spin') ? '' : '₺'}<CountUpAnimation target={Number(reward.amount)} /></div>
+                                            {reward._winnerCount > 1 && (
+                                                <div className="text-[10px] md:text-xs text-gray-500 mt-1">
+                                                    Kişi başı · {reward._winnerCount} kişi · Toplam ₺{(Number(reward.amount) * reward._winnerCount).toLocaleString('tr-TR')}
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>

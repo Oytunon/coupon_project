@@ -8,6 +8,7 @@ import { Trash2, Plus, Gift, Trophy, Target, ChevronUp, ChevronDown, AlertCircle
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { apiClient } from "../api/client"
 import { useToast } from "@/hooks/use-toast"
+import { calculateTotalPrize } from "../utils/rewardUtils"
 
 interface RewardRule {
     reward_type: string
@@ -272,7 +273,7 @@ export function EventRewardSettings({ rewards = [], onChange }: EventRewardSetti
                 {rewards.length > 0 && (
                     <div className="flex items-center gap-2 mb-2">
                          <span className="text-[11px] text-white/50 bg-white/5 px-2 py-0.5 rounded-full">
-                            Toplam: {new Intl.NumberFormat('tr-TR').format(rewards.reduce((acc, r) => acc + (Number(r.amount) || 0), 0))} TL
+                            Toplam: {new Intl.NumberFormat('tr-TR').format(calculateTotalPrize(rewards))} TL
                         </span>
                     </div>
                 )}

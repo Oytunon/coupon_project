@@ -50,6 +50,7 @@ import { apiClient } from "../api/client"
 import { LeagueSelector } from "@/components/LeagueSelector"
 import { EventRewardSettings } from "@/components/EventRewardSettings"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { calculateTotalPrize } from "../utils/rewardUtils"
 
 const fetchAdminStats = async () => {
     const res = await apiClient.get('/admin/stats')
@@ -1690,7 +1691,7 @@ export default function AdminPage() {
                                                         <div className="flex flex-col">
                                                             <span>{(event.rules.rewards || []).length} Ödül Tanımlı</span>
                                                             <span className="text-[11px] text-white/50 bg-white/5 px-2 py-0.5 rounded-full w-fit mt-1">
-                                                                Toplam: {new Intl.NumberFormat('tr-TR').format((event.rules.rewards || []).reduce((acc: number, r: any) => acc + (Number(r.amount) || 0), 0))} TL
+                                                                Toplam: {new Intl.NumberFormat('tr-TR').format(calculateTotalPrize(event.rules.rewards || []))} TL
                                                             </span>
                                                         </div>
                                                     ) : (

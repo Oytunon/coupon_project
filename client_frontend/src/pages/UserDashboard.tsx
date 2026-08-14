@@ -21,6 +21,7 @@ import { ClientLayout } from "@/components/layout/ClientLayout"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { TournamentDetails } from "@/components/premium/TournamentDetails"
 import { parseEventDate, parseUtcDate } from "@/utils/dateUtils"
+import { buildLabeledRewards, calculateTotalPrize } from "@/utils/rewardUtils"
 
 export default function UserDashboard() {
     const [searchParams, setSearchParams] = useSearchParams()
@@ -214,29 +215,6 @@ export default function UserDashboard() {
         return true
     })
 
-    // Helper to calculate total prize
-    const calculateTotalPrize = (rules: any) => {
-        if (!rules) return 0;
-
-        let validRules = rules;
-        if (typeof rules === 'string') {
-            try {
-                validRules = JSON.parse(rules);
-            } catch (e) {
-                return 0;
-            }
-        }
-
-        if (!validRules.rewards || !Array.isArray(validRules.rewards)) {
-            return 0;
-        }
-
-        const total = validRules.rewards.reduce((acc: number, reward: any) => {
-            return acc + (Number(reward.amount) || 0);
-        }, 0);
-
-        return total;
-    }
 
     return (
         <ClientLayout username={username} activeCategory={activeCategory} onCategoryChange={(c) => setActiveCategory(c)}>
@@ -1179,26 +1157,8 @@ export default function UserDashboard() {
                                                                 </h4>
                                                             </div>
                                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                                {(() => {
-                                                                    // 'rank' kuralları sistemde "ilk uyan kural" mantığıyla çalışır, yani bir önceki
-                                                                    // kuralın kapsadığı sıraların üstünü ödüllendirir. Etiketi buna göre aralık olarak göster.
-                                                                    let runningMaxRank = 0;
-                                                                    return rules.rewards.map((reward: any, idx: number) => {
-                                                                    let rankLabel = "";
-                                                                    if (reward.criteria_type === 'rank_exact') {
-                                                                        rankLabel = `${reward.criteria_value}. SIRA`;
-                                                                        runningMaxRank = Math.max(runningMaxRank, reward.criteria_value);
-                                                                    } else if (reward.criteria_type === 'rank') {
-                                                                        const start = runningMaxRank + 1;
-                                                                        const end = reward.criteria_value;
-                                                                        rankLabel = start >= end ? `${end}. SIRA` : `${start}. SIRA - ${end}. SIRA`;
-                                                                        runningMaxRank = Math.max(runningMaxRank, end);
-                                                                    } else if (reward.criteria_type === 'min_points') {
-                                                                        rankLabel = `+${reward.criteria_value} PUAN`;
-                                                                    } else {
-                                                                        rankLabel = "ÖZEL ÖDÜL";
-                                                                    }
-
+                                                                {buildLabeledRewards(rules.rewards).map((reward: any, idx: number) => {
+                                                                    const rankLabel = reward._label.toUpperCase();
                                                                     const rewardTypeLabel = reward.reward_type === 'cash' ? 'TRY' : (reward.reward_type === 'spin' ? 'FRES SPIN' : 'FREE BET');
 
                                                                     return (
@@ -1208,14 +1168,18 @@ export default function UserDashboard() {
                                                                                 <span className="text-xl font-black italic text-[#F7EBA5] tracking-tight">
                                                                                     {reward.amount} <span className="text-[10px] text-amber-500 not-italic ml-1">{rewardTypeLabel}</span>
                                                                                 </span>
+                                                                                {reward._winnerCount > 1 && (
+                                                                                    <span className="text-[9px] text-neutral-500 mt-0.5">
+                                                                                        Kişi başı · {reward._winnerCount} kişi · Toplam {(Number(reward.amount) * reward._winnerCount).toLocaleString('tr-TR')} {rewardTypeLabel}
+                                                                                    </span>
+                                                                                )}
                                                                             </div>
                                                                             <div className="p-2.5 rounded-xl bg-white/5 group-hover/reward:bg-amber-500/10 transition-colors">
                                                                                 {idx === 0 ? <Trophy className="h-5 w-5 text-amber-500" /> : <Award className="h-5 w-5 text-neutral-600 group-hover/reward:text-amber-500" />}
                                                                             </div>
                                                                         </div>
                                                                     );
-                                                                    });
-                                                                })()}
+                                                                })}
                                                             </div>
                                                         </div>
                                                     )}
