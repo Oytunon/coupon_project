@@ -1225,7 +1225,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                         <Gift className="w-8 h-8 text-[#D9B648] shrink-0" />
                                         <div>
                                             <div className="text-[#D9B648] font-bold text-sm md:text-base">
-                                                Kazandığın ödülü almaya hak kazandın!
+                                                Kazandığın ödül
                                             </div>
                                             <div className="text-[#F7EBA5] text-lg md:text-xl font-black">
                                                 {claimableReward.amount} {claimableReward.reward_type === 'spin' ? 'Free Spin' : 'Freebet'}
