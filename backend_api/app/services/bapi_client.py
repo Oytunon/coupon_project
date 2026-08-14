@@ -3,6 +3,7 @@ import requests
 import json
 import logging
 import time
+from datetime import datetime, timedelta
 from typing import Optional
 from shared.settings import settings
 
@@ -12,7 +13,7 @@ class BapiClient:
     def __init__(self, base_url: str = "https://backofficewebadmin.betconstruct.com/api", token: Optional[str] = None):
         self.base_url = base_url
         self.token = token or settings.BAPI_TOKEN
-        
+
     def _get_headers(self):
         headers = {
             "Content-Type": "application/json",
@@ -21,6 +22,18 @@ class BapiClient:
         if self.token:
             headers["Authentication"] = f"{self.token}"
         return headers
+
+    def _parse_response(self, response) -> dict:
+        """
+        BetConstruct backoffice API'si mantıksal hatalarda bile HTTP 200 dönebiliyor
+        (gövdede HasError:true + AlertMessage). raise_for_status() bunu yakalamaz,
+        o yüzden gövdeyi de kontrol ediyoruz.
+        """
+        response.raise_for_status()
+        data = response.json()
+        if isinstance(data, dict) and data.get("HasError"):
+            raise ValueError(data.get("AlertMessage") or "BAPI error")
+        return data.get("Data", data) if isinstance(data, dict) else data
 
     def send_cash_reward(self, client_id: int, amount: float, info: str = "Reward Distribution", currency: str = "TRY") -> dict:
         """
@@ -65,8 +78,7 @@ class BapiClient:
                 logger.info(f"Sending cash reward to Client {client_id}: {amount} {currency} (attempt {attempt + 1}/{max_retries})")
 
                 response = requests.post(url, json=payload, headers=self._get_headers(), timeout=15)
-                response.raise_for_status()
-                return response.json()
+                return self._parse_response(response)
 
             except requests.exceptions.Timeout as e:
                 logger.warning(f"BAPI cash reward timeout for Client {client_id} (attempt {attempt + 1}/{max_retries}): {e}")
@@ -134,8 +146,7 @@ class BapiClient:
                 logger.info(f"Adding Client {client_id} to bonus {bonus_id} (attempt {attempt + 1}/{max_retries})")
 
                 response = requests.post(url, json=payload, headers=self._get_headers(), timeout=15)
-                response.raise_for_status()
-                return response.json()
+                return self._parse_response(response)
 
             except requests.exceptions.Timeout as e:
                 logger.warning(f"BAPI bonus timeout for Client {client_id} (attempt {attempt + 1}/{max_retries}): {e}")
@@ -161,3 +172,46 @@ class BapiClient:
             except requests.exceptions.RequestException as e:
                 logger.error(f"BAPI bonus failed for Client {client_id}: {e} - Body: {payload}")
                 raise
+
+    def get_client_balance(self, client_id: int) -> float:
+        """Client'ın güncel bakiyesini döner. /Client/GetClients"""
+        url = f"{self.base_url}/en/Client/GetClients"
+        response = requests.post(url, json={"Id": client_id}, headers=self._get_headers(), timeout=15)
+        data = self._parse_response(response)
+        objects = (data or {}).get("Objects") or []
+        if not objects:
+            raise ValueError(f"Client {client_id} bulunamadı (GetClients boş döndü)")
+        return float(objects[0].get("Balance", 0))
+
+    def has_active_bet(self, client_id: int) -> bool:
+        """Son 7 günde aktif (State=1, bekleyen) bahsi var mı? /Report/GetBetHistory"""
+        url = f"{self.base_url}/en/Report/GetBetHistory"
+        now = datetime.utcnow() + timedelta(hours=3)  # Türkiye saati
+        start_date = now - timedelta(days=7)
+        payload = {
+            "State": 1,
+            "SkeepRows": 0,
+            "MaxRows": 10,
+            "IsLive": None,
+            "StartDateLocal": start_date.strftime("%d-%m-%y - %H:%M:%S"),
+            "EndDateLocal": now.strftime("%d-%m-%y - %H:%M:%S"),
+            "CalcStartDateLocal": None,
+            "CalcEndDateLocal": None,
+            "ClientId": client_id,
+            "CurrencyId": "TRY",
+            "IsBonusBet": None,
+            "BetId": None,
+            "ToCurrencyId": "TRY",
+        }
+        response = requests.post(url, json=payload, headers=self._get_headers(), timeout=15)
+        data = self._parse_response(response)
+        bets = ((data or {}).get("BetData") or {}).get("Objects") or []
+        return len(bets) > 0
+
+    def has_usable_bonus(self, client_id: int) -> bool:
+        """Zaten bekleyen/kullanılmamış (ResultType=0) bir bonusu var mı? /Client/GetClientBonuses"""
+        url = f"{self.base_url}/en/Client/GetClientBonuses"
+        response = requests.post(url, json={"AcceptanceType": 0, "ClientId": client_id}, headers=self._get_headers(), timeout=15)
+        data = self._parse_response(response)
+        bonuses = data if isinstance(data, list) else []
+        return any((b or {}).get("ResultType") == 0 for b in bonuses)

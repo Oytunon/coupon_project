@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { createPortal } from "react-dom"
 import { useAuth } from "@/context/AuthContext"
 import { AdminLayout } from "@/components/layout/AdminLayout"
@@ -162,6 +162,10 @@ const distributeRewards = async (eventId: number) => {
 const fetchRewardPreview = async (eventId: number) => {
     const res = await apiClient.get(`/admin/events/${eventId}/reward-preview`)
     return res.data
+}
+
+const saveRewardOverrides = async (eventId: number, overrides: Record<string, any>) => {
+    return updateEvent(eventId, { rules: { reward_overrides: overrides } })
 }
 
 const fetchRewardHistory = async (eventId: number) => {
@@ -475,7 +479,17 @@ export default function AdminPage() {
     const [rewardPreviewEvent, setRewardPreviewEvent] = useState<any>(null)
     const [rewardPreviewData, setRewardPreviewData] = useState<any>(null)
     const [rewardPreviewLoading, setRewardPreviewLoading] = useState(false)
+    // Ödül önizlemesinde admin'in henüz kaydetmediği manuel düzenlemeleri (miktar/çıkar/ekle) tutar.
+    const [overrideDrafts, setOverrideDrafts] = useState<Record<string, any>>({})
+    const [savingOverrides, setSavingOverrides] = useState(false)
+    const [addOverrideClientId, setAddOverrideClientId] = useState<number | null>(null)
+    const [addOverrideForm, setAddOverrideForm] = useState<{ reward_type: string; amount: string; partner_bonus_id: string; note: string }>({ reward_type: 'cash', amount: '', partner_bonus_id: '', note: '' })
     const [rewardPoolEvent, setRewardPoolEvent] = useState<any>(null)
+    // "Onayla ve Dağıt" için senkron çift-tıklama koruması — state (savingOverrides vs.)
+    // React'in re-render'ını bekler, art arda hızlı tıklamada aynı senkron tick içinde
+    // guard'ı atlayabilir; ref anında günceller, ikinci isteğin hiç gitmemesini garantiler.
+    const distributingRef = useRef(false)
+    const [distributing, setDistributing] = useState(false)
 
     const [viewEventId, setViewEventId] = useState<number | null>(null)
     const [eventStats, setEventStats] = useState<any>(null)
@@ -1608,6 +1622,8 @@ export default function AdminPage() {
                                                         }
                                                         setRewardPreviewEvent(event);
                                                         setRewardPreviewData(null);
+                                                        setOverrideDrafts({});
+                                                        setAddOverrideClientId(null);
                                                         setShowRewardPreviewModal(true);
                                                         setRewardPreviewLoading(true);
                                                         try {
@@ -2700,7 +2716,7 @@ export default function AdminPage() {
                                     <CardHeader className="flex flex-row items-center justify-between">
                                         <div>
                                             <CardTitle>Ödül Geçmişi</CardTitle>
-                                            <CardDescription>{historyEvent.name} etkinliği için başarılı dağıtımlar.</CardDescription>
+                                            <CardDescription>{historyEvent.name} etkinliği için dağıtım denemeleri (başarılı ve başarısız).</CardDescription>
                                         </div>
                                         <History className="h-8 w-8 text-amber-400/20" />
                                     </CardHeader>
@@ -2713,7 +2729,7 @@ export default function AdminPage() {
                                         ) : rewardHistory.length === 0 ? (
                                             <div className="py-24 text-center flex flex-col items-center gap-4 text-muted-foreground italic">
                                                 <History className="h-12 w-12 opacity-10" />
-                                                Bu etkinlik için henüz başarılı bir ödül dağıtımı bulunmuyor.
+                                                Bu etkinlik için henüz bir ödül dağıtım denemesi bulunmuyor.
                                             </div>
                                         ) : (
                                             <div className="overflow-x-auto rounded-lg border border-white/5">
@@ -2723,6 +2739,7 @@ export default function AdminPage() {
                                                             <th className="px-4 py-3">Kullanıcı</th>
                                                             <th className="px-4 py-3">Ödül</th>
                                                             <th className="px-4 py-3">Miktar</th>
+                                                            <th className="px-4 py-3">Durum</th>
                                                             <th className="px-4 py-3">Tarih</th>
                                                         </tr>
                                                     </thead>
@@ -2740,6 +2757,18 @@ export default function AdminPage() {
                                                                 </td>
                                                                 <td className="px-4 py-3 font-bold text-emerald-400">
                                                                     {rh.amount} TRY
+                                                                </td>
+                                                                <td className="px-4 py-3">
+                                                                    {rh.status === 'success' ? (
+                                                                        <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Başarılı</Badge>
+                                                                    ) : rh.status === 'pending_claim' ? (
+                                                                        <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">Beklemede (Kullanıcı Onayı)</Badge>
+                                                                    ) : (
+                                                                        <div className="flex flex-col gap-0.5">
+                                                                            <Badge className="bg-red-500/20 text-red-400 border-red-500/30 w-fit">Başarısız</Badge>
+                                                                            {rh.error && <span className="text-[9px] text-red-400/70">{rh.error}</span>}
+                                                                        </div>
+                                                                    )}
                                                                 </td>
                                                                 <td className="px-4 py-3 text-muted-foreground text-[10px]">
                                                                     {new Date(rh.timestamp).toLocaleString("tr-TR")}
@@ -2770,7 +2799,7 @@ export default function AdminPage() {
                         {showRewardPreviewModal && rewardPreviewEvent && (
                             <div
                                 className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-                                onClick={() => { setShowRewardPreviewModal(false); setRewardPreviewEvent(null); setRewardPreviewData(null); }}
+                                onClick={() => { setShowRewardPreviewModal(false); setRewardPreviewEvent(null); setRewardPreviewData(null); setOverrideDrafts({}); setAddOverrideClientId(null); }}
                             >
                                 <Card className="bg-card border-white/10 w-full max-w-4xl shadow-2xl max-h-[92vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
                                     <CardHeader className="flex-shrink-0 border-b border-white/5">
@@ -2804,6 +2833,15 @@ export default function AdminPage() {
                                                         </AlertDescription>
                                                     </Alert>
                                                 )}
+                                                {(rewardPreviewData.skipped_overrides || []).length > 0 && (
+                                                    <Alert className="border-amber-500/30 bg-amber-500/5">
+                                                        <AlertCircle className="h-4 w-4" />
+                                                        <AlertTitle>Bazı manuel düzenlemeler uygulanamadı</AlertTitle>
+                                                        <AlertDescription>
+                                                            Client ID {rewardPreviewData.skipped_overrides.join(', ')} için kayıtlı düzenleme uygulanamadı — bu turnuvanın katılımcıları arasında bulunamadı.
+                                                        </AlertDescription>
+                                                    </Alert>
+                                                )}
                                                 <div>
                                                     <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Liderlik sırası (1 → 2 → 3 …)</h4>
                                                     <div className="overflow-x-auto rounded-lg border border-white/10">
@@ -2817,7 +2855,10 @@ export default function AdminPage() {
                                                                 </tr>
                                                             </thead>
                                                             <tbody className="divide-y divide-white/5">
-                                                                {(rewardPreviewData.leaderboard || []).map((row: any) => (
+                                                                {(rewardPreviewData.leaderboard || []).map((row: any) => {
+                                                                    const cidStr = String(row.client_id);
+                                                                    const addDraft = overrideDrafts[cidStr]?.action === 'add' ? overrideDrafts[cidStr] : null;
+                                                                    return (
                                                                     <tr key={row.client_id} className={row.receives_payout ? 'bg-emerald-500/5' : ''}>
                                                                         <td className="px-3 py-2 font-mono font-bold text-primary">#{row.rank}</td>
                                                                         <td className="px-3 py-2 font-medium">{row.username}</td>
@@ -2837,16 +2878,86 @@ export default function AdminPage() {
                                                                                     );
                                                                                 }
                                                                                 return <span className="text-emerald-400 font-bold">Evet</span>;
-                                                                            })() : '—'}
+                                                                            })() : addDraft ? (
+                                                                                <div className="flex items-center gap-1">
+                                                                                    <span className="text-amber-400 font-bold whitespace-nowrap">
+                                                                                        +{addDraft.amount} {addDraft.reward_type === 'cash' ? 'TRY' : addDraft.reward_type?.toUpperCase()}
+                                                                                    </span>
+                                                                                    <Button
+                                                                                        size="icon" variant="ghost" className="h-4 w-4 text-red-400 hover:text-red-300"
+                                                                                        onClick={() => setOverrideDrafts(prev => { const n = { ...prev }; delete n[cidStr]; return n; })}
+                                                                                    >
+                                                                                        <X className="h-3 w-3" />
+                                                                                    </Button>
+                                                                                </div>
+                                                                            ) : addOverrideClientId === row.client_id ? (
+                                                                                <div className="flex flex-col gap-1 bg-black/40 p-2 rounded border border-amber-500/20 w-56">
+                                                                                    <Select value={addOverrideForm.reward_type} onValueChange={(v) => setAddOverrideForm(f => ({ ...f, reward_type: v }))}>
+                                                                                        <SelectTrigger className="h-6 text-[10px]"><SelectValue /></SelectTrigger>
+                                                                                        <SelectContent>
+                                                                                            <SelectItem value="cash">Nakit</SelectItem>
+                                                                                            <SelectItem value="spin">Free Spin</SelectItem>
+                                                                                            <SelectItem value="freebet">Freebet</SelectItem>
+                                                                                            <SelectItem value="bonus">Bonus</SelectItem>
+                                                                                        </SelectContent>
+                                                                                    </Select>
+                                                                                    <Input type="number" placeholder="Miktar" className="h-6 text-[10px]" value={addOverrideForm.amount} onChange={(e) => setAddOverrideForm(f => ({ ...f, amount: e.target.value }))} />
+                                                                                    {addOverrideForm.reward_type !== 'cash' && (
+                                                                                        <Input type="number" placeholder="Partner Bonus ID" className="h-6 text-[10px]" value={addOverrideForm.partner_bonus_id} onChange={(e) => setAddOverrideForm(f => ({ ...f, partner_bonus_id: e.target.value }))} />
+                                                                                    )}
+                                                                                    <Input placeholder="Not (opsiyonel)" className="h-6 text-[10px]" value={addOverrideForm.note} onChange={(e) => setAddOverrideForm(f => ({ ...f, note: e.target.value }))} />
+                                                                                    <div className="flex gap-1">
+                                                                                        <Button
+                                                                                            size="sm" className="h-6 text-[9px] bg-emerald-600 hover:bg-emerald-500 flex-1"
+                                                                                            onClick={() => {
+                                                                                                const amt = parseFloat(addOverrideForm.amount);
+                                                                                                if (!amt || amt <= 0) {
+                                                                                                    toast({ title: "Hata", description: "Geçerli bir miktar girin", variant: "destructive" });
+                                                                                                    return;
+                                                                                                }
+                                                                                                if (addOverrideForm.reward_type !== 'cash' && !addOverrideForm.partner_bonus_id) {
+                                                                                                    toast({ title: "Hata", description: "Bu ödül türü için Partner Bonus ID gerekli", variant: "destructive" });
+                                                                                                    return;
+                                                                                                }
+                                                                                                setOverrideDrafts(prev => ({
+                                                                                                    ...prev,
+                                                                                                    [cidStr]: {
+                                                                                                        action: 'add',
+                                                                                                        reward_type: addOverrideForm.reward_type,
+                                                                                                        amount: amt,
+                                                                                                        partner_bonus_id: addOverrideForm.partner_bonus_id ? parseInt(addOverrideForm.partner_bonus_id) : null,
+                                                                                                        note: addOverrideForm.note || undefined,
+                                                                                                    }
+                                                                                                }));
+                                                                                                setAddOverrideClientId(null);
+                                                                                                setAddOverrideForm({ reward_type: 'cash', amount: '', partner_bonus_id: '', note: '' });
+                                                                                            }}
+                                                                                        >Ekle</Button>
+                                                                                        <Button size="sm" variant="ghost" className="h-6 text-[9px]" onClick={() => setAddOverrideClientId(null)}>Vazgeç</Button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            ) : (
+                                                                                <Button
+                                                                                    size="sm" variant="outline" className="h-6 text-[9px] gap-1 border-white/10 text-white/50 hover:text-white"
+                                                                                    onClick={() => { setAddOverrideClientId(row.client_id); setAddOverrideForm({ reward_type: 'cash', amount: '', partner_bonus_id: '', note: '' }); }}
+                                                                                >
+                                                                                    <Plus className="h-3 w-3" /> Ekle
+                                                                                </Button>
+                                                                            )}
                                                                         </td>
                                                                     </tr>
-                                                                ))}
+                                                                    );
+                                                                })}
                                                             </tbody>
                                                         </table>
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Gerçek dağıtım sırası (onay sonrası bu sırada gönderilir)</h4>
+                                                    <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Gerçek dağıtım sırası (onay sonrası bu sırada işleme alınır)</h4>
+                                                    <p className="text-[10px] text-muted-foreground mb-2">
+                                                        Nakit/Bonus onay anında otomatik gönderilir. Freebet/Free Spin otomatik gönderilmez —
+                                                        kullanıcı client tarafında "Ödülünü Al" butonuna basıp kontrolleri geçince gönderilir.
+                                                    </p>
                                                     <div className="overflow-x-auto rounded-lg border border-emerald-500/20">
                                                         <table className="w-full text-left text-xs">
                                                             <thead className="bg-emerald-500/10 text-emerald-200 uppercase text-[10px]">
@@ -2857,19 +2968,60 @@ export default function AdminPage() {
                                                                     <th className="px-3 py-2">Tür</th>
                                                                     <th className="px-3 py-2">Miktar</th>
                                                                     <th className="px-3 py-2">Kriter</th>
+                                                                    <th className="px-3 py-2">İşlem</th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody className="divide-y divide-white/5">
-                                                                {(rewardPreviewData.payouts || []).map((p: any) => (
-                                                                    <tr key={`${p.sequence}-${p.client_id}`}>
-                                                                        <td className="px-3 py-2 font-mono">{p.sequence}</td>
-                                                                        <td className="px-3 py-2 font-bold text-primary">#{p.rank}</td>
-                                                                        <td className="px-3 py-2">{p.username}</td>
-                                                                        <td className="px-3 py-2 uppercase">{p.reward_type}</td>
-                                                                        <td className="px-3 py-2 font-bold text-emerald-400">{p.amount}</td>
-                                                                        <td className="px-3 py-2 text-muted-foreground">{p.criteria_type}={p.criteria_value}</td>
-                                                                    </tr>
-                                                                ))}
+                                                                {(rewardPreviewData.payouts || []).map((p: any) => {
+                                                                    const cidStr = String(p.client_id);
+                                                                    const draft = overrideDrafts[cidStr];
+                                                                    const isRemoved = draft?.action === 'remove';
+                                                                    const amountValue = draft?.action === 'adjust' ? draft.amount : p.amount;
+                                                                    const isManual = p.criteria_type === 'manual_adjust' || p.criteria_type === 'manual_add';
+                                                                    return (
+                                                                        <tr key={`${p.sequence}-${p.client_id}`} className={isRemoved ? 'opacity-40' : ''}>
+                                                                            <td className="px-3 py-2 font-mono">{p.sequence}</td>
+                                                                            <td className="px-3 py-2 font-bold text-primary">#{p.rank}</td>
+                                                                            <td className="px-3 py-2">
+                                                                                {p.username}
+                                                                                {isManual && <Badge variant="outline" className="ml-2 text-[9px] border-amber-500/30 text-amber-400">Elle</Badge>}
+                                                                            </td>
+                                                                            <td className="px-3 py-2 uppercase">
+                                                                                {p.reward_type}
+                                                                                {(p.reward_type === 'freebet' || p.reward_type === 'spin') ? (
+                                                                                    <Badge variant="outline" className="ml-1.5 text-[8px] normal-case border-amber-500/30 text-amber-400 align-middle">Kullanıcı talep edecek</Badge>
+                                                                                ) : (
+                                                                                    <Badge variant="outline" className="ml-1.5 text-[8px] normal-case border-emerald-500/30 text-emerald-400 align-middle">Otomatik gönderilir</Badge>
+                                                                                )}
+                                                                            </td>
+                                                                            <td className="px-3 py-2 font-bold text-emerald-400">
+                                                                                <Input
+                                                                                    type="number"
+                                                                                    className="h-7 w-24 bg-black/20 border-white/10 text-xs"
+                                                                                    value={amountValue}
+                                                                                    disabled={isRemoved}
+                                                                                    onChange={(e) => {
+                                                                                        const newAmount = parseFloat(e.target.value) || 0;
+                                                                                        setOverrideDrafts(prev => ({
+                                                                                            ...prev,
+                                                                                            [cidStr]: { action: 'adjust', reward_type: p.reward_type, amount: newAmount, partner_bonus_id: p.partner_bonus_id ?? null }
+                                                                                        }));
+                                                                                    }}
+                                                                                />
+                                                                            </td>
+                                                                            <td className="px-3 py-2 text-muted-foreground">
+                                                                                {p.criteria_type === 'manual_add' ? 'Elle eklendi' : p.criteria_type === 'manual_adjust' ? 'Elle düzenlendi' : `${p.criteria_type}=${p.criteria_value}`}
+                                                                            </td>
+                                                                            <td className="px-3 py-2">
+                                                                                {isRemoved ? (
+                                                                                    <Button size="sm" variant="ghost" className="h-6 text-[9px]" onClick={() => setOverrideDrafts(prev => { const n = { ...prev }; delete n[cidStr]; return n; })}>Geri Al</Button>
+                                                                                ) : (
+                                                                                    <Button size="sm" variant="ghost" className="h-6 text-[9px] text-red-400 hover:text-red-300" onClick={() => setOverrideDrafts(prev => ({ ...prev, [cidStr]: { action: 'remove' } }))}>Çıkar</Button>
+                                                                                )}
+                                                                            </td>
+                                                                        </tr>
+                                                                    );
+                                                                })}
                                                             </tbody>
                                                         </table>
                                                     </div>
@@ -2877,16 +3029,60 @@ export default function AdminPage() {
                                             </>
                                         ) : null}
                                     </CardContent>
-                                    <div className="p-4 border-t border-white/5 flex flex-wrap justify-end gap-2 flex-shrink-0">
-                                        <Button variant="outline" onClick={() => { setShowRewardPreviewModal(false); setRewardPreviewEvent(null); setRewardPreviewData(null); }}>
+                                    <div className="p-4 border-t border-white/5 flex flex-wrap justify-end items-center gap-2 flex-shrink-0">
+                                        {Object.keys(overrideDrafts).length > 0 && (
+                                            <span className="text-[10px] text-amber-400 mr-auto">
+                                                {Object.keys(overrideDrafts).length} kaydedilmemiş değişiklik
+                                            </span>
+                                        )}
+                                        <Button variant="outline" onClick={() => { setShowRewardPreviewModal(false); setRewardPreviewEvent(null); setRewardPreviewData(null); setOverrideDrafts({}); setAddOverrideClientId(null); }}>
                                             İptal
                                         </Button>
+                                        {Object.keys(overrideDrafts).length > 0 && (
+                                            <Button
+                                                variant="outline"
+                                                className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+                                                disabled={savingOverrides}
+                                                onClick={async () => {
+                                                    if (!rewardPreviewEvent) return;
+                                                    setSavingOverrides(true);
+                                                    try {
+                                                        const merged = { ...(rewardPreviewData?.reward_overrides || {}), ...overrideDrafts };
+                                                        await saveRewardOverrides(rewardPreviewEvent.id, merged);
+                                                        const fresh = await fetchRewardPreview(rewardPreviewEvent.id);
+                                                        setRewardPreviewData(fresh);
+                                                        setOverrideDrafts({});
+                                                        toast({ title: "Kaydedildi", description: "Manuel düzenlemeler kaydedildi." });
+                                                    } catch (e: any) {
+                                                        const d = e?.response?.data?.detail;
+                                                        const msg = typeof d === 'string' ? d : (e?.message || 'Kaydedilemedi');
+                                                        toast({ title: "Hata", description: msg, variant: "destructive" });
+                                                    } finally {
+                                                        setSavingOverrides(false);
+                                                    }
+                                                }}
+                                            >
+                                                {savingOverrides && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                                                Değişiklikleri Kaydet
+                                            </Button>
+                                        )}
                                         <Button
                                             className="bg-emerald-600 hover:bg-emerald-500 text-white"
-                                            disabled={rewardPreviewLoading || !rewardPreviewData || rewardPreviewEvent?.reward_status === 'processing'}
+                                            disabled={rewardPreviewLoading || !rewardPreviewData || rewardPreviewEvent?.reward_status === 'processing' || savingOverrides || distributing}
                                             onClick={async () => {
-                                                if (!rewardPreviewEvent) return;
+                                                // Senkron guard — aynı tıklama birden fazla kez tetiklenirse (çift tık, yavaş
+                                                // ağ + tekrar tık) ikinci çağrı burada anında durur, POST hiç gitmez.
+                                                if (!rewardPreviewEvent || distributingRef.current) return;
+                                                distributingRef.current = true;
+                                                setDistributing(true);
                                                 try {
+                                                    // Onaydan önce henüz kaydedilmemiş manuel düzenlemeler varsa önce onları kaydet,
+                                                    // böylece dağıtılan hep ekranda görünenle birebir aynı olur.
+                                                    if (Object.keys(overrideDrafts).length > 0) {
+                                                        const merged = { ...(rewardPreviewData?.reward_overrides || {}), ...overrideDrafts };
+                                                        await saveRewardOverrides(rewardPreviewEvent.id, merged);
+                                                        setOverrideDrafts({});
+                                                    }
                                                     await distributeRewards(rewardPreviewEvent.id);
                                                     toast({
                                                         title: "Kuyruğa alındı",
@@ -2901,9 +3097,13 @@ export default function AdminPage() {
                                                     const d = e?.response?.data?.detail;
                                                     const msg = typeof d === 'string' ? d : (e?.message || 'Dağıtım başlatılamadı');
                                                     toast({ title: "Hata", description: msg, variant: "destructive" });
+                                                } finally {
+                                                    distributingRef.current = false;
+                                                    setDistributing(false);
                                                 }
                                             }}
                                         >
+                                            {distributing && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
                                             Onayla ve dağıt
                                         </Button>
                                     </div>

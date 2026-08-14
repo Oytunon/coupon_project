@@ -79,3 +79,15 @@ export async function getRewardWinners(eventId: number) {
   const res = await apiClient.get<any[]>(`/api/client/events/${eventId}/reward-winners`)
   return res.data
 }
+
+export async function getMyClaimableReward(eventId: number, username: string) {
+  const res = await apiClient.get(`/api/client/events/${eventId}/my-claimable-reward`, {
+    params: { username }
+  })
+  return res.data
+}
+
+export async function claimReward(eventId: number, username: string) {
+  const res = await apiClient.post(`/api/client/events/${eventId}/claim-reward`, { username })
+  return res.data
+}

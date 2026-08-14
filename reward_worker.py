@@ -14,7 +14,7 @@ from shared.database import SessionLocal
 from shared.models.reward_job import RewardJob
 from shared.models.event import Event
 from shared.models.worker_log import WorkerLog
-from shared.domain.leaderboard import get_event_leaderboard
+from shared.domain.reward_distribution import compute_reward_distribution_plan
 from backend_api.app.services.bapi_client import BapiClient
 from shared.settings import settings
 
@@ -56,17 +56,14 @@ def process_job(job_id: int):
         if not event:
             raise ValueError(f"Event {job.event_id} not found")
 
-        # Lider Tablosunu Getir
-        participants = get_event_leaderboard(db, event.id)
-        
-        for idx, p in enumerate(participants, 1):
-            p['rank'] = idx
-
-        rewards = event.rules.get('rewards', [])
+        # Kimin ne alacağını admin önizlemesiyle AYNI fonksiyondan hesapla (kural eşleşmesi +
+        # admin'in elle yaptığı miktar değişikliği/ekleme/çıkarma burada tek yerde uygulanır).
+        plan = compute_reward_distribution_plan(db, event.id)
+        payouts = plan.get("payouts", [])
         job_results = job.results or {}
-        
-        if not rewards:
-            logger.info(f"   [REWARD_DIAGNOSTIC] No rewards defined for event {event.id}. Completing job.")
+
+        if not payouts:
+            logger.info(f"   [REWARD_DIAGNOSTIC] No payouts for event {event.id}. Completing job.")
             job.status = "completed"
             job.completed_at = datetime.utcnow()
             db.commit()
@@ -77,123 +74,117 @@ def process_job(job_id: int):
         bapi = BapiClient(token=settings.STATS_BAPI_TOKEN)
         success_count = 0
         fail_count = 0
-        rewarded_clients = set()
-        logger.info(f"   [REWARD_DIAGNOSTIC] Found {len(participants)} participants and {len(rewards)} reward rules.")
+        logger.info(f"   [REWARD_DIAGNOSTIC] Found {plan.get('participant_count')} participants, {len(payouts)} payouts to send.")
 
         # Update initial count expectation
         worker_log.processed_count = 0
         db.commit()
 
-        for rule in rewards:
-            rule_type = rule.get('reward_type')
-            amount = rule.get('amount')
-            criteria_type = rule.get('criteria_type')
-            criteria_value = rule.get('criteria_value')
-            
-            if rule_type not in ['cash', 'spin', 'freebet', 'bonus']:
-                logger.warning(f"Skipping unsupported reward type: {rule_type}")
+        for payout in payouts:
+            client_id = payout["client_id"]
+            user_str = str(client_id)
+            amount = payout["amount"]
+            rule_type = payout["reward_type"]
+            partner_bonus_id = payout.get("partner_bonus_id")
+
+            worker_log.processed_count += 1
+            db.commit()
+
+            if user_str not in job_results:
+                job_results[user_str] = []
+
+            rule_snapshot = {
+                "reward_type": rule_type,
+                "amount": amount,
+                "criteria_type": payout.get("criteria_type"),
+                "criteria_value": payout.get("criteria_value"),
+                "partner_bonus_id": partner_bonus_id,
+            }
+
+            # Freebet/Freespin artık burada otomatik gönderilmiyor: kullanıcı client tarafında
+            # "Ödülünü Al" butonuna basıp bonus uygunluk kontrollerinden geçince gönderiliyor
+            # (bkz. shared/domain/reward_claim.py). Worker sadece kuyruğa yazıyor.
+            if rule_type in ('spin', 'freebet'):
+                job_results[user_str].append({
+                    "rule": rule_snapshot,
+                    "status": "pending_claim",
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+                logger.info(f"   [REWARD_DIAGNOSTIC] Client {client_id} {rule_type} PENDING_CLAIM (kullanıcı client'tan alacak).")
                 continue
 
-            # Sıralamada yer alsa bile hiç puanı olmayan (kupon oynamamış) katılımcı ödül alamaz.
-            eligible_users = []
-            if criteria_type == 'rank':
-                eligible_users = [p for p in participants if p['rank'] <= int(criteria_value) and p['points'] > 0]
-            elif criteria_type == 'rank_exact':
-                eligible_users = [p for p in participants if p['rank'] == int(criteria_value) and p['points'] > 0]
-            elif criteria_type == 'min_points':
-                eligible_users = [p for p in participants if p['points'] >= float(criteria_value) and p['points'] > 0]
-            
-            logger.info(f"Rule {rule_type} {criteria_type}={criteria_value} matched {len(eligible_users)} users")
+            try:
+                logger.info(f"Distributing {amount} {rule_type} to Client {client_id}")
+                event_context = event.slug if event else (job.event_name_snapshot or "DeletedEvent")
+                info_msg = f"EventReward:{event_context} Type:{rule_type} Rank:{payout['rank']} Pts:{payout['points']}"
 
-            for user in eligible_users:
-                client_id = user['client_id']
-                user_str = str(client_id)
-                
-                if client_id in rewarded_clients:
-                    logger.info(f"Client {client_id} already rewarded in this job. Skipping.")
-                    continue
-                
-                rewarded_clients.add(client_id)
-                worker_log.processed_count += 1
+                def _call_bapi():
+                    if rule_type == 'cash':
+                        return bapi.send_cash_reward(
+                            client_id=client_id,
+                            amount=amount,
+                            info=info_msg
+                        )
+                    elif rule_type == 'bonus':
+                        if not partner_bonus_id:
+                            logger.error(f"Missing partner_bonus_id for {rule_type} rule!")
+                            raise ValueError(f"Missing partner_bonus_id for {rule_type}")
+                        return bapi.add_client_to_bonus(
+                            client_id=client_id,
+                            amount=amount,
+                            bonus_id=partner_bonus_id,
+                            bonus_type=1,
+                            note=info_msg
+                        )
+                    raise ValueError(f"Unknown rule_type: {rule_type}")
+
+                MAX_ATTEMPTS = 3
+                resp = None
+                last_err = None
+                for attempt in range(1, MAX_ATTEMPTS + 1):
+                    try:
+                        resp = _call_bapi()
+                        last_err = None
+                        break  # Başarılı — döngüden çık
+                    except Exception as attempt_err:
+                        last_err = attempt_err
+                        if attempt < MAX_ATTEMPTS:
+                            logger.warning(
+                                f"Client {client_id} deneme {attempt}/{MAX_ATTEMPTS} başarısız: {attempt_err}. "
+                                f"2 dakika bekleniyor..."
+                            )
+                            time.sleep(120)
+                        else:
+                            logger.error(f"Client {client_id} {MAX_ATTEMPTS} denemede de ödül gönderilemedi: {attempt_err}")
+
+                if last_err is not None:
+                    raise last_err  # Tüm denemeler bitti, dış except'e düş
+
+                job_results[user_str].append({
+                    "rule": rule_snapshot,
+                    "status": "success",
+                    "response": resp,
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+                logger.info(f"   [REWARD_DIAGNOSTIC] Client {client_id} rewarded SUCCESS.")
+                success_count += 1
+                worker_log.saved_count = success_count
                 db.commit()
-                
-                if user_str not in job_results:
-                    job_results[user_str] = []
 
-                try:
-                    logger.info(f"Distributing {amount} {rule_type} to Client {client_id}")
-                    event_context = event.slug if event else (job.event_name_snapshot or "DeletedEvent")
-                    info_msg = f"EventReward:{event_context} Type:{rule_type} Rank:{user['rank']} Pts:{user['points']}"
+            except Exception as e:
+                logger.error(f"Failed to reward Client {client_id} after 3 attempts: {e}")
+                job_results[user_str].append({
+                    "rule": rule_snapshot,
+                    "status": "failed",
+                    "error": str(e),
+                    "timestamp": datetime.now().isoformat()
+                })
+                fail_count += 1
 
-                    def _call_bapi():
-                        if rule_type == 'cash':
-                            return bapi.send_cash_reward(
-                                client_id=client_id,
-                                amount=amount,
-                                info=info_msg
-                            )
-                        elif rule_type in ['spin', 'freebet', 'bonus']:
-                            bonus_id = rule.get('partner_bonus_id')
-                            if not bonus_id:
-                                logger.error(f"Missing partner_bonus_id for {rule_type} rule!")
-                                raise ValueError(f"Missing partner_bonus_id for {rule_type}")
-                            bonus_type = 5 if rule_type == 'spin' else (6 if rule_type == 'freebet' else 1)
-                            return bapi.add_client_to_bonus(
-                                client_id=client_id,
-                                amount=amount,
-                                bonus_id=bonus_id,
-                                bonus_type=bonus_type,
-                                note=info_msg
-                            )
-                        raise ValueError(f"Unknown rule_type: {rule_type}")
+            # Kullanıcılar arası normal geçiş bekleme süresi
+            logger.info("4 saniye bekleniyor...")
+            time.sleep(4)
 
-                    MAX_ATTEMPTS = 3
-                    resp = None
-                    last_err = None
-                    for attempt in range(1, MAX_ATTEMPTS + 1):
-                        try:
-                            resp = _call_bapi()
-                            last_err = None
-                            break  # Başarılı — döngüden çık
-                        except Exception as attempt_err:
-                            last_err = attempt_err
-                            if attempt < MAX_ATTEMPTS:
-                                logger.warning(
-                                    f"Client {client_id} deneme {attempt}/{MAX_ATTEMPTS} başarısız: {attempt_err}. "
-                                    f"2 dakika bekleniyor..."
-                                )
-                                time.sleep(120)
-                            else:
-                                logger.error(f"Client {client_id} {MAX_ATTEMPTS} denemede de ödül gönderilemedi: {attempt_err}")
-
-                    if last_err is not None:
-                        raise last_err  # Tüm denemeler bitti, dış except'e düş
-
-                    job_results[user_str].append({
-                        "rule": rule,
-                        "status": "success",
-                        "response": resp,
-                        "timestamp": datetime.utcnow().isoformat()
-                    })
-                    logger.info(f"   [REWARD_DIAGNOSTIC] Client {client_id} rewarded SUCCESS.")
-                    success_count += 1
-                    worker_log.saved_count = success_count
-                    db.commit()
-
-                except Exception as e:
-                    logger.error(f"Failed to reward Client {client_id} after {MAX_ATTEMPTS} attempts: {e}")
-                    job_results[user_str].append({
-                        "rule": rule,
-                        "status": "failed",
-                        "error": str(e),
-                        "timestamp": datetime.now().isoformat()
-                    })
-                    fail_count += 1
-
-                # Kullanıcılar arası normal geçiş bekleme süresi
-                logger.info("4 saniye bekleniyor...")
-                time.sleep(4)
-        
         # İş durumu güncelle (Tamamlandı)
         job.results = job_results
         job.status = "completed"

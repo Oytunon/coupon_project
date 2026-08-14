@@ -9,6 +9,75 @@ from shared.models.event import Event
 from shared.domain.leaderboard import get_event_leaderboard
 
 
+def apply_reward_overrides(
+    overrides: Dict[str, Any],
+    participants: List[Dict[str, Any]],
+    payouts: List[Dict[str, Any]],
+    rewarded_clients: Set[Any],
+) -> List[str]:
+    """
+    Admin'in önizlemede yaptığı manuel düzenlemeleri (miktar değiştir / çıkar / ekle)
+    kural bazlı sonucun üzerine uygular. payouts ve rewarded_clients yerinde değiştirilir.
+    Uygulanamayan override'ların client_id'lerini (örn. 'add' için participant bulunamadı) döner.
+    """
+    participants_by_cid = {p["client_id"]: p for p in participants}
+    skipped: List[str] = []
+
+    for cid_str, ov in (overrides or {}).items():
+        try:
+            cid = int(cid_str)
+        except (TypeError, ValueError):
+            skipped.append(str(cid_str))
+            continue
+
+        action = (ov or {}).get("action")
+
+        if action == "remove":
+            if cid in rewarded_clients:
+                rewarded_clients.discard(cid)
+                payouts[:] = [p for p in payouts if p["client_id"] != cid]
+
+        elif action == "adjust":
+            if cid in rewarded_clients:
+                for p in payouts:
+                    if p["client_id"] == cid:
+                        p["amount"] = ov.get("amount", p["amount"])
+                        p["reward_type"] = ov.get("reward_type", p["reward_type"])
+                        p["partner_bonus_id"] = ov.get("partner_bonus_id", p.get("partner_bonus_id"))
+                        p["criteria_type"] = "manual_adjust"
+                        p["manual_note"] = ov.get("note")
+                        break
+            else:
+                skipped.append(cid_str)
+
+        elif action == "add":
+            if cid not in rewarded_clients:
+                user = participants_by_cid.get(cid)
+                if not user:
+                    skipped.append(cid_str)
+                    continue
+                rewarded_clients.add(cid)
+                payouts.append(
+                    {
+                        "sequence": len(payouts) + 1,
+                        "rank": user["rank"],
+                        "username": user.get("username"),
+                        "client_id": cid,
+                        "points": user["points"],
+                        "reward_type": ov.get("reward_type"),
+                        "amount": ov.get("amount"),
+                        "criteria_type": "manual_add",
+                        "criteria_value": None,
+                        "partner_bonus_id": ov.get("partner_bonus_id"),
+                        "manual_note": ov.get("note"),
+                    }
+                )
+        else:
+            skipped.append(cid_str)
+
+    return skipped
+
+
 def compute_reward_distribution_plan(db: Session, event_id: int) -> Dict[str, Any]:
     """
     Dağıtım önizlemesi. Gerçek worker ile uyumlu:
@@ -67,6 +136,13 @@ def compute_reward_distribution_plan(db: Session, event_id: int) -> Dict[str, An
                 }
             )
 
+    overrides = event.rules.get("reward_overrides", {}) or {}
+    skipped_overrides = apply_reward_overrides(overrides, participants, payouts, rewarded_clients)
+
+    # remove/add sequence numaralarını bozabileceği için son hâliyle yeniden numaralandır.
+    for idx, p in enumerate(payouts, 1):
+        p["sequence"] = idx
+
     leaderboard_rows = [
         {
             "rank": p["rank"],
@@ -89,4 +165,6 @@ def compute_reward_distribution_plan(db: Session, event_id: int) -> Dict[str, An
         "leaderboard": leaderboard_rows,
         "payouts": payouts,
         "skipped_unsupported_rule_types": skipped_rules,
+        "reward_overrides": overrides,
+        "skipped_overrides": skipped_overrides,
     }

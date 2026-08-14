@@ -1,11 +1,12 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 
 from shared.database import get_db_session
 from shared.models.event import Event
 from shared.models.enrollment import EventParticipant
+from shared.core.limiter import limiter
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -183,6 +184,59 @@ async def get_event_reward_winners(
     ))
 
     return winners
+
+
+class ClaimRewardRequest(BaseModel):
+    username: str
+
+
+@router.get("/events/{event_id}/my-claimable-reward")
+async def get_my_claimable_reward(
+    event_id: int,
+    username: str,
+    db: Session = Depends(get_db_session)
+):
+    """
+    Bu kullanıcının bu etkinlik için bekleyen (henüz claim edilmemiş) bir
+    freebet/freespin ödülü var mı? Client'taki "Ödülünü Al" butonunu göstermek için.
+    """
+    from shared.models.participant import Participant
+    from shared.domain.reward_claim import find_pending_claim
+
+    participant = db.query(Participant).filter(Participant.username == username).first()
+    if not participant:
+        return {"has_claimable": False}
+
+    info = find_pending_claim(db, event_id, participant.client_id)
+    if not info:
+        return {"has_claimable": False}
+
+    return {"has_claimable": True, **info}
+
+
+@router.post("/events/{event_id}/claim-reward")
+@limiter.limit("5/minute")
+async def claim_reward(
+    request: Request,
+    event_id: int,
+    body: ClaimRewardRequest,
+    db: Session = Depends(get_db_session)
+):
+    """
+    Kullanıcı "Ödülünü Al" butonuna bastığında çağrılır: bonus uygunluk kontrollerini
+    çalıştırır, geçerse gerçek freebet/freespin ödülünü partner API'ye gönderir.
+    """
+    from shared.models.participant import Participant
+    from shared.domain.reward_claim import claim_pending_reward
+    from backend_api.app.services.bapi_client import BapiClient
+    from shared.settings import settings
+
+    participant = db.query(Participant).filter(Participant.username == body.username).first()
+    if not participant:
+        return {"status": "not_found", "reason": "Kullanıcı bulunamadı."}
+
+    bapi = BapiClient(token=settings.STATS_BAPI_TOKEN)
+    return claim_pending_reward(db, bapi, event_id, participant.client_id)
 
 
 @router.get("/leagues")

@@ -47,6 +47,14 @@ class RewardRule(BaseModel):
     partner_bonus_id: Optional[int] = None
 
 
+class RewardOverride(BaseModel):
+    action: str  # 'adjust' | 'remove' | 'add'
+    reward_type: Optional[str] = None
+    amount: Optional[float] = None
+    partner_bonus_id: Optional[int] = None
+    note: Optional[str] = None
+
+
 class EventRules(BaseModel):
     model_config = {"extra": "allow"}
     min_stake: float = 100.0
@@ -62,6 +70,10 @@ class EventRules(BaseModel):
     min_deposit: int = 1000
     prize_pool: float = 0.0
     rewards: List[RewardRule] = []
+    # Admin önizlemede elle yaptığı ayarlamalar: client_id (str) -> RewardOverride.
+    # Hem reward-preview hem reward_worker aynı planı üretsin diye compute_reward_distribution_plan
+    # içinde uygulanır (shared/domain/reward_distribution.py).
+    reward_overrides: Dict[str, RewardOverride] = {}
     sport_filter: Optional[List[int]] = None  # ör. [1] = sadece futbol; None/[] = filtre yok (mevcut davranış)
     stake_unit_amount: float = 1000.0  # 'stake_floor_thousand' formülü için puan birimi (TL)
     allowed_bet_types: Optional[List[int]] = None  # ör. [1,2] = Single+Multiple, System hariç; None = [1,2,3] (mevcut davranış)
@@ -941,27 +953,33 @@ async def export_reward_history(
             for r in rewards_list:
                 if not isinstance(r, dict):
                     continue
-                    
-                if r.get("status") == "success":
-                    # Timestamp UTC; Türkiye saati (UTC+3) olarak göster
-                    ts_raw = r.get("timestamp", "")
-                    ts_display = "-"
-                    if ts_raw:
-                        try:
-                            dt = datetime.fromisoformat(ts_raw.replace("Z", "+00:00").split(".")[0])
-                            ts_display = (dt + timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
-                        except Exception:
-                            ts_display = ts_raw.split(".")[0].replace("T", " ")
-                    
-                    rule = r.get("rule", {})
-                    ws.append([
-                        ts_display,
-                        username,
-                        client_id_str,
-                        rule.get("reward_type", "") if isinstance(rule, dict) else "",
-                        rule.get("amount", 0) if isinstance(rule, dict) else 0,
-                        "Basarili"
-                    ])
+
+                # Timestamp UTC; Türkiye saati (UTC+3) olarak göster
+                ts_raw = r.get("timestamp", "")
+                ts_display = "-"
+                if ts_raw:
+                    try:
+                        dt = datetime.fromisoformat(ts_raw.replace("Z", "+00:00").split(".")[0])
+                        ts_display = (dt + timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
+                    except Exception:
+                        ts_display = ts_raw.split(".")[0].replace("T", " ")
+
+                rule = r.get("rule", {})
+                status = r.get("status")
+                if status == "success":
+                    durum = "Basarili"
+                elif status == "pending_claim":
+                    durum = "Beklemede (Kullanici Onayi Bekleniyor)"
+                else:
+                    durum = f"Basarisiz: {r.get('error', '')}".rstrip(": ")
+                ws.append([
+                    ts_display,
+                    username,
+                    client_id_str,
+                    rule.get("reward_type", "") if isinstance(rule, dict) else "",
+                    rule.get("amount", 0) if isinstance(rule, dict) else 0,
+                    durum
+                ])
 
     output = BytesIO()
     wb.save(output)

@@ -724,16 +724,16 @@ async def get_event_reward_history(
             username = db.query(Participant.username).filter(Participant.client_id == client_id).scalar() or "Unknown"
             
             for r in rewards_list:
-                if r.get("status") == "success":
-                    all_rewards.append({
-                        "job_id": job.id,
-                        "client_id": client_id,
-                        "username": username,
-                        "reward_type": r.get("rule", {}).get("reward_type"),
-                        "amount": r.get("rule", {}).get("amount"),
-                        "timestamp": r.get("timestamp"),
-                        "status": "success"
-                    })
+                all_rewards.append({
+                    "job_id": job.id,
+                    "client_id": client_id,
+                    "username": username,
+                    "reward_type": r.get("rule", {}).get("reward_type"),
+                    "amount": r.get("rule", {}).get("amount"),
+                    "timestamp": r.get("timestamp"),
+                    "status": r.get("status"),
+                    "error": r.get("error") if r.get("status") == "failed" else None,
+                })
     
     return all_rewards
 

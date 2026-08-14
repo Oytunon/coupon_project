@@ -3,12 +3,14 @@ import {
     CheckCircle2, TrendingUp, Shield, Gift, Ticket, ScrollText, Info, Crown, Search, UserPlus, FileText, AlertCircle, X, ChevronDown, Globe
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { PublicEvent, getLeagues } from "@/api/client"
-import { getLeaderboard, getMyCoupons, getRewardWinners } from "@/api/participation"
-import React, { useState, useEffect } from "react"
+import { getLeaderboard, getMyCoupons, getRewardWinners, getMyClaimableReward, claimReward } from "@/api/participation"
+import React, { useState, useEffect, useRef } from "react"
 import { Loader2 } from "lucide-react"
 import { parseEventDate, parseUtcDate } from "@/utils/dateUtils"
 import { buildLabeledRewards, calculateTotalPrize, getRewardTypeLabel } from "@/utils/rewardUtils"
+import { useToast } from "@/hooks/use-toast"
 
 interface TournamentDetailsProps {
     event: PublicEvent
@@ -78,6 +80,39 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
     const [rewardWinners, setRewardWinners] = useState<any[]>([])
     const [loadingRewardWinners, setLoadingRewardWinners] = useState(false)
     const [leagues, setLeagues] = useState<any[]>([])
+
+    // Claimable Reward State (bekleyen freebet/freespin)
+    const [claimableReward, setClaimableReward] = useState<any>(null)
+    const [claiming, setClaiming] = useState(false)
+    const [claimCooldownUntil, setClaimCooldownUntil] = useState<number | null>(null)
+    // React state (claiming) güncellemesi asenkron/batch'li — aynı senkron tick içinde
+    // art arda çağrı gelirse (örn. otomasyon) state henüz güncellenmemiş olabilir. Ref
+    // senkron ve anında güncellendiği için gerçek "ikinci isteği hiç göndermeme" garantisi
+    // burada veriyor; claiming state'i sadece UI'da butonu disable etmek için tutuluyor.
+    const claimingRef = useRef(false)
+    const [, forceCooldownTick] = useState(0)
+    const { toast, dismiss } = useToast()
+
+    // Cooldown süresince buton görsel olarak da kapalı kalsın ve süre dolunca kendiliğinden
+    // açılsın diye saniyede bir tetikleniyor.
+    useEffect(() => {
+        if (!claimCooldownUntil) return
+        const interval = setInterval(() => {
+            if (Date.now() >= claimCooldownUntil) {
+                setClaimCooldownUntil(null)
+            } else {
+                forceCooldownTick(t => t + 1)
+            }
+        }, 1000)
+        return () => clearInterval(interval)
+    }, [claimCooldownUntil])
+
+    // Toast global bir state'te tutuluyor ve kendiliğinden çok geç kayboluyor (~16 dk);
+    // sekme değiştiğinde (örn. Ödüller'den Sıralama'ya geçince) önceki sekmeye ait
+    // bildirim ekranda asılı kalmasın diye burada temizliyoruz.
+    useEffect(() => {
+        dismiss()
+    }, [activeTab])
 
     const isUpcoming = new Date() < parseEventDate(event.start_date)
     const isExpired = new Date() > parseEventDate(event.end_date)
@@ -190,6 +225,64 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
             fetchCoupons()
         }
     }, [activeTab, event.id, username])
+
+    // Bekleyen freebet/freespin ödülü var mı diye kontrol et
+    useEffect(() => {
+        if (activeTab === 'rewards' && username) {
+            const fetchClaimable = async () => {
+                try {
+                    const data = await getMyClaimableReward(event.id, username)
+                    setClaimableReward(data?.has_claimable ? data : null)
+                } catch (error) {
+                    console.error("Claimable reward fetch error", error)
+                }
+            }
+            fetchClaimable()
+        }
+    }, [activeTab, event.id, username])
+
+    const handleClaimReward = async () => {
+        // Senkron, anında etkili guard — React state'in re-render beklemesine gerek yok.
+        if (!username || claimingRef.current) return
+        if (claimCooldownUntil && Date.now() < claimCooldownUntil) {
+            const secLeft = Math.ceil((claimCooldownUntil - Date.now()) / 1000)
+            toast({ title: "Lütfen bekleyin", description: `Çok sık deneniyor. ${secLeft} saniye sonra tekrar deneyin.`, variant: "destructive" })
+            return
+        }
+        claimingRef.current = true
+        setClaiming(true)
+        try {
+            const result = await claimReward(event.id, username)
+            setClaimCooldownUntil(null)
+            if (result.status === 'success') {
+                toast({
+                    title: "Tebrikler!",
+                    description: `${result.amount} ${result.reward_type === 'spin' ? 'Free Spin' : 'Freebet'} hesabınıza tanımlandı.`,
+                })
+                setClaimableReward(null)
+            } else if (result.status === 'not_eligible') {
+                // Sebebi karta da kalıcı olarak yansıt (toast kaybolunca da görünsün)
+                toast({ title: "Şu an alamıyorsunuz", description: result.reason, variant: "destructive" })
+                setClaimableReward((prev: any) => prev ? { ...prev, last_check_failure: result.reason } : prev)
+            } else {
+                toast({ title: "Hata", description: result.reason || "Ödül gönderilemedi, lütfen tekrar deneyin.", variant: "destructive" })
+                setClaimableReward((prev: any) => prev ? { ...prev, status: 'failed', last_error: result.reason } : prev)
+            }
+        } catch (error: any) {
+            const status = error?.response?.status
+            if (status === 429) {
+                const retrySec = error?.response?.data?.retry_after_seconds ?? 60
+                setClaimCooldownUntil(Date.now() + retrySec * 1000)
+                toast({ title: "Lütfen bekleyin", description: `Çok sık deneniyor. ${retrySec} saniye sonra tekrar deneyin.`, variant: "destructive" })
+            } else {
+                const msg = error?.response?.data?.detail || error?.message || "Ödül alınamadı, lütfen tekrar deneyin.";
+                toast({ title: "Hata", description: msg, variant: "destructive" })
+            }
+        } finally {
+            claimingRef.current = false
+            setClaiming(false)
+        }
+    }
 
     // Format dates
 
@@ -1132,6 +1225,44 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                     ₺<CountUpAnimation target={totalPrize} />
                                 </div>
                             </div>
+
+                            {claimableReward && (
+                                <div className="bg-gradient-to-r from-[#5a4a2a] to-[#3a2a1a] rounded-2xl p-5 md:p-6 mb-6 md:mb-8 border-2 border-[#D9B648] flex flex-col sm:flex-row items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <Gift className="w-8 h-8 text-[#D9B648] shrink-0" />
+                                        <div>
+                                            <div className="text-[#D9B648] font-bold text-sm md:text-base">
+                                                Kazandığın ödülü almaya hak kazandın!
+                                            </div>
+                                            <div className="text-[#F7EBA5] text-lg md:text-xl font-black">
+                                                {claimableReward.amount} {claimableReward.reward_type === 'spin' ? 'Free Spin' : 'Freebet'}
+                                            </div>
+                                            {claimableReward.last_check_failure && (
+                                                <div className="text-amber-400 text-[10px] md:text-xs mt-1">
+                                                    Şu an alamıyorsunuz: {claimableReward.last_check_failure}
+                                                </div>
+                                            )}
+                                            {claimableReward.status === 'failed' && claimableReward.last_error && (
+                                                <div className="text-red-400 text-[10px] md:text-xs mt-1">Önceki deneme başarısız oldu: {claimableReward.last_error}</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {(() => {
+                                        const cooldownRemaining = claimCooldownUntil ? Math.max(0, Math.ceil((claimCooldownUntil - Date.now()) / 1000)) : 0;
+                                        const isCoolingDown = cooldownRemaining > 0;
+                                        return (
+                                            <Button
+                                                onClick={handleClaimReward}
+                                                disabled={claiming || isCoolingDown}
+                                                className="bg-[#D9B648] hover:bg-[#c9a638] text-black font-bold px-6 py-3 rounded-xl shrink-0 disabled:opacity-60"
+                                            >
+                                                {claiming ? <Loader2 className="h-4 w-4 animate-spin mr-2 inline" /> : null}
+                                                {isCoolingDown ? `${cooldownRemaining} sn bekleyin` : 'Ödülünü Al'}
+                                            </Button>
+                                        );
+                                    })()}
+                                </div>
+                            )}
 
                             {/* Top 3 Rewards */}
                             {top3.length > 0 && (
