@@ -95,19 +95,19 @@ def check_bonus_eligibility(bapi: "BapiClient", client_id: int) -> Tuple[bool, O
     if err:
         return False, err
     if balance >= 5:
-        return False, f"Bakiyeniz ({balance:.2f} TL) bu ödül için uygun değil — bakiyenizin 5 TL altında olması gerekiyor."
+        return False, f"{balance:.2f} TL bakiye mevcut."
 
     has_bet, err = _run_check("Aktif bahis kontrolü", lambda: bapi.has_active_bet(client_id))
     if err:
         return False, err
     if has_bet:
-        return False, "Son 7 gün içinde aktif bahsiniz olduğu için şu an ödülünüzü alamıyorsunuz."
+        return False, "Aktif spor bahsi mevcut."
 
     has_bonus, err = _run_check("Bonus kontrolü", lambda: bapi.has_usable_bonus(client_id))
     if err:
         return False, err
     if has_bonus:
-        return False, "Zaten kullanılmamış/aktif bir bonusunuz var, önce onu kullanmanız gerekiyor."
+        return False, "Aktif edilmemiş, kullanılabilir bonus mevcut."
 
     return True, None
 
