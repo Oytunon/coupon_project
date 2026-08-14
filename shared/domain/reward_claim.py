@@ -95,7 +95,7 @@ def check_bonus_eligibility(bapi: "BapiClient", client_id: int) -> Tuple[bool, O
     if err:
         return False, err
     if balance >= 5:
-        return False, f"{balance:.2f} TL bakiye mevcut."
+        return False, "Bakiye mevcut."
 
     has_bet, err = _run_check("Aktif bahis kontrolü", lambda: bapi.has_active_bet(client_id))
     if err:

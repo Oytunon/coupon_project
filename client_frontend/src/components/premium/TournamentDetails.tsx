@@ -1219,13 +1219,6 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                     <h2 className="text-xl md:text-2xl font-bold">Ödüller</h2>
                                 </div>
                             </div>
-                            <div className="bg-black rounded-2xl p-6 md:p-8 mb-6 md:mb-8 text-center border-2 border-[#D9B648]">
-                                <div className="text-[#D9B648]/80 text-xs md:text-sm mb-2 md:mb-3 uppercase tracking-wide font-semibold">Toplam Ödül Havuzu</div>
-                                <div className="text-3xl md:text-5xl lg:text-6xl font-black text-[#D9B648] drop-shadow-[0_0_12px_rgba(255,184,0,0.4)]">
-                                    ₺<CountUpAnimation target={totalPrize} />
-                                </div>
-                            </div>
-
                             {claimableReward && (
                                 <div className="bg-gradient-to-r from-[#5a4a2a] to-[#3a2a1a] rounded-2xl p-5 md:p-6 mb-6 md:mb-8 border-2 border-[#D9B648] flex flex-col sm:flex-row items-center justify-between gap-4">
                                     <div className="flex items-center gap-3">
@@ -1263,6 +1256,13 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                     })()}
                                 </div>
                             )}
+
+                            <div className="bg-black rounded-2xl p-6 md:p-8 mb-6 md:mb-8 text-center border-2 border-[#D9B648]">
+                                <div className="text-[#D9B648]/80 text-xs md:text-sm mb-2 md:mb-3 uppercase tracking-wide font-semibold">Toplam Ödül Havuzu</div>
+                                <div className="text-3xl md:text-5xl lg:text-6xl font-black text-[#D9B648] drop-shadow-[0_0_12px_rgba(255,184,0,0.4)]">
+                                    ₺<CountUpAnimation target={totalPrize} />
+                                </div>
+                            </div>
 
                             {/* Top 3 Rewards */}
                             {top3.length > 0 && (
