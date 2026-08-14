@@ -83,8 +83,8 @@ def _run_check(step_name: str, fn: Callable[[], Any]) -> Tuple[Any, Optional[str
 
 def check_bonus_eligibility(bapi: "BapiClient", client_id: int) -> Tuple[bool, Optional[str]]:
     """
-    Golcu (C:\\...\\repo\\gol\\golcu) reposundaki 3 kontrolün birebir aynısı:
-    bakiye < 5 TL, son 7 günde aktif bahis yok, kullanılmamış (ResultType=0) bonus yok.
+    Golcu (C:\\...\\repo\\gol\\golcu) reposundaki kontrollerin bizim eşiklerimizle uyarlanmışı:
+    bakiye 10 TL ve altı, son 7 günde aktif bahis yok, kullanılmamış (ResultType=0) bonus yok.
     Sırayla çalışır, ilk başarısız olanın sebebini döner.
     """
     wait_reason = _rate_limit_wait_reason()
@@ -94,7 +94,7 @@ def check_bonus_eligibility(bapi: "BapiClient", client_id: int) -> Tuple[bool, O
     balance, err = _run_check("Bakiye kontrolü", lambda: bapi.get_client_balance(client_id))
     if err:
         return False, err
-    if balance >= 5:
+    if balance > 10:
         return False, "Bakiye mevcut."
 
     has_bet, err = _run_check("Aktif bahis kontrolü", lambda: bapi.has_active_bet(client_id))
