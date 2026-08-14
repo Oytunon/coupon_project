@@ -511,11 +511,19 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                         const allowedIds = event.rules?.allowed_league_ids ?? [];
 
                                         if (allowedIds.length === 0) {
+                                            // sport_filter kısıtlıysa (örn. Kickoff formülü seçildiğinde otomatik [1]=Futbol
+                                            // olur) "tüm spor dalları" değil, sadece izinli spor(lar) yazılmalı.
+                                            const sportNames: Record<number, string> = { 1: 'Futbol', 2: 'Basketbol', 3: 'Voleybol', 4: 'Tenis' };
+                                            const sportFilter: number[] | null = event.rules?.sport_filter ?? null;
+                                            const filterTitle = sportFilter && sportFilter.length > 0
+                                                ? `Tüm Ligler & Yalnızca ${sportFilter.map(id => sportNames[id] || id).join(', ')} Müsabakaları`
+                                                : 'Tüm Spor Dalları ve Ligler';
+
                                             return (
                                                 <div className="md:col-span-2 bg-gradient-to-r from-[#D9B648]/10 to-transparent border border-[#D9B648]/20 rounded-lg p-3 md:p-4 flex items-start gap-3">
                                                     <Globe className="w-5 h-5 text-[#D9B648] shrink-0 mt-0.5" />
                                                     <div>
-                                                        <div className="text-[#D9B648] text-xs md:text-sm font-bold mb-1">Tüm Spor Dalları ve Ligler</div>
+                                                        <div className="text-[#D9B648] text-xs md:text-sm font-bold mb-1">{filterTitle}</div>
                                                         <div className="text-[#F7EBA5]/80 text-[10px] md:text-xs leading-relaxed">
                                                             Belirtilen tarih aralığında, kurallara uygun şekilde yapılan tüm kuponlar puanlamaya dahil edilir.
                                                         </div>
