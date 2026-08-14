@@ -8,7 +8,7 @@ import { getLeaderboard, getMyCoupons, getRewardWinners } from "@/api/participat
 import React, { useState, useEffect } from "react"
 import { Loader2 } from "lucide-react"
 import { parseEventDate, parseUtcDate } from "@/utils/dateUtils"
-import { buildLabeledRewards, calculateTotalPrize } from "@/utils/rewardUtils"
+import { buildLabeledRewards, calculateTotalPrize, getRewardTypeLabel } from "@/utils/rewardUtils"
 
 interface TournamentDetailsProps {
     event: PublicEvent
@@ -1136,6 +1136,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                             <div key={idx} className={`bg-gradient-to-br ${bgClass} rounded-xl p-4 md:p-6 text-center border border-[#D9B648]/30`}>
                                                 <div className="text-gray-300 text-xs md:text-sm mb-2 font-semibold">{reward._label}</div>
                                                 <div className="text-3xl md:text-5xl font-black text-[#D9B648]">{(reward.reward_type || '').toLowerCase().includes('spin') ? '' : '₺'}<CountUpAnimation target={Number(reward.amount)} /></div>
+                                                <div className="text-[10px] md:text-xs text-[#D9B648]/70 font-bold uppercase tracking-wide mt-1">{getRewardTypeLabel(reward.reward_type)}</div>
                                                 {reward._winnerCount > 1 && (
                                                     <div className="text-[10px] md:text-xs text-gray-500 mt-1">
                                                         Kişi başı · {reward._winnerCount} kişi · Toplam ₺{(Number(reward.amount) * reward._winnerCount).toLocaleString('tr-TR')}
@@ -1154,6 +1155,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                         <div key={idx} className="bg-black rounded-xl p-4 md:p-6 text-center border border-[#D9B648]/50">
                                             <div className="text-[#D9B648]/70 text-xs md:text-sm mb-2 font-semibold">{reward._label}</div>
                                             <div className="text-2xl md:text-3xl font-bold text-[#D9B648]">{(reward.reward_type || '').toLowerCase().includes('spin') ? '' : '₺'}<CountUpAnimation target={Number(reward.amount)} /></div>
+                                            <div className="text-[10px] md:text-xs text-[#D9B648]/70 font-bold uppercase tracking-wide mt-1">{getRewardTypeLabel(reward.reward_type)}</div>
                                             {reward._winnerCount > 1 && (
                                                 <div className="text-[10px] md:text-xs text-gray-500 mt-1">
                                                     Kişi başı · {reward._winnerCount} kişi · Toplam ₺{(Number(reward.amount) * reward._winnerCount).toLocaleString('tr-TR')}

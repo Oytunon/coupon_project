@@ -21,7 +21,7 @@ import { ClientLayout } from "@/components/layout/ClientLayout"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { TournamentDetails } from "@/components/premium/TournamentDetails"
 import { parseEventDate, parseUtcDate } from "@/utils/dateUtils"
-import { buildLabeledRewards, calculateTotalPrize } from "@/utils/rewardUtils"
+import { buildLabeledRewards, calculateTotalPrize, getRewardTypeLabel } from "@/utils/rewardUtils"
 
 export default function UserDashboard() {
     const [searchParams, setSearchParams] = useSearchParams()
@@ -1159,7 +1159,7 @@ export default function UserDashboard() {
                                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                                                 {buildLabeledRewards(rules.rewards).map((reward: any, idx: number) => {
                                                                     const rankLabel = reward._label.toUpperCase();
-                                                                    const rewardTypeLabel = reward.reward_type === 'cash' ? 'TRY' : (reward.reward_type === 'spin' ? 'FRES SPIN' : 'FREE BET');
+                                                                    const rewardTypeLabel = getRewardTypeLabel(reward.reward_type).toUpperCase();
 
                                                                     return (
                                                                         <div key={idx} className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-zinc-950 transition-all hover:scale-105 hover:border-amber-500/30 group/reward">

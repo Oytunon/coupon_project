@@ -12,6 +12,17 @@ export interface LabeledRewardRule extends RewardRule {
     _winnerCount: number
 }
 
+// Admin panelde seçilen ödül türünü ('cash' | 'spin' | 'freebet' | 'bonus') olduğu gibi
+// gösterilebilecek bir etikete çevirir.
+export function getRewardTypeLabel(rewardType?: string): string {
+    const t = (rewardType || '').toLowerCase()
+    if (t.includes('cash')) return 'Nakit'
+    if (t.includes('freebet')) return 'Freebet'
+    if (t.includes('spin')) return 'Free Spin'
+    if (t.includes('bonus')) return 'Bonus'
+    return 'Ödül'
+}
+
 function parseRewards(rules: any): RewardRule[] {
     if (!rules) return []
     let validRules = rules
