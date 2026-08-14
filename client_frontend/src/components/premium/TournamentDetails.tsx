@@ -1166,7 +1166,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                             <div className="text-[10px] md:text-xs text-[#D9B648]/70 font-bold uppercase tracking-wide mt-1">{getRewardTypeLabel(reward.reward_type)}</div>
                                             {reward._winnerCount > 1 && (
                                                 <div className="text-[10px] md:text-xs text-gray-500 mt-1">
-                                                    Kişi başı · {reward._winnerCount} kişi · Toplam ₺{(Number(reward.amount) * reward._winnerCount).toLocaleString('tr-TR')}
+                                                    {reward._winnerCount} kişi · Toplam ₺{(Number(reward.amount) * reward._winnerCount).toLocaleString('tr-TR')}
                                                 </div>
                                             )}
                                         </div>
