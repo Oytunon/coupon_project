@@ -31,10 +31,26 @@ const calculateTotalPrize = (rules: any) => {
     return validRules.rewards.reduce((acc: number, curr: any) => acc + (Number(curr.amount) || 0), 0);
 }
 
-const getRewardLabel = (reward: any) => {
-    if (reward.criteria_type === 'rank_exact') return `${reward.criteria_value}. Sıra`;
-    if (reward.criteria_type === 'rank') return `İlk ${reward.criteria_value} Kişi`;
-    return 'Ödül';
+// 'rank' kuralları "ilk N kişi" olarak tanımlanır ama sistem "ilk uyan kural" mantığıyla
+// çalıştığı için gerçekte sadece bir önceki kuralın bıraktığı aralığı ödüllendirir.
+// Bu yüzden etiketi ham kesme değeriyle değil, o aralığı yansıtacak şekilde üretiyoruz.
+const buildLabeledRewards = (rewards: any[]) => {
+    let runningMaxRank = 0;
+    return rewards.map((r: any) => {
+        let label = 'Ödül';
+        if (r.criteria_type === 'rank_exact') {
+            label = `${r.criteria_value}. Sıra`;
+            runningMaxRank = Math.max(runningMaxRank, r.criteria_value);
+        } else if (r.criteria_type === 'rank') {
+            const start = runningMaxRank + 1;
+            const end = r.criteria_value;
+            label = start >= end ? `${end}. Sıra` : `${start}. Sıra - ${end}. Sıra`;
+            runningMaxRank = Math.max(runningMaxRank, end);
+        } else if (r.criteria_type === 'min_points') {
+            label = `${r.criteria_value}+ Puan`;
+        }
+        return { ...r, _label: label };
+    });
 }
 
 const CountUpAnimation = ({ target, duration = 2000 }: { target: number, duration?: number }) => {
@@ -109,8 +125,9 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
         return Array.isArray(r?.rewards) ? r.rewards : [];
     })();
 
-    // Sort rewards by criteria_value
-    const sortedRewards = [...parsedRewards].sort((a: any, b: any) => (a.criteria_value || 0) - (b.criteria_value || 0));
+    // Etiketleri gerçek uygulanma sırasına (dizideki sıra) göre hesapla, sonra görüntü için sırala
+    const labeledRewards = buildLabeledRewards(parsedRewards);
+    const sortedRewards = [...labeledRewards].sort((a: any, b: any) => (a.criteria_value || 0) - (b.criteria_value || 0));
 
     // Split top 3 (exact ranks) and others
     const top3 = sortedRewards.filter(r => r.criteria_type === 'rank_exact' && r.criteria_value <= 3);
@@ -1149,7 +1166,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
 
                                         return (
                                             <div key={idx} className={`bg-gradient-to-br ${bgClass} rounded-xl p-4 md:p-6 text-center border border-[#D9B648]/30`}>
-                                                <div className="text-gray-300 text-xs md:text-sm mb-2 font-semibold">{getRewardLabel(reward)}</div>
+                                                <div className="text-gray-300 text-xs md:text-sm mb-2 font-semibold">{reward._label}</div>
                                                 <div className="text-3xl md:text-5xl font-black text-[#D9B648]">{(reward.reward_type || '').toLowerCase().includes('spin') ? '' : '₺'}<CountUpAnimation target={Number(reward.amount)} /></div>
                                             </div>
                                         );
@@ -1162,7 +1179,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
                                     {otherRewards.map((reward: any, idx: number) => (
                                         <div key={idx} className="bg-black rounded-xl p-4 md:p-6 text-center border border-[#D9B648]/50">
-                                            <div className="text-[#D9B648]/70 text-xs md:text-sm mb-2 font-semibold">{getRewardLabel(reward)}</div>
+                                            <div className="text-[#D9B648]/70 text-xs md:text-sm mb-2 font-semibold">{reward._label}</div>
                                             <div className="text-2xl md:text-3xl font-bold text-[#D9B648]">{(reward.reward_type || '').toLowerCase().includes('spin') ? '' : '₺'}<CountUpAnimation target={Number(reward.amount)} /></div>
                                         </div>
                                     ))}

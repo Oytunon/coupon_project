@@ -1179,12 +1179,20 @@ export default function UserDashboard() {
                                                                 </h4>
                                                             </div>
                                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                                {rules.rewards.map((reward: any, idx: number) => {
+                                                                {(() => {
+                                                                    // 'rank' kuralları sistemde "ilk uyan kural" mantığıyla çalışır, yani bir önceki
+                                                                    // kuralın kapsadığı sıraların üstünü ödüllendirir. Etiketi buna göre aralık olarak göster.
+                                                                    let runningMaxRank = 0;
+                                                                    return rules.rewards.map((reward: any, idx: number) => {
                                                                     let rankLabel = "";
                                                                     if (reward.criteria_type === 'rank_exact') {
                                                                         rankLabel = `${reward.criteria_value}. SIRA`;
+                                                                        runningMaxRank = Math.max(runningMaxRank, reward.criteria_value);
                                                                     } else if (reward.criteria_type === 'rank') {
-                                                                        rankLabel = `İLK ${reward.criteria_value} KİŞİ`;
+                                                                        const start = runningMaxRank + 1;
+                                                                        const end = reward.criteria_value;
+                                                                        rankLabel = start >= end ? `${end}. SIRA` : `${start}. SIRA - ${end}. SIRA`;
+                                                                        runningMaxRank = Math.max(runningMaxRank, end);
                                                                     } else if (reward.criteria_type === 'min_points') {
                                                                         rankLabel = `+${reward.criteria_value} PUAN`;
                                                                     } else {
@@ -1206,7 +1214,8 @@ export default function UserDashboard() {
                                                                             </div>
                                                                         </div>
                                                                     );
-                                                                })}
+                                                                    });
+                                                                })()}
                                                             </div>
                                                         </div>
                                                     )}
