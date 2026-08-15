@@ -177,7 +177,7 @@ async def get_event_reward_winners(
                     "reward_type": rule.get("reward_type", ""),
                     "amount": rule.get("amount", 0),
                     "criteria_type": rule.get("criteria_type", ""),
-                    "criteria_value": rule.get("criteria_value", 0),
+                    "criteria_value": rule.get("criteria_value") or 0,
                 })
 
     # Sort by criteria_value (rank first, then min_points)
