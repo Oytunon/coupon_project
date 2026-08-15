@@ -84,8 +84,11 @@ def _run_check(step_name: str, fn: Callable[[], Any]) -> Tuple[Any, Optional[str
 def check_bonus_eligibility(bapi: "BapiClient", client_id: int) -> Tuple[bool, Optional[str]]:
     """
     Golcu (C:\\...\\repo\\gol\\golcu) reposundaki kontrollerin bizim eşiklerimizle uyarlanmışı:
-    bakiye 10 TL ve altı, son 7 günde aktif bahis yok, kullanılmamış (ResultType=0) bonus yok.
-    Sırayla çalışır, ilk başarısız olanın sebebini döner.
+    bakiye 10 TL ve altı, son 7 günde aktif bahis yok, kullanılmamış (ResultType=0) bonus yok,
+    son 2 günde reddedilmemiş çekim talebi yok (bkz. BapiClient.has_pending_withdrawal — bu
+    sonuncusu golcu'da değil, kardeş "bonus-cashback" reposundaki gateway tabanlı
+    checkActiveWithdraw'un ham BAPI karşılığı). Sırayla çalışır, ilk başarısız olanın sebebini
+    döner.
     """
     wait_reason = _rate_limit_wait_reason()
     if wait_reason:
@@ -108,6 +111,12 @@ def check_bonus_eligibility(bapi: "BapiClient", client_id: int) -> Tuple[bool, O
         return False, err
     if has_bonus:
         return False, "Aktif edilmemiş, kullanılabilir bonus mevcut."
+
+    has_withdrawal, err = _run_check("Çekim talebi kontrolü", lambda: bapi.has_pending_withdrawal(client_id))
+    if err:
+        return False, err
+    if has_withdrawal:
+        return False, "Bekleyen çekim talebi mevcut."
 
     return True, None
 
