@@ -121,7 +121,7 @@ def check_bonus_eligibility(bapi: "BapiClient", client_id: int) -> Tuple[bool, O
     return True, None
 
 
-def _locate_entry(db: Session, event_id: int, client_id: int, for_update: bool = False) -> Optional[Tuple[RewardJob, int]]:
+def _locate_entry(db: Session, event_id: int, client_id: int, for_update: bool = False, include_success: bool = False) -> Optional[Tuple[RewardJob, int]]:
     """Bu event'teki tüm RewardJob'ları tarar, en güncel (timestamp'e göre) claim
     edilebilir freebet/spin girdisinin (job, results[client_id] içindeki index) hâlini döner.
 
@@ -131,6 +131,10 @@ def _locate_entry(db: Session, event_id: int, client_id: int, for_update: bool =
     İkinci istek, ilk istek commit/rollback edene kadar burada bekler; ilki bitince satırı
     tekrar okur ve durum artık 'success' olduğu için (CLAIMABLE_STATUSES dışında kalır)
     kendisi 'not_found' döner — tekrar gönderim yapmaz.
+
+    include_success=True yalnızca salt-okunur özet (find_pending_claim, kart hâlâ görünsün diye)
+    için kullanılır — claim_pending_reward bunu asla True vermez, yoksa çift gönderim koruması
+    bozulur.
     """
     query = db.query(RewardJob).filter(RewardJob.event_id == event_id)
     if for_update:
@@ -138,6 +142,7 @@ def _locate_entry(db: Session, event_id: int, client_id: int, for_update: bool =
     jobs = query.all()
     client_str = str(client_id)
     best: Optional[Tuple[str, RewardJob, int]] = None
+    allowed_statuses = CLAIMABLE_STATUSES + ("success",) if include_success else CLAIMABLE_STATUSES
 
     for job in jobs:
         results = job.results or {}
@@ -150,7 +155,7 @@ def _locate_entry(db: Session, event_id: int, client_id: int, for_update: bool =
             rule = entry.get("rule") or {}
             if rule.get("reward_type") not in CLAIMABLE_REWARD_TYPES:
                 continue
-            if entry.get("status") not in CLAIMABLE_STATUSES:
+            if entry.get("status") not in allowed_statuses:
                 continue
             ts = entry.get("timestamp") or ""
             if best is None or ts > best[0]:
@@ -162,8 +167,11 @@ def _locate_entry(db: Session, event_id: int, client_id: int, for_update: bool =
 
 
 def find_pending_claim(db: Session, event_id: int, client_id: int) -> Optional[Dict[str, Any]]:
-    """Client'a gösterilecek özet: claim edilebilir bir ödül var mı, varsa ne."""
-    found = _locate_entry(db, event_id, client_id)
+    """Client'a gösterilecek özet: claim edilebilir (ya da zaten alınmış) bir ödül var mı, varsa ne.
+    'success' durumundakiler de dahil — kart, ödül alındıktan sonra da (buton yerine
+    "faydalandınız" mesajıyla) görünmeye devam etsin diye.
+    """
+    found = _locate_entry(db, event_id, client_id, include_success=True)
     if not found:
         return None
     job, idx = found
@@ -222,7 +230,7 @@ def claim_pending_reward(db: Session, bapi: "BapiClient", event_id: int, client_
         entry["timestamp"] = datetime.utcnow().isoformat()
         flag_modified(job, "results")
         db.commit()
-        return {"status": "failed", "reason": "Ödül tanımında partner_bonus_id eksik, admin ile iletişime geçin.", "reward_type": reward_type, "amount": amount}
+        return {"status": "failed", "reason": "Ödülünüz şu anda gönderilemedi, lütfen destek ile iletişime geçin.", "reward_type": reward_type, "amount": amount}
 
     bonus_type = 5 if reward_type == "spin" else 6
     try:

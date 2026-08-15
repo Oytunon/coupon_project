@@ -259,7 +259,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                     title: "Tebrikler!",
                     description: `${result.amount} ${result.reward_type === 'spin' ? 'Free Spin' : 'Freebet'} hesabınıza tanımlandı.`,
                 })
-                setClaimableReward(null)
+                setClaimableReward((prev: any) => prev ? { ...prev, status: 'success', amount: result.amount, reward_type: result.reward_type, last_check_failure: null } : prev)
             } else if (result.status === 'not_eligible') {
                 // Sebebi karta da kalıcı olarak yansıt (toast kaybolunca da görünsün)
                 toast({ title: "Şu an alamıyorsunuz", description: result.reason, variant: "destructive" })
@@ -1240,7 +1240,11 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                             )}
                                         </div>
                                     </div>
-                                    {(() => {
+                                    {claimableReward.status === 'success' ? (
+                                        <div className="shrink-0 text-emerald-400 font-bold text-sm md:text-base px-6 py-3 text-center sm:text-right">
+                                            Bu ödülden faydalandınız
+                                        </div>
+                                    ) : (() => {
                                         const cooldownRemaining = claimCooldownUntil ? Math.max(0, Math.ceil((claimCooldownUntil - Date.now()) / 1000)) : 0;
                                         const isCoolingDown = cooldownRemaining > 0;
                                         return (
