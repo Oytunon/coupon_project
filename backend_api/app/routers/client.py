@@ -161,7 +161,10 @@ async def get_event_reward_winners(
             for r in rewards_list:
                 if not isinstance(r, dict):
                     continue
-                if r.get("status") != "success":
+                # 'success' (nakit/onaylı) yanında 'pending_claim' ve 'failed' (freebet/spin,
+                # kullanıcı henüz "Ödülünü Al"a basmadı veya deneme başarısız oldu) de
+                # listelenir — ödülü kazanmış olmak, henüz teslim almış olmaktan ayrı.
+                if r.get("status") not in ("success", "pending_claim", "failed"):
                     continue
 
                 rule = r.get("rule", {})
