@@ -225,6 +225,10 @@ class BapiClient:
         bekliyor ya da zaten ödenmiş olabilir; bunu ayırt edemediğimiz için dar bir zaman
         penceresiyle sınırlıyoruz (pencere dışındaki eski, reddedilmemiş talepler muhtemelen
         zaten ödenmiştir).
+
+        Not: bu uç sıralama garantisi vermiyor (IsOrderedDesc yok) ve DocumentTypeIds
+        filtresinin sunucu tarafında gerçekten daraltıp daraltmadığı canlıda doğrulanmadı —
+        çok işlem geçmişi olan bir client'ta gerçek bir bekleyen çekim kaçabilir teorik olarak.
         """
         url = f"{self.base_url}/en/Client/GetClientTransactionsV1"
         now = datetime.utcnow() + timedelta(hours=3)  # Türkiye saati
@@ -235,7 +239,7 @@ class BapiClient:
             "StartTimeLocal": start.strftime("%Y-%m-%dT00:00:00"),
             "EndTimeLocal": now.strftime("%Y-%m-%dT23:59:59"),
             "DocumentTypeIds": [1, 8],
-            "MaxRows": 20,
+            "MaxRows": 50,
             "SkipRows": 0,
             "ByPassTotals": False,
         }
