@@ -227,8 +227,9 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
     }, [activeTab, event.id, username])
 
     // Bekleyen freebet/freespin ödülü var mı diye kontrol et
+    // Not: sekmeden bağımsız — kart artık üstteki her zaman görünen alanda gösteriliyor.
     useEffect(() => {
-        if (activeTab === 'rewards' && username) {
+        if (username) {
             const fetchClaimable = async () => {
                 try {
                     const data = await getMyClaimableReward(event.id, username)
@@ -239,7 +240,7 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
             }
             fetchClaimable()
         }
-    }, [activeTab, event.id, username])
+    }, [event.id, username])
 
     const handleClaimReward = async () => {
         // Senkron, anında etkili guard — React state'in re-render beklemesine gerek yok.
@@ -485,6 +486,49 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                         </div>
                     </div>
                 </div>
+
+                {/* Claimable Reward - her sekmede görünür, müşteri sekmeye girmeden görüp alabilsin */}
+                {claimableReward && (
+                    <div className="mx-4 mb-6 bg-gradient-to-r from-[#5a4a2a] to-[#3a2a1a] rounded-2xl p-5 md:p-6 border-2 border-[#D9B648] flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <Gift className="w-8 h-8 text-[#D9B648] shrink-0" />
+                            <div>
+                                <div className="text-[#D9B648] font-bold text-sm md:text-base">
+                                    Kazandığın ödül
+                                </div>
+                                <div className="text-[#F7EBA5] text-lg md:text-xl font-black">
+                                    {claimableReward.amount} {claimableReward.reward_type === 'spin' ? 'Free Spin' : 'Freebet'}
+                                </div>
+                                {claimableReward.last_check_failure && (
+                                    <div className="text-amber-400 text-[10px] md:text-xs mt-1">
+                                        Şu an alamıyorsunuz: {claimableReward.last_check_failure}
+                                    </div>
+                                )}
+                                {claimableReward.status === 'failed' && claimableReward.last_error && (
+                                    <div className="text-red-400 text-[10px] md:text-xs mt-1">Önceki deneme başarısız oldu: {claimableReward.last_error}</div>
+                                )}
+                            </div>
+                        </div>
+                        {claimableReward.status === 'success' ? (
+                            <div className="shrink-0 text-emerald-400 font-bold text-sm md:text-base px-6 py-3 text-center sm:text-right">
+                                Bu ödülden faydalandınız
+                            </div>
+                        ) : (() => {
+                            const cooldownRemaining = claimCooldownUntil ? Math.max(0, Math.ceil((claimCooldownUntil - Date.now()) / 1000)) : 0;
+                            const isCoolingDown = cooldownRemaining > 0;
+                            return (
+                                <Button
+                                    onClick={handleClaimReward}
+                                    disabled={claiming || isCoolingDown}
+                                    className="bg-[#D9B648] hover:bg-[#c9a638] text-black font-bold px-6 py-3 rounded-xl shrink-0 disabled:opacity-60"
+                                >
+                                    {claiming ? <Loader2 className="h-4 w-4 animate-spin mr-2 inline" /> : null}
+                                    {isCoolingDown ? `${cooldownRemaining} sn bekleyin` : 'Ödülünü Al'}
+                                </Button>
+                            );
+                        })()}
+                    </div>
+                )}
 
                 {/* Navigation Buttons */}
                 <div className="bg-black border border-[#D9B648]/30 rounded-2xl p-1.5 md:p-2 mx-4 mb-6 flex gap-1 md:gap-2 overflow-x-auto">
@@ -1219,47 +1263,6 @@ export function TournamentDetails({ event, userPoints, userRank, isJoined, joine
                                     <h2 className="text-xl md:text-2xl font-bold">Ödüller</h2>
                                 </div>
                             </div>
-                            {claimableReward && (
-                                <div className="bg-gradient-to-r from-[#5a4a2a] to-[#3a2a1a] rounded-2xl p-5 md:p-6 mb-6 md:mb-8 border-2 border-[#D9B648] flex flex-col sm:flex-row items-center justify-between gap-4">
-                                    <div className="flex items-center gap-3">
-                                        <Gift className="w-8 h-8 text-[#D9B648] shrink-0" />
-                                        <div>
-                                            <div className="text-[#D9B648] font-bold text-sm md:text-base">
-                                                Kazandığın ödül
-                                            </div>
-                                            <div className="text-[#F7EBA5] text-lg md:text-xl font-black">
-                                                {claimableReward.amount} {claimableReward.reward_type === 'spin' ? 'Free Spin' : 'Freebet'}
-                                            </div>
-                                            {claimableReward.last_check_failure && (
-                                                <div className="text-amber-400 text-[10px] md:text-xs mt-1">
-                                                    Şu an alamıyorsunuz: {claimableReward.last_check_failure}
-                                                </div>
-                                            )}
-                                            {claimableReward.status === 'failed' && claimableReward.last_error && (
-                                                <div className="text-red-400 text-[10px] md:text-xs mt-1">Önceki deneme başarısız oldu: {claimableReward.last_error}</div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {claimableReward.status === 'success' ? (
-                                        <div className="shrink-0 text-emerald-400 font-bold text-sm md:text-base px-6 py-3 text-center sm:text-right">
-                                            Bu ödülden faydalandınız
-                                        </div>
-                                    ) : (() => {
-                                        const cooldownRemaining = claimCooldownUntil ? Math.max(0, Math.ceil((claimCooldownUntil - Date.now()) / 1000)) : 0;
-                                        const isCoolingDown = cooldownRemaining > 0;
-                                        return (
-                                            <Button
-                                                onClick={handleClaimReward}
-                                                disabled={claiming || isCoolingDown}
-                                                className="bg-[#D9B648] hover:bg-[#c9a638] text-black font-bold px-6 py-3 rounded-xl shrink-0 disabled:opacity-60"
-                                            >
-                                                {claiming ? <Loader2 className="h-4 w-4 animate-spin mr-2 inline" /> : null}
-                                                {isCoolingDown ? `${cooldownRemaining} sn bekleyin` : 'Ödülünü Al'}
-                                            </Button>
-                                        );
-                                    })()}
-                                </div>
-                            )}
 
                             <div className="bg-black rounded-2xl p-6 md:p-8 mb-6 md:mb-8 text-center border-2 border-[#D9B648]">
                                 <div className="text-[#D9B648]/80 text-xs md:text-sm mb-2 md:mb-3 uppercase tracking-wide font-semibold">Toplam Ödül Havuzu</div>
