@@ -109,8 +109,11 @@ def calculate_points_for_event(
                     pass
 
     # Multi + (Asya veya iade) + kazanç: puan = WinningAmount
+    # stake_floor_thousand formülü oran/WinningAmount kullanmaz (sadece stake bazlı,
+    # her zaman 1000'in katı) - bu yüzden bu override'dan muaf tutulur.
     use_winning_amount = (
         state == 'won'
+        and formula != "stake_floor_thousand"
         and _is_multi_coupon(coupon)
         and (_has_asian_selection(coupon) or _has_returned_selection(coupon))
     )
