@@ -16,7 +16,7 @@ class JSONFormatter(logging.Formatter):
         }
         if record.exc_info:
             log_obj["exception"] = self.formatException(record.exc_info)
-        return json.dumps(log_obj)
+        return json.dumps(log_obj, ensure_ascii=False)
 
 def setup_logging(name=None):
     root_logger = logging.getLogger()
