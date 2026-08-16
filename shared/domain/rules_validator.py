@@ -2,7 +2,7 @@ from typing import List, Optional, Any, Dict
 from sqlalchemy.orm import Session
 from datetime import datetime
 import logging
-from shared.database import get_db_session, SessionLocal
+from shared.database import get_db_session, SessionLocal, get_retrying_session
 from shared.models.event import Event
 
 logger = logging.getLogger(__name__)
@@ -13,7 +13,7 @@ def get_active_events(db: Optional[Session] = None) -> List[Event]:
     from datetime import timedelta
     should_close = False
     if db is None:
-        db = SessionLocal()
+        db = get_retrying_session()
         should_close = True
     
     try:

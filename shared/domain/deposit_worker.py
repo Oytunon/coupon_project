@@ -11,7 +11,7 @@ from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
-from shared.database import SessionLocal
+from shared.database import SessionLocal, get_retrying_session
 from shared.models.event import Event
 from shared.models.participant import Participant
 from shared.models.enrollment import EventParticipant
@@ -41,14 +41,14 @@ async def process_deposits(
     scan_hours: Otomatik run'da son N saat (örn. 1). İncremental ekleme, geriye çok gitmez.
     scan_hours=None: Manuel run, min_joined'tan bugüne tam tarama (REPLACE).
     """
-    db = SessionLocal()
+    db = get_retrying_session()
 
     def update_job_status(status: str, processed: int = 0, saved: int = 0, error: Optional[str] = None, total: int = 0, _db=None):
         if not job_id:
             return
         max_retries = 3 if status in ("completed", "failed", "cancelled") else 1
         for attempt in range(max_retries):
-            log_db = _db if (_db is not None and attempt == 0) else SessionLocal()
+            log_db = _db if (_db is not None and attempt == 0) else get_retrying_session()
             own = _db is None or attempt > 0
             try:
                 job = log_db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
@@ -192,7 +192,7 @@ async def process_deposits(
                 update_job_status("cancelled")
             return
 
-        db = SessionLocal()  # Yazma için yeni session (önceki ~30 dk idle kalmıştı)
+        db = get_retrying_session()  # Yazma için yeni session (önceki ~30 dk idle kalmıştı)
 
         new_totals: dict[tuple[int, int], float] = defaultdict(float)
         for doc in docs:

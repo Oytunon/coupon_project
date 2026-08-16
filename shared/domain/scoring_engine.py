@@ -9,7 +9,7 @@ import math
 
 from sqlalchemy import func
 from sqlalchemy.orm.attributes import flag_modified
-from shared.database import SessionLocal
+from shared.database import SessionLocal, get_retrying_session
 from shared.models.coupon import Coupon
 from shared.models.participant import Participant
 from shared.models.enrollment import EventParticipant
@@ -191,7 +191,7 @@ def calculate_points_for_event(
 async def _cancellation_poller(job_id: int, cancel_event: asyncio.Event):
     """Arka planda DB'yi kontrol ederek iptal durumunu sürekli izler."""
     while not cancel_event.is_set():
-        check_db = SessionLocal()
+        check_db = get_retrying_session()
         try:
             job_check = check_db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
             if job_check and job_check.status == "cancelled":
@@ -234,10 +234,10 @@ async def process_coupons(
     bapi_only (yalnız BAPI; zamanlanmış 15 dk worker).
     """
     is_manual_run = job_id is not None  # API'den tetiklenen manuel run'da deposit atlanır
-    db = SessionLocal()
+    db = get_retrying_session()
     def update_job_status(status: str, processed=0, saved=0, error=None, total=0, _db=None):
         if not job_id: return
-        use_db = _db if _db is not None else SessionLocal()
+        use_db = _db if _db is not None else get_retrying_session()
         own = _db is None
         try:
             job = use_db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
@@ -420,7 +420,7 @@ async def process_coupons(
             auth_mode=report_auth_mode,
         )
 
-        db = SessionLocal()  # Yazma için yeni session (önceki idle kalmıştı)
+        db = get_retrying_session()  # Yazma için yeni session (önceki idle kalmıştı)
         t_api = time.perf_counter() - t_start
         bets = bet_report_data.get("Bets", []) or []
         # UI güncellemesi: GetBetReport bitti, taranan kupon sayısını göster

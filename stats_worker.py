@@ -6,7 +6,7 @@ import logging
 # Proje kök dizinini path'e ekle
 sys.path.append(os.getcwd())
 
-from shared.database import SessionLocal
+from shared.database import SessionLocal, get_retrying_session
 from shared.models.worker_log import WorkerLog
 from shared.domain.deposit_worker import process_deposits
 
@@ -24,7 +24,7 @@ logger = logging.getLogger("stats_worker")
 async def run_worker():
     logger.info("Stats Worker Başlatıldı. 'stats' türündeki görevler bekleniyor...")
     while True:
-        db = SessionLocal()
+        db = get_retrying_session()
         try:
             # Stats (İstatistik/Deposit) işlerinden "pending" olanı bul
             job = db.query(WorkerLog).filter(
@@ -93,7 +93,7 @@ async def run_worker():
                 async def cancellation_poller(j_id, c_event):
                     try:
                         while not c_event.is_set():
-                            local_db = SessionLocal()
+                            local_db = get_retrying_session()
                             try:
                                 from shared.models.worker_log import WorkerLog
                                 current_job = local_db.query(WorkerLog).filter(WorkerLog.id == j_id).first()
@@ -224,7 +224,7 @@ async def run_worker():
                 # son parça process_coupons zaten completed yazmış olabilir.
                 if not cancel_event.is_set():
                     from datetime import datetime as _dt_utc
-                    fin_db = SessionLocal()
+                    fin_db = get_retrying_session()
                     try:
                         j = fin_db.query(WorkerLog).filter(WorkerLog.id == job_id).first()
                         if j and j.status == "running":

@@ -4,12 +4,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from shared.models.magic_token import MagicToken
 from shared.models.worker_log import WorkerLog
-from shared.database import SessionLocal
+from shared.database import SessionLocal, get_retrying_session
 
 logger = logging.getLogger(__name__)
 
 async def cleanup_expired_magic_tokens(retention_days: int = 7):
-    db: Session = SessionLocal()
+    db: Session = get_retrying_session()
     try:
         threshold = datetime.utcnow() - timedelta(days=retention_days)
         deleted_count = db.query(MagicToken).filter(
@@ -32,7 +32,7 @@ async def cleanup_expired_magic_tokens(retention_days: int = 7):
 async def auto_expire_events():
     """Bitiş tarihi geçmiş, 'active' statüsündeki eventleri 'ended' yapar."""
     from shared.models.event import Event
-    db: Session = SessionLocal()
+    db: Session = get_retrying_session()
     try:
         # DB'deki tarihler Türkiye Saati (UTC+3) olarak tutuluyor.
         # Bu yüzden sunucunun UTC saatiyle karşılaştırmak yerine 3 saat ekliyoruz.
@@ -61,7 +61,7 @@ async def auto_expire_events():
 async def cleanup_old_worker_logs(retention_days: int = 30):
     """completed/failed/cancelled WorkerLog kayıtlarını retention_days'dan eski olanları siler.
     Admin paneldeki son çalıştırma bilgisi için son N gün yeterli."""
-    db: Session = SessionLocal()
+    db: Session = get_retrying_session()
     try:
         threshold = datetime.utcnow() - timedelta(days=retention_days)
         deleted = db.query(WorkerLog).filter(

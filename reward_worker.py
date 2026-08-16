@@ -10,7 +10,7 @@ from threading import Thread
 import os
 sys.path.append(os.getcwd())
 
-from shared.database import SessionLocal
+from shared.database import SessionLocal, get_retrying_session
 from shared.models.reward_job import RewardJob
 from shared.models.event import Event
 from shared.models.worker_log import WorkerLog
@@ -30,7 +30,7 @@ logging.basicConfig(
 logger = logging.getLogger("reward_worker")
 
 def process_job(job_id: int):
-    db = SessionLocal()
+    db = get_retrying_session()
     # Create a progress log entry in WorkerLog for visibility in Admin Panel
     worker_log = WorkerLog(status="running")
     try:
@@ -200,18 +200,43 @@ def process_job(job_id: int):
         try:
             job.status = "failed"
             job.error_message = str(e)
+            job.results = job_results  # O ana kadar kime ne gönderildiğinin kaydı - çift ödeme riskini önler
             worker_log.status = "failed"
             worker_log.error_message = str(e)
             db.commit()
-        except:
-            pass
+        except Exception as commit_err:
+            # Orijinal bağlantı da kopmuş olabilir (ör. SSL connection closed).
+            # Sessizce yutmak yerine taze bir bağlantıyla tekrar dene - aksi halde job
+            # "processing" durumunda asılı kalır ve kime ödeme gittiği kaydı kaybolur.
+            logger.error(f"Job {job_id} failure state kaydedilemedi ({commit_err}), taze bağlantıyla tekrar deneniyor...")
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            try:
+                fresh_db = get_retrying_session()
+                try:
+                    fresh_job = fresh_db.query(RewardJob).filter(RewardJob.id == job_id).first()
+                    fresh_log = fresh_db.query(WorkerLog).filter(WorkerLog.id == worker_log.id).first()
+                    if fresh_job:
+                        fresh_job.status = "failed"
+                        fresh_job.error_message = str(e)
+                        fresh_job.results = job_results
+                    if fresh_log:
+                        fresh_log.status = "failed"
+                        fresh_log.error_message = str(e)
+                    fresh_db.commit()
+                finally:
+                    fresh_db.close()
+            except Exception as retry_err:
+                logger.error(f"Job {job_id} failure state taze bağlantıyla da kaydedilemedi: {retry_err}")
     finally:
         db.close()
 
 def run_worker():
     logger.info("Reward Worker Started. Polling for jobs...")
     while True:
-        db = SessionLocal()
+        db = get_retrying_session()
         try:
             # Find pending job
             job = db.query(RewardJob).filter(RewardJob.status == "pending").first()

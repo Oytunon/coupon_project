@@ -118,13 +118,38 @@ SessionLocalDirect = sessionmaker(
 Base = declarative_base()
 
 
+def get_retrying_session(session_factory=None, retries: int = 1):
+    """Session açar ve hafif bir ping (SELECT 1) ile bağlantıyı doğrular.
+
+    Supabase pooler (6543, NullPool) ani paralel istek yükünde bazı yeni
+    SSL bağlantılarını kurulur kurulmaz kapatabiliyor. Bu durumda bozuk
+    session'ı kapatıp taze bir bağlantıyla bir kez daha dener; böylece
+    istemciye 500 dönmeden önce geçici kopmalar sessizce telafi edilir.
+
+    `session_factory` verilmezse varsayılan olarak `SessionLocal` kullanılır —
+    worker'larda `SessionLocal()` yerine doğrudan `get_retrying_session()` çağrılabilir.
+    """
+    factory = session_factory or SessionLocal
+    last_err = None
+    for attempt in range(retries + 1):
+        session = factory()
+        try:
+            session.execute(text("SELECT 1"))
+            return session
+        except OperationalError as e:
+            last_err = e
+            session.close()
+            if attempt < retries:
+                logger.warning(f"DB connection ping başarısız (deneme {attempt + 1}), yeniden deneniyor: {e}")
+                continue
+    raise last_err
+
+
 def get_db_session():
     """Database session oluştur (retry ile)"""
     db = None
     try:
-        db = SessionLocal()
-        # Bağlantı testi (Opsiyonel, zaten pool ping yapıyor)
-        # db.execute(text("SELECT 1")) 
+        db = get_retrying_session(SessionLocal)
         yield db
     except HTTPException:
         if db:
@@ -162,7 +187,7 @@ def get_db_session_direct():
     """Direct connection (5432) - Migration, recalculate gibi uzun işlemler için."""
     db = None
     try:
-        db = SessionLocalDirect()
+        db = get_retrying_session(SessionLocalDirect)
         yield db
     finally:
         if db:
