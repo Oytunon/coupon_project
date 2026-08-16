@@ -189,7 +189,7 @@ export default function UserDashboard() {
         const isUpcoming = e.status === 'active' && (now < start)
         const isJoined = myEnrollments.some(enr => enr.event_id === e.id)
         return isUpcoming && !isJoined
-    })
+    }).sort((a, b) => parseEventDate(a.start_date).getTime() - parseEventDate(b.start_date).getTime())
 
     const filteredEvents = publicEvents.filter(e => {
         const now = new Date()
@@ -204,6 +204,9 @@ export default function UserDashboard() {
         if (activeCategory === 'upcoming') return e.status === 'active' && !isStarted && !isExpired
         if (activeCategory === 'enrollments') return isJoined
         return false
+    }).sort((a, b) => {
+        if (activeCategory !== 'upcoming') return 0
+        return parseEventDate(a.start_date).getTime() - parseEventDate(b.start_date).getTime()
     })
 
     const pastEvents = publicEvents.filter(e => {
@@ -340,7 +343,7 @@ export default function UserDashboard() {
                                             if (activeCategory !== 'all') return "Bu kategoride turnuva bulunamadı.";
                                             const activeStartedEvents = publicEvents.filter(e => e.status === 'active' && new Date() >= parseEventDate(e.start_date) && new Date() <= parseEventDate(e.end_date));
                                             if (activeStartedEvents.length > 0 && activeStartedEvents.every(e => myEnrollments.some(enr => enr.event_id === e.id))) {
-                                                return "Tüm aktif turnuvalara katıldınız,";
+                                                return "Tüm aktif turnuvalara katıldınız!";
                                             }
                                             return "Bu kategoride turnuva bulunamadı.";
                                         })()}
