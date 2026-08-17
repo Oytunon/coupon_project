@@ -1609,8 +1609,8 @@ export default function AdminPage() {
 
                                             {adminRole !== 'moderator' && event.reward_status !== 'completed' && (
                                                 <Button size="icon" variant="ghost"
-                                                    className={`${event.reward_status === 'processing' ? 'opacity-30 cursor-not-allowed' : 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10'}`}
-                                                    disabled={event.reward_status === 'processing'}
+                                                    className={`${(event.reward_status === 'processing' || event.reward_status === 'pending') ? 'opacity-30 cursor-not-allowed' : 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10'}`}
+                                                    disabled={event.reward_status === 'processing' || event.reward_status === 'pending'}
                                                     onClick={async () => {
                                                         if (event.status !== 'ended') {
                                                             toast({
@@ -1639,7 +1639,7 @@ export default function AdminPage() {
                                                             setRewardPreviewLoading(false);
                                                         }
                                                     }}
-                                                    title={event.reward_status === 'processing' ? "Dağıtım devam ediyor..." : "Ödülleri Dağıt (önizleme)"}
+                                                    title={(event.reward_status === 'processing' || event.reward_status === 'pending') ? "Dağıtım devam ediyor..." : "Ödülleri Dağıt (önizleme)"}
                                                 >
                                                     <Gift className="h-4 w-4" />
                                                 </Button>
@@ -2763,6 +2763,11 @@ export default function AdminPage() {
                                                                         <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Başarılı</Badge>
                                                                     ) : rh.status === 'pending_claim' ? (
                                                                         <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">Beklemede (Kullanıcı Onayı)</Badge>
+                                                                    ) : rh.status === 'skipped_duplicate' ? (
+                                                                        <div className="flex flex-col gap-0.5">
+                                                                            <Badge className="bg-slate-500/20 text-slate-300 border-slate-500/30 w-fit">Zaten Dağıtılmış (Atlandı)</Badge>
+                                                                            <span className="text-[9px] text-slate-400/70">Bu kişiye başka bir dağıtımda zaten gönderilmiş, tekrar gönderilmedi.</span>
+                                                                        </div>
                                                                     ) : (
                                                                         <div className="flex flex-col gap-0.5">
                                                                             <Badge className="bg-red-500/20 text-red-400 border-red-500/30 w-fit">Başarısız</Badge>
@@ -3033,7 +3038,7 @@ export default function AdminPage() {
                                         )}
                                         <Button
                                             className="bg-emerald-600 hover:bg-emerald-500 text-white"
-                                            disabled={rewardPreviewLoading || !rewardPreviewData || rewardPreviewEvent?.reward_status === 'processing' || savingOverrides || distributing}
+                                            disabled={rewardPreviewLoading || !rewardPreviewData || rewardPreviewEvent?.reward_status === 'processing' || rewardPreviewEvent?.reward_status === 'pending' || savingOverrides || distributing}
                                             onClick={async () => {
                                                 // Senkron guard — aynı tıklama birden fazla kez tetiklenirse (çift tık, yavaş
                                                 // ağ + tekrar tık) ikinci çağrı burada anında durur, POST hiç gitmez.
@@ -3049,6 +3054,10 @@ export default function AdminPage() {
                                                         setOverrideDrafts({});
                                                     }
                                                     await distributeRewards(rewardPreviewEvent.id);
+                                                    // Optimistic update: buton/rozet, fetchEvents() round-trip'ini beklemeden
+                                                    // ANINDA "pending" göstersin - aynı event için ikinci bir dağıtımın
+                                                    // yanlışlıkla hemen tekrar tetiklenmesini (gereksiz ekstra job) engeller.
+                                                    setEvents(prev => prev.map(e => e.id === rewardPreviewEvent.id ? { ...e, reward_status: 'pending' } : e));
                                                     toast({
                                                         title: "Kuyruğa alındı",
                                                         description: "Ödüller arka planda dağıtılıyor; işlem süresi kural sayısına göre değişir. Durum rozetinden takip edebilirsiniz.",
