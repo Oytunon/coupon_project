@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 
 from shared.models.reward_job import RewardJob
+from shared.models.reward_payout import RewardPayout
 
 logger = logging.getLogger("reward_claim")
 
@@ -22,6 +23,11 @@ if TYPE_CHECKING:
 
 CLAIMABLE_REWARD_TYPES = ("freebet", "spin")
 CLAIMABLE_STATUSES = ("pending_claim", "failed")
+
+# Gönderim (BAPI) hatasında kullanıcıya gösterilecek sabit mesaj — ham exception metni
+# (entry["error"]) sadece admin panelinde ("Ödül Geçmişi", admin.py:reward-history) görünür,
+# client'a asla geçirilmez (altyapı/BAPI detayı sızdırabilir).
+CLIENT_SEND_FAILURE_MESSAGE = "Ödül gönderilirken bir sorun oluştu, lütfen daha sonra tekrar deneyin."
 
 # BetConstruct'ın bakiye/aktif-bahis/bonus kontrol uçları (GetClients, GetBetHistory,
 # GetClientBonuses) sık çağrılınca 403 + "birkaç dakika sonra dene" diyor — bkz.
@@ -181,11 +187,46 @@ def find_pending_claim(db: Session, event_id: int, client_id: int) -> Optional[D
         "status": entry.get("status"),
         "reward_type": rule.get("reward_type"),
         "amount": rule.get("amount"),
-        "last_error": entry.get("error"),
+        # Ham hata (entry["error"] = str(e)) burada DÖNDÜRÜLMEZ — BAPI/altyapı detayı
+        # sızdırabilir. Sadece failed durumunda sabit, genel bir mesaj döner.
+        "last_error": CLIENT_SEND_FAILURE_MESSAGE if entry.get("error") else None,
         # Kontrol (bakiye/aktif bahis/kullanılmamış bonus) geçilemediğinde bunu buraya
         # kalıcı yazıyoruz — kullanıcı sayfayı yenilese de "neden alamadım" görünsün.
         "last_check_failure": entry.get("last_check_failure"),
     }
+
+
+def _sync_reward_payout_status(
+    db: Session,
+    event_id: int,
+    client_id: int,
+    status: str,
+    bapi_response: Optional[Any] = None,
+    error_message: Optional[str] = None,
+) -> None:
+    """reward_payouts satırını (worker'ın dağıtım anında açtığı kayıt) claim SONUCUNA göre
+    günceller — freebet/spin'de worker sadece 'pending_claim' yazıp bırakıyordu, gerçekte
+    alınıp alınmadığı bu tabloya hiç yansımıyordu. İleride "kimler gerçekten ödül aldı"
+    diye topluca dışa aktarım/rapor gerekirse bu tablo artık tek başına doğru cevap verir.
+
+    Best-effort: burada bir sorun olması, kullanıcının asıl ödülü almasını (üstteki BAPI
+    çağrısı zaten tamamlanmış) ASLA engellememeli — sadece loglanır, claim akışı etkilenmez.
+    """
+    try:
+        values: Dict[str, Any] = {"status": status}
+        if bapi_response is not None:
+            values["bapi_response"] = bapi_response
+            values["sent_at"] = datetime.utcnow()
+        if error_message is not None:
+            values["error_message"] = error_message
+        db.query(RewardPayout).filter(
+            RewardPayout.event_id == event_id,
+            RewardPayout.client_id == client_id,
+        ).update(values)
+    except Exception as sync_err:
+        logger.error(
+            f"reward_payouts senkronizasyonu başarısız (event={event_id}, client={client_id}): {sync_err}"
+        )
 
 
 def claim_pending_reward(db: Session, bapi: "BapiClient", event_id: int, client_id: int) -> Dict[str, Any]:
@@ -228,6 +269,7 @@ def claim_pending_reward(db: Session, bapi: "BapiClient", event_id: int, client_
         entry["status"] = "failed"
         entry["error"] = f"Missing partner_bonus_id for {reward_type}"
         entry["timestamp"] = datetime.utcnow().isoformat()
+        _sync_reward_payout_status(db, event_id, client_id, status="failed", error_message=entry["error"])
         flag_modified(job, "results")
         db.commit()
         return {"status": "failed", "reason": "Ödülünüz şu anda gönderilemedi, lütfen destek ile iletişime geçin.", "reward_type": reward_type, "amount": amount}
@@ -245,13 +287,15 @@ def claim_pending_reward(db: Session, bapi: "BapiClient", event_id: int, client_
         entry["response"] = resp
         entry.pop("error", None)
         entry["timestamp"] = datetime.utcnow().isoformat()
+        _sync_reward_payout_status(db, event_id, client_id, status="success", bapi_response=resp)
         result: Dict[str, Any] = {"status": "success", "reward_type": reward_type, "amount": amount}
     except Exception as e:
         logger.error(f"Claim BAPI çağrısı başarısız (client_id={client_id}, event_id={event_id}): {e}")
         entry["status"] = "failed"
         entry["error"] = str(e)  # ham hata admin panelinde ("Ödül Geçmişi") görünsün diye kaydedilir
         entry["timestamp"] = datetime.utcnow().isoformat()
-        result = {"status": "failed", "reason": "Ödül gönderilirken bir sorun oluştu, lütfen daha sonra tekrar deneyin.", "reward_type": reward_type, "amount": amount}
+        _sync_reward_payout_status(db, event_id, client_id, status="failed", error_message=str(e))
+        result = {"status": "failed", "reason": CLIENT_SEND_FAILURE_MESSAGE, "reward_type": reward_type, "amount": amount}
 
     flag_modified(job, "results")
     db.commit()

@@ -3,15 +3,19 @@ import time
 import sys
 import logging
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from threading import Thread
 
 # Proje kök dizinini path'e ekle
 import os
 sys.path.append(os.getcwd())
 
+from sqlalchemy import or_, and_
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+
 from shared.database import SessionLocal, get_retrying_session
 from shared.models.reward_job import RewardJob
+from shared.models.reward_payout import RewardPayout
 from shared.models.event import Event
 from shared.models.worker_log import WorkerLog
 from shared.domain.reward_distribution import compute_reward_distribution_plan
@@ -28,6 +32,13 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger("reward_worker")
+
+# Bir reward_payouts satırı, worker gönderim ortasında çökerse/yeniden başlatılırsa
+# 'pending' durumunda sonsuza kadar kilitli kalabilir (ne 'failed' gibi retry edilebilir,
+# ne 'success'). Tek client için en kötü senaryoda (3 deneme x 120sn bekleme + istek
+# timeout'ları) birkaç dakikayı geçmiyor - bunun bariz üstünde bir eşik, çökme sonrası
+# satırı da retry edilebilir hale getiriyor.
+STALE_PENDING_MINUTES = 20
 
 def process_job(job_id: int):
     db = get_retrying_session()
@@ -101,6 +112,74 @@ def process_job(job_id: int):
                 "partner_bonus_id": partner_bonus_id,
             }
 
+            # --- Çift ödeme koruması -------------------------------------------------
+            # reward_payouts.(event_id, client_id) üzerinde UNIQUE kısıt var. Bu insert
+            # (ON CONFLICT ile) atomik bir "kilit al" denemesidir:
+            #   - Kayıt hiç yoksa: yeni satır oluşur, gönderime devam edilir.
+            #   - Kayıt "failed" durumundaysa: satır bu job'a devredilir (retry), devam edilir.
+            #   - Kayıt "pending" ama STALE_PENDING_MINUTES'ten eskiyse (worker gönderim
+            #     ortasında çökmüş/yeniden başlatılmış demektir): aynı şekilde devredilir,
+            #     yoksa satır sonsuza kadar kilitli kalır, ne retry edilebilir ne fark edilir.
+            #   - Kayıt "success"/"pending_claim" ya da taze "pending" ise: WHERE eşleşmez,
+            #     RETURNING boş döner -> bu client bu job'da ATLANIR.
+            # Job tekrarında (retry/çift tıklama/iki job) aynı client'a ikinci kez BAPI
+            # çağrısı gitmesini veritabanı seviyesinde engeller - iki worker aynı anda
+            # çalışsa bile UNIQUE kısıt sayesinde ikisi de aynı client'ı "kazanamaz".
+            raw_cv = payout.get("criteria_value")
+            try:
+                criteria_value_f = float(raw_cv) if raw_cv is not None else None
+            except (TypeError, ValueError):
+                criteria_value_f = None
+
+            stale_pending_cutoff = datetime.utcnow() - timedelta(minutes=STALE_PENDING_MINUTES)
+
+            _insert = pg_insert(RewardPayout).values(
+                event_id=event.id,
+                reward_job_id=job.id,
+                client_id=client_id,
+                reward_type=rule_type,
+                amount=amount,
+                criteria_type=payout.get("criteria_type"),
+                criteria_value=criteria_value_f,
+                partner_bonus_id=partner_bonus_id,
+                status="pending",
+                attempt_count=1,
+            )
+            _upsert = _insert.on_conflict_do_update(
+                index_elements=["event_id", "client_id"],
+                set_={
+                    "reward_job_id": _insert.excluded.reward_job_id,
+                    "reward_type": _insert.excluded.reward_type,
+                    "amount": _insert.excluded.amount,
+                    "criteria_type": _insert.excluded.criteria_type,
+                    "criteria_value": _insert.excluded.criteria_value,
+                    "partner_bonus_id": _insert.excluded.partner_bonus_id,
+                    "status": "pending",
+                    "attempt_count": RewardPayout.attempt_count + 1,
+                },
+                where=or_(
+                    RewardPayout.status == "failed",
+                    and_(RewardPayout.status == "pending", RewardPayout.created_at < stale_pending_cutoff),
+                ),
+            ).returning(RewardPayout.id)
+
+            payout_row_id = db.execute(_upsert).scalar()
+            db.commit()
+
+            if payout_row_id is None:
+                logger.warning(
+                    f"   [REWARD_DIAGNOSTIC] Client {client_id} bu event için zaten işlenmiş "
+                    f"(reward_payouts: success/pending_claim) — ATLANIYOR, tekrar gönderilmiyor."
+                )
+                job_results[user_str].append({
+                    "rule": rule_snapshot,
+                    "status": "skipped_duplicate",
+                    "note": "Bu client için ödül daha önce başka bir dağıtımda işlenmiş, tekrar gönderilmedi.",
+                    "timestamp": datetime.utcnow().isoformat()
+                })
+                continue
+            # --- /Çift ödeme koruması --------------------------------------------------
+
             # Freebet/Freespin artık burada otomatik gönderilmiyor: kullanıcı client tarafında
             # "Ödülünü Al" butonuna basıp bonus uygunluk kontrollerinden geçince gönderiliyor
             # (bkz. shared/domain/reward_claim.py). Worker sadece kuyruğa yazıyor.
@@ -110,6 +189,8 @@ def process_job(job_id: int):
                     "status": "pending_claim",
                     "timestamp": datetime.utcnow().isoformat()
                 })
+                db.query(RewardPayout).filter(RewardPayout.id == payout_row_id).update({"status": "pending_claim"})
+                db.commit()
                 logger.info(f"   [REWARD_DIAGNOSTIC] Client {client_id} {rule_type} PENDING_CLAIM (kullanıcı client'tan alacak).")
                 continue
 
@@ -169,6 +250,9 @@ def process_job(job_id: int):
                 logger.info(f"   [REWARD_DIAGNOSTIC] Client {client_id} rewarded SUCCESS.")
                 success_count += 1
                 worker_log.saved_count = success_count
+                db.query(RewardPayout).filter(RewardPayout.id == payout_row_id).update({
+                    "status": "success", "bapi_response": resp, "sent_at": datetime.utcnow()
+                })
                 db.commit()
 
             except Exception as e:
@@ -180,6 +264,14 @@ def process_job(job_id: int):
                     "timestamp": datetime.now().isoformat()
                 })
                 fail_count += 1
+                try:
+                    db.query(RewardPayout).filter(RewardPayout.id == payout_row_id).update({
+                        "status": "failed", "error_message": str(e)
+                    })
+                    db.commit()
+                except Exception as payout_update_err:
+                    logger.error(f"reward_payouts durumu 'failed' olarak güncellenemedi (client={client_id}): {payout_update_err}")
+                    db.rollback()
 
             # Kullanıcılar arası normal geçiş bekleme süresi
             logger.info("4 saniye bekleniyor...")

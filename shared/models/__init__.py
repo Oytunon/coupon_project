@@ -14,4 +14,5 @@ from shared.models.event_excluded_from_ranking import EventExcludedFromRanking
 from shared.models.event_participant_deposit import EventParticipantDeposit
 from shared.models.html_template import HtmlTemplate
 from shared.models.reward_template import RewardTemplate
+from shared.models.reward_payout import RewardPayout
 from .league import League
