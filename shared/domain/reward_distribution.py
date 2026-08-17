@@ -139,6 +139,12 @@ def compute_reward_distribution_plan(db: Session, event_id: int) -> Dict[str, An
     overrides = event.rules.get("reward_overrides", {}) or {}
     skipped_overrides = apply_reward_overrides(overrides, participants, payouts, rewarded_clients)
 
+    # Dağıtım sırası her zaman liderlik sırasıyla (rank) birebir eşleşsin - kuralların
+    # event.rules["rewards"] içinde hangi sırayla girildiğine bağlı kalmasın. Admin panelinde
+    # "Liderlik Sırası" ile "Gerçek Dağıtım Sırası" aynı sırada görünür, worker de aynı
+    # sırayla işler (rank sırası, doğruluğu etkilemez, sadece okunabilirlik/öngörülebilirlik).
+    payouts.sort(key=lambda p: p["rank"])
+
     # remove/add sequence numaralarını bozabileceği için son hâliyle yeniden numaralandır.
     for idx, p in enumerate(payouts, 1):
         p["sequence"] = idx
