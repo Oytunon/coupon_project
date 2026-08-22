@@ -12,6 +12,7 @@ sys.path.append(os.getcwd())
 
 from sqlalchemy import or_, and_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.orm.attributes import flag_modified
 
 from shared.database import SessionLocal, get_retrying_session
 from shared.models.reward_job import RewardJob
@@ -35,10 +36,81 @@ logger = logging.getLogger("reward_worker")
 
 # Bir reward_payouts satırı, worker gönderim ortasında çökerse/yeniden başlatılırsa
 # 'pending' durumunda sonsuza kadar kilitli kalabilir (ne 'failed' gibi retry edilebilir,
-# ne 'success'). Tek client için en kötü senaryoda (3 deneme x 120sn bekleme + istek
+# ne 'success'). Tek client için en kötü senaryoda (2 deneme x 180sn bekleme + istek
 # timeout'ları) birkaç dakikayı geçmiyor - bunun bariz üstünde bir eşik, çökme sonrası
 # satırı da retry edilebilir hale getiriyor.
 STALE_PENDING_MINUTES = 20
+
+# cash/bonus BAPI çağrısı başarısız olursa: en fazla 2 deneme, aralarda 3 dakika bekleme.
+# Bundan uzun süren bir rate-limit/kesinti bu client'ı 'failed' bırakır - o uç durum admin
+# tarafından BAPI'den elle takip edilir, worker tarafında ekstra bir mekanizma kurulmuyor
+# (bilinçli karar - bkz proje notları).
+MAX_ATTEMPTS = 2
+RETRY_WAIT_SECONDS = 180
+
+
+def _persist_payout_outcome(db, job, job_id: int, payout_row_id, payout_update: dict, job_results: dict, is_critical: bool = False):
+    """job.results (JSONB) + ilgili reward_payouts satırını TEK yerde, birlikte kaydeder.
+
+    İki sorunu birden çözer:
+    1) job.results eskiden sadece job'un en sonunda yazılıyordu - worker ortada çökerse
+       (OOM/kill/restart) o ana kadarki tüm sonuçlar kaybolurdu. Şimdi her payout sonrası
+       kalıcı yazılıyor.
+    2) Supabase pooler ani bağlantı kopmaları (bkz. shared/database.py) tam BAPI çağrısı
+       BAŞARILI olduktan hemen sonraki commit anında olursa, eskiden bu durum yanlışlıkla
+       "gönderim başarısız" sayılıp satır 'failed' yazılırdı - halbuki ödül/para zaten
+       gönderilmişti. Bu, satırın daha sonra 'stale pending' sayılıp TEKRAR gönderilmesine
+       (çift ödeme) yol açabilirdi. Şimdi commit başarısız olursa taze bir bağlantıyla bir
+       kez daha deneniyor; is_critical=True (BAPI çağrısı gerçekten tamamlandıktan sonra)
+       iken bu da başarısız olursa 'failed' YAZILMIYOR - sadece CRITICAL loglanıyor, çünkü
+       'failed' yazmak retry'ye (=çift ödeme) açık kapı bırakır.
+
+    Kullanılmakta olan (db, job) çiftini döner - taze bağlantıya geçilmişse çağıran taraf
+    bundan sonra bu ikiliyi kullanmaya devam etmeli (aynı job objesi eski/kopuk session'a
+    bağlı kalmasın diye).
+    """
+    try:
+        job.results = job_results
+        flag_modified(job, "results")
+        if payout_update:
+            db.query(RewardPayout).filter(RewardPayout.id == payout_row_id).update(payout_update)
+        db.commit()
+        return db, job
+    except Exception as db_err:
+        logger.error(
+            f"Job {job_id}: sonuç kaydı yazılamadı ({db_err}), taze bağlantıyla tekrar deneniyor..."
+        )
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        try:
+            fresh = get_retrying_session()
+            fresh_job = fresh.query(RewardJob).filter(RewardJob.id == job_id).first()
+            if fresh_job is None:
+                raise RuntimeError(f"RewardJob {job_id} taze bağlantıda bulunamadı")
+            fresh_job.results = job_results
+            flag_modified(fresh_job, "results")
+            if payout_update:
+                fresh.query(RewardPayout).filter(RewardPayout.id == payout_row_id).update(payout_update)
+            fresh.commit()
+            logger.info(f"Job {job_id}: taze bağlantıyla sonuç kaydı başarıyla yazıldı.")
+            try:
+                db.close()
+            except Exception:
+                pass
+            return fresh, fresh_job
+        except Exception as fresh_err:
+            log_fn = logger.critical if is_critical else logger.error
+            extra = (
+                " ÖDÜL/PARA BAPI'YE BAŞARIYLA GÖNDERİLDİ AMA HİÇBİR KAYITTA GÖRÜNMÜYOR - "
+                "reward_payouts satırını ELLE 'success' yapın, aksi halde bu client'a "
+                "sonraki bir job'da (stale-pending sayılıp) İKİNCİ KEZ gönderim yapılabilir."
+                if is_critical else ""
+            )
+            log_fn(f"Job {job_id}: taze bağlantıyla da yazılamadı ({fresh_err}).{extra}")
+            return db, job
+
 
 def process_job(job_id: int):
     db = get_retrying_session()
@@ -177,6 +249,7 @@ def process_job(job_id: int):
                     "note": "Bu client için ödül daha önce başka bir dağıtımda işlenmiş, tekrar gönderilmedi.",
                     "timestamp": datetime.utcnow().isoformat()
                 })
+                db, job = _persist_payout_outcome(db, job, job_id, payout_row_id, {}, job_results)
                 continue
             # --- /Çift ödeme koruması --------------------------------------------------
 
@@ -189,8 +262,9 @@ def process_job(job_id: int):
                     "status": "pending_claim",
                     "timestamp": datetime.utcnow().isoformat()
                 })
-                db.query(RewardPayout).filter(RewardPayout.id == payout_row_id).update({"status": "pending_claim"})
-                db.commit()
+                db, job = _persist_payout_outcome(
+                    db, job, job_id, payout_row_id, {"status": "pending_claim"}, job_results
+                )
                 logger.info(f"   [REWARD_DIAGNOSTIC] Client {client_id} {rule_type} PENDING_CLAIM (kullanıcı client'tan alacak).")
                 continue
 
@@ -219,7 +293,6 @@ def process_job(job_id: int):
                         )
                     raise ValueError(f"Unknown rule_type: {rule_type}")
 
-                MAX_ATTEMPTS = 3
                 resp = None
                 last_err = None
                 for attempt in range(1, MAX_ATTEMPTS + 1):
@@ -232,9 +305,9 @@ def process_job(job_id: int):
                         if attempt < MAX_ATTEMPTS:
                             logger.warning(
                                 f"Client {client_id} deneme {attempt}/{MAX_ATTEMPTS} başarısız: {attempt_err}. "
-                                f"2 dakika bekleniyor..."
+                                f"3 dakika bekleniyor..."
                             )
-                            time.sleep(120)
+                            time.sleep(RETRY_WAIT_SECONDS)
                         else:
                             logger.error(f"Client {client_id} {MAX_ATTEMPTS} denemede de ödül gönderilemedi: {attempt_err}")
 
@@ -250,13 +323,17 @@ def process_job(job_id: int):
                 logger.info(f"   [REWARD_DIAGNOSTIC] Client {client_id} rewarded SUCCESS.")
                 success_count += 1
                 worker_log.saved_count = success_count
-                db.query(RewardPayout).filter(RewardPayout.id == payout_row_id).update({
-                    "status": "success", "bapi_response": resp, "sent_at": datetime.utcnow()
-                })
-                db.commit()
+                # is_critical=True: BAPI çağrısı burada zaten BAŞARIYLA tamamlandı (para/bonus
+                # gitti) - kayıt yazımı başarısız olursa bunu asla 'failed' saymıyoruz, aksi
+                # halde satır daha sonra stale-pending sayılıp ikinci kez gönderilebilir.
+                db, job = _persist_payout_outcome(
+                    db, job, job_id, payout_row_id,
+                    {"status": "success", "bapi_response": resp, "sent_at": datetime.utcnow()},
+                    job_results, is_critical=True,
+                )
 
             except Exception as e:
-                logger.error(f"Failed to reward Client {client_id} after 3 attempts: {e}")
+                logger.error(f"Failed to reward Client {client_id} after {MAX_ATTEMPTS} attempts: {e}")
                 job_results[user_str].append({
                     "rule": rule_snapshot,
                     "status": "failed",
@@ -264,14 +341,11 @@ def process_job(job_id: int):
                     "timestamp": datetime.now().isoformat()
                 })
                 fail_count += 1
-                try:
-                    db.query(RewardPayout).filter(RewardPayout.id == payout_row_id).update({
-                        "status": "failed", "error_message": str(e)
-                    })
-                    db.commit()
-                except Exception as payout_update_err:
-                    logger.error(f"reward_payouts durumu 'failed' olarak güncellenemedi (client={client_id}): {payout_update_err}")
-                    db.rollback()
+                db, job = _persist_payout_outcome(
+                    db, job, job_id, payout_row_id,
+                    {"status": "failed", "error_message": str(e)},
+                    job_results,
+                )
 
             # Kullanıcılar arası normal geçiş bekleme süresi
             logger.info("4 saniye bekleniyor...")
