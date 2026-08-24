@@ -934,22 +934,23 @@ async def export_reward_history(
     ws.title = "Dagitilan Oduller"
     ws.append(["Tarih", "Kullanici Adi", "Client ID", "Odul Turu", "Miktar", "Durum"])
 
+    rows = []
     for job in jobs:
         results = job.results or {}
         if not isinstance(results, dict):
             continue
-            
+
         for client_id_str, rewards_list in results.items():
             if not isinstance(rewards_list, list):
                 continue
-                
+
             # Try to get username, handle non-integer client_id_str safely
             try:
                 c_id = int(client_id_str)
                 username = db.query(Participant.username).filter(Participant.client_id == c_id).scalar() or f"User-{client_id_str}"
             except (ValueError, TypeError):
                 username = f"User-{client_id_str}"
-                
+
             for r in rewards_list:
                 if not isinstance(r, dict):
                     continue
@@ -972,14 +973,21 @@ async def export_reward_history(
                     durum = "Beklemede (Kullanici Onayi Bekleniyor)"
                 else:
                     durum = f"Basarisiz: {r.get('error', '')}".rstrip(": ")
-                ws.append([
+                amount = rule.get("amount", 0) if isinstance(rule, dict) else 0
+                rows.append((amount, [
                     ts_display,
                     username,
                     client_id_str,
                     rule.get("reward_type", "") if isinstance(rule, dict) else "",
-                    rule.get("amount", 0) if isinstance(rule, dict) else 0,
+                    amount,
                     durum
-                ])
+                ]))
+
+    # job.results bir JSONB kolonu - Postgres key sirasini insertion yerine
+    # uzunluk+alfabetik korudugu icin miktara gore azalan sirala (rank sirasi).
+    rows.sort(key=lambda x: x[0] if x[0] is not None else -1, reverse=True)
+    for _, row in rows:
+        ws.append(row)
 
     output = BytesIO()
     wb.save(output)

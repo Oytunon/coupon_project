@@ -68,9 +68,9 @@ class BapiClient:
             try:
                 json_body = json.dumps(payload)
                 masked_headers = self._get_headers().copy()
-                if "Authorization" in masked_headers:
-                    token = masked_headers["Authorization"]
-                    masked_headers["Authorization"] = token[:10] + "***" if token else "None"
+                if "Authentication" in masked_headers:
+                    token = masked_headers["Authentication"]
+                    masked_headers["Authentication"] = token[:10] + "***" if token else "None"
 
                 logger.info(f"BAPI Request URL: {url}")
                 logger.info(f"BAPI Request Headers: {masked_headers}")

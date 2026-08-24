@@ -734,7 +734,12 @@ async def get_event_reward_history(
                     "status": r.get("status"),
                     "error": r.get("error") if r.get("status") == "failed" else None,
                 })
-    
+
+    # job.results bir JSONB kolonu - Postgres jsonb key sirasini (insertion degil,
+    # uzunluk + alfabetik) korudugu icin dict iterasyon sirasi rank sirasiyla eslesmiyor.
+    # Odul miktarina gore azalan sirala (1., 2., 3. ... turnuva siralamasiyla eslessin).
+    all_rewards.sort(key=lambda r: r["amount"] if r["amount"] is not None else -1, reverse=True)
+
     return all_rewards
 
 

@@ -2736,6 +2736,7 @@ export default function AdminPage() {
                                                 <table className="w-full text-left text-xs">
                                                     <thead className="bg-white/5 text-muted-foreground uppercase text-[10px] tracking-wider">
                                                         <tr>
+                                                            <th className="px-4 py-3">#</th>
                                                             <th className="px-4 py-3">Kullanıcı</th>
                                                             <th className="px-4 py-3">Ödül</th>
                                                             <th className="px-4 py-3">Miktar</th>
@@ -2746,6 +2747,7 @@ export default function AdminPage() {
                                                     <tbody className="divide-y divide-white/5">
                                                         {rewardHistory.map((rh, i) => (
                                                             <tr key={i} className="hover:bg-white/5 transition-colors">
+                                                                <td className="px-4 py-3 font-bold text-muted-foreground">{i + 1}</td>
                                                                 <td className="px-4 py-3 font-bold">
                                                                     {rh.username}
                                                                     <div className="text-[9px] text-muted-foreground font-normal">ID: {rh.client_id}</div>
