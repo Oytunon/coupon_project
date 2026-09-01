@@ -5,6 +5,7 @@ import logging
 import json
 from datetime import datetime, timedelta
 from threading import Thread
+from typing import Optional
 
 # Proje kök dizinini path'e ekle
 import os
@@ -42,11 +43,46 @@ logger = logging.getLogger("reward_worker")
 STALE_PENDING_MINUTES = 20
 
 # cash/bonus BAPI çağrısı başarısız olursa: en fazla 2 deneme, aralarda 3 dakika bekleme.
-# Bundan uzun süren bir rate-limit/kesinti bu client'ı 'failed' bırakır - o uç durum admin
-# tarafından BAPI'den elle takip edilir, worker tarafında ekstra bir mekanizma kurulmuyor
-# (bilinçli karar - bkz proje notları).
 MAX_ATTEMPTS = 2
 RETRY_WAIT_SECONDS = 180
+
+# BAPI 401 (token geçersiz/süresi dolmuş) retry ile ASLA düzelmez - token .env'de elle
+# düzeltilene kadar kalan HER client aynı hatayı alır. Bunu normal 'failed' gibi işleyip
+# devam etmek, 200 kişilik bir job'ta saatlerce (180sn x 2 deneme x kalan kişi) boşa zaman
+# harcar. Bu yüzden 401 görülür görülmez: (1) o client için 2. denemeyi hiç beklemiyoruz,
+# (2) job'u erkenden durduruyoruz - işlenmemiş client'lara hiç reward_payouts satırı
+# açılmadığı için, token düzeltilip event için job tekrar tetiklendiğinde sorunsuz devam eder.
+AUTH_ERROR_STATUS_CODE = 401
+
+# BAPI 403 (rate limit) ve 500 (geçici sunucu yükü) genelde bir süre sonra kendini
+# toparlıyor (bkz. shared/domain/reward_claim.py'deki aynı sezgisel cooldown, orada
+# freebet/spin claim'leri için zaten uygulanıyor). Böyle bir hatadan sonra client'ı
+# 'failed' yazıp sıradakine geçmek yerine, AYNI client için COOLDOWN_SECONDS bekleyip
+# tekrar deniyoruz - sıradaki client'a geçmenin bir faydası yok, o da aynı limite çarpar.
+# MAX_COOLDOWN_ROUNDS ile sınırlı ki BAPI gerçekten uzun süreli kesintideyse tek bir
+# client job'u sonsuza kadar kilitlemesin - tur sayısı tükenirse client 'failed' yazılır.
+COOLDOWN_STATUS_CODES = (403, 500)
+COOLDOWN_SECONDS = 130
+MAX_COOLDOWN_ROUNDS = 3
+
+
+def _bapi_status_code(err: Exception) -> Optional[int]:
+    resp = getattr(err, "response", None)
+    return getattr(resp, "status_code", None) if resp is not None else None
+
+
+def _is_auth_error(err: Exception) -> bool:
+    return _bapi_status_code(err) == AUTH_ERROR_STATUS_CODE
+
+
+def _is_cooldown_error(err: Exception) -> bool:
+    code = _bapi_status_code(err)
+    if code in COOLDOWN_STATUS_CODES:
+        return True
+    # _parse_response HasError:true ise ValueError fırlatıyor, BetConstruct rate limitini
+    # bazen HTTP 403 yerine gövdede "403 ... request limit" mesajıyla da bildiriyor.
+    msg = str(err).lower()
+    return "403" in msg and "request lim" in msg
 
 
 def _persist_payout_outcome(db, job, job_id: int, payout_row_id, payout_update: dict, job_results: dict, is_critical: bool = False):
@@ -157,6 +193,7 @@ def process_job(job_id: int):
         bapi = BapiClient(token=settings.STATS_BAPI_TOKEN)
         success_count = 0
         fail_count = 0
+        job_aborted_reason = None
         logger.info(f"   [REWARD_DIAGNOSTIC] Found {plan.get('participant_count')} participants, {len(payouts)} payouts to send.")
 
         # Update initial count expectation
@@ -295,24 +332,52 @@ def process_job(job_id: int):
 
                 resp = None
                 last_err = None
-                for attempt in range(1, MAX_ATTEMPTS + 1):
-                    try:
-                        resp = _call_bapi()
-                        last_err = None
-                        break  # Başarılı — döngüden çık
-                    except Exception as attempt_err:
-                        last_err = attempt_err
-                        if attempt < MAX_ATTEMPTS:
-                            logger.warning(
-                                f"Client {client_id} deneme {attempt}/{MAX_ATTEMPTS} başarısız: {attempt_err}. "
-                                f"3 dakika bekleniyor..."
-                            )
-                            time.sleep(RETRY_WAIT_SECONDS)
-                        else:
-                            logger.error(f"Client {client_id} {MAX_ATTEMPTS} denemede de ödül gönderilemedi: {attempt_err}")
+                cooldown_round = 0
+                while True:
+                    for attempt in range(1, MAX_ATTEMPTS + 1):
+                        try:
+                            resp = _call_bapi()
+                            last_err = None
+                            break  # Başarılı — döngüden çık
+                        except Exception as attempt_err:
+                            last_err = attempt_err
+                            if _is_auth_error(attempt_err):
+                                # 401 - token geçersiz, 2. denemeyi beklemenin anlamı yok.
+                                logger.error(f"Client {client_id}: BAPI 401 (yetkisiz) - tekrar denenmeden bırakılıyor.")
+                                break
+                            if attempt < MAX_ATTEMPTS:
+                                logger.warning(
+                                    f"Client {client_id} deneme {attempt}/{MAX_ATTEMPTS} başarısız: {attempt_err}. "
+                                    f"3 dakika bekleniyor..."
+                                )
+                                time.sleep(RETRY_WAIT_SECONDS)
+                            else:
+                                logger.error(f"Client {client_id} {MAX_ATTEMPTS} denemede de ödül gönderilemedi: {attempt_err}")
+
+                    if last_err is None:
+                        break  # Başarılı
+
+                    # 403/500 (rate limit/geçici yük): AYNI client'ı vazgeçmeden önce birkaç
+                    # tur daha, aralara soğuma koyarak dene - client'ı 'failed' yazıp sıradakine
+                    # geçmek yerine burada ısrar ediyoruz (sıradaki client de nasılsa aynı
+                    # limite çarpar, bu client'ı atlamanın bir faydası yok). Sonsuz döngüye
+                    # girmesin diye MAX_COOLDOWN_ROUNDS ile sınırlı - o kadar tur da geçemezse
+                    # (BAPI gerçekten uzun süreli kesintide demektir) client 'failed' yazılır,
+                    # admin panelinden elle takip edilir.
+                    if _is_cooldown_error(last_err) and cooldown_round < MAX_COOLDOWN_ROUNDS:
+                        cooldown_round += 1
+                        logger.warning(
+                            f"Client {client_id}: BAPI 403/500, {MAX_ATTEMPTS} denemede de başarısız - "
+                            f"{COOLDOWN_SECONDS}sn soğuyup AYNI client'a tekrar denenecek "
+                            f"(soğuma turu {cooldown_round}/{MAX_COOLDOWN_ROUNDS})..."
+                        )
+                        time.sleep(COOLDOWN_SECONDS)
+                        continue  # aynı client'ı yeniden dene
+
+                    break  # 401, başka bir hata türü, ya da soğuma turları tükendi
 
                 if last_err is not None:
-                    raise last_err  # Tüm denemeler bitti, dış except'e düş
+                    raise last_err  # Tüm denemeler/turlar bitti, dış except'e düş
 
                 job_results[user_str].append({
                     "rule": rule_snapshot,
@@ -347,19 +412,45 @@ def process_job(job_id: int):
                     job_results,
                 )
 
+                if _is_auth_error(e):
+                    # Token .env'de elle düzeltilmeden kalan client'ların hiçbiri geçmeyecek -
+                    # aynı hatayı 180sn x 2 deneme ile tekrar tekrar yaşamak yerine job'u
+                    # burada durduruyoruz. Henüz sırası gelmemiş client'lara reward_payouts
+                    # satırı hiç açılmadı - token düzeltilip event için job tekrar
+                    # tetiklendiğinde bu client'lar (ve bu client de, satırı 'failed' olduğu
+                    # için) sorunsuz yeniden denenir.
+                    job_aborted_reason = (
+                        f"BAPI 401 (yetkisiz) alındı - token geçersiz/süresi dolmuş görünüyor. "
+                        f"Client {client_id}'den sonraki client'lar işlenmeden durduruldu. "
+                        f".env dosyasındaki BAPI_TOKEN/STATS_BAPI_TOKEN kontrol edilip event "
+                        f"için ödül dağıtımı tekrar tetiklenmeli."
+                    )
+                    logger.critical(f"Job {job_id}: {job_aborted_reason}")
+                    break
+                # 403/500 için soğuma + aynı client'a tekrar deneme yukarıdaki while
+                # döngüsünde zaten yapıldı (MAX_COOLDOWN_ROUNDS turu da tükendiyse buraya
+                # düşer) - burada ekstra bir şey yapmadan normal 'failed' akışı devam eder.
+
             # Kullanıcılar arası normal geçiş bekleme süresi
             logger.info("4 saniye bekleniyor...")
             time.sleep(4)
 
-        # İş durumu güncelle (Tamamlandı)
+        # İş durumu güncelle (Tamamlandı / Erken durduruldu)
         job.results = job_results
-        job.status = "completed"
+        job.status = "failed" if job_aborted_reason else "completed"
+        if job_aborted_reason:
+            job.error_message = job_aborted_reason
         job.completed_at = datetime.utcnow()
-        
-        worker_log.status = "completed"
+
+        worker_log.status = "failed" if job_aborted_reason else "completed"
+        if job_aborted_reason:
+            worker_log.error_message = job_aborted_reason
         worker_log.completed_at = datetime.utcnow()
         db.commit()
-        logger.info(f"Job {job_id} completed. Success: {success_count}, Failed: {fail_count}")
+        if job_aborted_reason:
+            logger.error(f"Job {job_id} erken durduruldu. Success: {success_count}, Failed: {fail_count}. Sebep: {job_aborted_reason}")
+        else:
+            logger.info(f"Job {job_id} completed. Success: {success_count}, Failed: {fail_count}")
 
     except Exception as e:
         logger.error(f"Job {job_id} failed with error: {e}")

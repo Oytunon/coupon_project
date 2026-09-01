@@ -95,9 +95,12 @@ class BapiClient:
                 logger.error(f"BAPI cash reward failed after {max_retries} attempts for Client {client_id}")
                 raise
             except requests.exceptions.HTTPError as e:
-                # 503 → geçici sunucu hatası, retry yap. Diğer 4xx/5xx → kalıcı hata, retry etme
-                if response.status_code == 503 and attempt < max_retries - 1:
-                    logger.warning(f"BAPI cash reward 503 for Client {client_id}, retry {attempt + 1}/{max_retries}")
+                # 500/503 → geçici sunucu hatası, retry yap. Diğer 4xx/5xx (401/403 dahil) →
+                # kalıcı/rate-limit hatası, burada retry etme - reward_worker.py dış katmanda
+                # auth/rate-limit'e özel cooldown uyguluyor (bkz. reward_worker.py _is_auth_error
+                # / _is_cooldown_error).
+                if response.status_code in (500, 503) and attempt < max_retries - 1:
+                    logger.warning(f"BAPI cash reward {response.status_code} for Client {client_id}, retry {attempt + 1}/{max_retries}")
                     time.sleep(2 ** attempt)
                     continue
                 logger.error(f"BAPI cash reward HTTP error for Client {client_id}: {e} - Body: {payload}")
@@ -163,8 +166,9 @@ class BapiClient:
                 logger.error(f"BAPI bonus failed after {max_retries} attempts for Client {client_id}")
                 raise
             except requests.exceptions.HTTPError as e:
-                if response.status_code == 503 and attempt < max_retries - 1:
-                    logger.warning(f"BAPI bonus 503 for Client {client_id}, retry {attempt + 1}/{max_retries}")
+                # 500/503 → geçici sunucu hatası, retry yap (bkz. send_cash_reward'daki not)
+                if response.status_code in (500, 503) and attempt < max_retries - 1:
+                    logger.warning(f"BAPI bonus {response.status_code} for Client {client_id}, retry {attempt + 1}/{max_retries}")
                     time.sleep(2 ** attempt)
                     continue
                 logger.error(f"BAPI bonus HTTP error for Client {client_id}: {e} - Body: {payload}")
