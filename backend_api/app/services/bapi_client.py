@@ -220,36 +220,37 @@ class BapiClient:
         bonuses = data if isinstance(data, list) else []
         return any((b or {}).get("ResultType") == 0 for b in bonuses)
 
+    # Gerçekten hâlâ karara bağlanmamış sayılan durumlar (BAPI State alanı — bkz.
+    # /Client/GetClientWithdrawalRequestsWithTotals): Pending=0, Allowed=1, Awaiting=2.
+    # Paid=3 ve reddedilenler bilerek dışarıda bırakılıyor, artık "bekliyor" sayılmıyor.
+    _OPEN_WITHDRAWAL_STATES = [0, 1, 2]
+
     def has_pending_withdrawal(self, client_id: int) -> bool:
-        """Son 2 günde reddedilmemiş bir çekim talebi var mı? /Client/GetClientTransactionsV1
+        """Gerçekten hâlâ karara bağlanmamış (State: Pending/Allowed/Awaiting) bir çekim
+        talebi var mı? /Client/GetClientWithdrawalRequestsWithTotals
 
-        Not: Onaylanan/ödenen çekimler işlem defterinde ayrı bir kayıt bırakmıyor — sadece
-        reddedilenler "Rejected withdrawal request" (DocumentTypeId=8) kaydı oluşturuyor.
-        Yani "Withdrawal request" (DocumentTypeId=1) sonrası red kaydı yoksa talep ya hâlâ
-        bekliyor ya da zaten ödenmiş olabilir; bunu ayırt edemediğimiz için dar bir zaman
-        penceresiyle sınırlıyoruz (pencere dışındaki eski, reddedilmemiş talepler muhtemelen
-        zaten ödenmiştir).
+        Not: Daha önce burada GetClientTransactionsV1 (ham işlem defteri) kullanılıyordu;
+        o uçta onaylanıp ödenen çekimler için ayrı bir kayıt/durum yoktu (DocumentState hep
+        sabit 10, canlıda 0-29 arası tüm DocumentTypeId'ler tarandı, "ödendi" için ayrı bir
+        tip yoktu) — bu yüzden reddedilmemiş HER talep, ödenmiş olsa bile 2 gün boyunca
+        "bekliyor" sayılıyordu (bkz. Arslankral şikayeti, client_id=1467650500: talep
+        2026-09-01T15:37, State=3/Paid, PaymentCreatedLocal=2026-09-01T15:50 — 13 dakikada
+        ödenmiş ama eski kod 2 gün boyunca engelliyordu).
 
-        Not: bu uç sıralama garantisi vermiyor (IsOrderedDesc yok) ve DocumentTypeIds
-        filtresinin sunucu tarafında gerçekten daraltıp daraltmadığı canlıda doğrulanmadı —
-        çok işlem geçmişi olan bir client'ta gerçek bir bekleyen çekim kaçabilir teorik olarak.
+        Bu uç (BetConstruct'ın "Client Requests" ekranının kullandığı gerçek uç — bkz. kardeş
+        bonus-cashback/betconstruct-gateway repoları) gerçek bir State/StateName alanı
+        döndürüyor, o yüzden artık zaman penceresi/tahmine gerek yok: sadece StateList ile
+        filtreliyoruz.
         """
-        url = f"{self.base_url}/en/Client/GetClientTransactionsV1"
-        now = datetime.utcnow() + timedelta(hours=3)  # Türkiye saati
-        start = now - timedelta(days=2)
+        url = f"{self.base_url}/en/Client/GetClientWithdrawalRequestsWithTotals"
         payload = {
-            "ClientId": client_id,
-            "CurrencyId": "TRY",
-            "StartTimeLocal": start.strftime("%Y-%m-%dT00:00:00"),
-            "EndTimeLocal": now.strftime("%Y-%m-%dT23:59:59"),
-            "DocumentTypeIds": [1, 8],
-            "MaxRows": 50,
-            "SkipRows": 0,
-            "ByPassTotals": False,
+            "Id": None,
+            "ClientId": str(client_id),
+            "StateList": self._OPEN_WITHDRAWAL_STATES,
+            "FromDateLocal": None,
+            "ToDateLocal": None,
         }
         response = requests.post(url, json=payload, headers=self._get_headers(), timeout=15)
         data = self._parse_response(response)
-        items = (data or {}).get("Objects") or []
-        latest_request = max((it.get("CreatedLocal") or "" for it in items if it.get("DocumentTypeId") == 1), default="")
-        latest_rejected = max((it.get("CreatedLocal") or "" for it in items if it.get("DocumentTypeId") == 8), default="")
-        return bool(latest_request) and latest_request > latest_rejected
+        open_requests = (data or {}).get("ClientRequests") or []
+        return len(open_requests) > 0
