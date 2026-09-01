@@ -2877,6 +2877,17 @@ export default function AdminPage() {
                                                                     const isRemoved = payout && draft?.action === 'remove';
                                                                     const amountValue = payout && draft?.action === 'adjust' ? draft.amount : payout?.amount;
                                                                     const isManual = payout && (payout.criteria_type === 'manual_adjust' || payout.criteria_type === 'manual_add');
+                                                                    const effectiveType = payout && draft?.action === 'adjust' ? draft.reward_type : payout?.reward_type;
+                                                                    const effectivePartnerBonusId = payout && draft?.action === 'adjust' ? draft.partner_bonus_id : payout?.partner_bonus_id;
+                                                                    const updateAdjustDraft = (patch: Partial<{ reward_type: string; amount: number; partner_bonus_id: number | null }>) => {
+                                                                        setOverrideDrafts(prev => {
+                                                                            const prevDraft = prev[cidStr];
+                                                                            const base = prevDraft?.action === 'adjust'
+                                                                                ? prevDraft
+                                                                                : { action: 'adjust', reward_type: payout.reward_type, amount: payout.amount, partner_bonus_id: payout.partner_bonus_id ?? null };
+                                                                            return { ...prev, [cidStr]: { ...base, ...patch, action: 'adjust' } };
+                                                                        });
+                                                                    };
                                                                     return (
                                                                     <tr key={row.client_id} className={payout && !isRemoved ? 'bg-emerald-500/5' : isRemoved ? 'opacity-40' : ''}>
                                                                         <td className="px-3 py-2 font-mono font-bold text-primary">#{row.rank}</td>
@@ -2887,13 +2898,37 @@ export default function AdminPage() {
                                                                         <td className="px-3 py-2">{Number(row.points).toLocaleString('tr-TR')}</td>
                                                                         {payout ? (
                                                                             <>
-                                                                                <td className="px-3 py-2 uppercase">
-                                                                                    {payout.reward_type}
-                                                                                    {(payout.reward_type === 'freebet' || payout.reward_type === 'spin') ? (
-                                                                                        <Badge variant="outline" className="ml-1.5 text-[8px] normal-case border-amber-500/30 text-amber-400 align-middle">Kullanıcı talep edecek</Badge>
-                                                                                    ) : (
-                                                                                        <Badge variant="outline" className="ml-1.5 text-[8px] normal-case border-emerald-500/30 text-emerald-400 align-middle">Otomatik gönderilir</Badge>
-                                                                                    )}
+                                                                                <td className="px-3 py-2">
+                                                                                    <div className="flex flex-col gap-1">
+                                                                                        <Select
+                                                                                            value={effectiveType}
+                                                                                            disabled={isRemoved}
+                                                                                            onValueChange={(v) => updateAdjustDraft({ reward_type: v })}
+                                                                                        >
+                                                                                            <SelectTrigger className="h-6 w-28 text-[10px] uppercase"><SelectValue /></SelectTrigger>
+                                                                                            <SelectContent>
+                                                                                                <SelectItem value="cash">Nakit</SelectItem>
+                                                                                                <SelectItem value="spin">Free Spin</SelectItem>
+                                                                                                <SelectItem value="freebet">Freebet</SelectItem>
+                                                                                                <SelectItem value="bonus">Bonus</SelectItem>
+                                                                                            </SelectContent>
+                                                                                        </Select>
+                                                                                        {(effectiveType === 'freebet' || effectiveType === 'spin') ? (
+                                                                                            <Badge variant="outline" className="text-[8px] normal-case border-amber-500/30 text-amber-400 w-fit">Kullanıcı talep edecek</Badge>
+                                                                                        ) : (
+                                                                                            <Badge variant="outline" className="text-[8px] normal-case border-emerald-500/30 text-emerald-400 w-fit">Otomatik gönderilir</Badge>
+                                                                                        )}
+                                                                                        {effectiveType !== 'cash' && (
+                                                                                            <Input
+                                                                                                type="number"
+                                                                                                placeholder="Partner Bonus ID"
+                                                                                                className="h-6 w-28 bg-black/20 border-white/10 text-[9px]"
+                                                                                                value={effectivePartnerBonusId ?? ''}
+                                                                                                disabled={isRemoved}
+                                                                                                onChange={(e) => updateAdjustDraft({ partner_bonus_id: e.target.value ? parseInt(e.target.value) : null })}
+                                                                                            />
+                                                                                        )}
+                                                                                    </div>
                                                                                 </td>
                                                                                 <td className="px-3 py-2 font-bold text-emerald-400">
                                                                                     <Input
@@ -2901,13 +2936,7 @@ export default function AdminPage() {
                                                                                         className="h-7 w-24 bg-black/20 border-white/10 text-xs"
                                                                                         value={amountValue}
                                                                                         disabled={isRemoved}
-                                                                                        onChange={(e) => {
-                                                                                            const newAmount = parseFloat(e.target.value) || 0;
-                                                                                            setOverrideDrafts(prev => ({
-                                                                                                ...prev,
-                                                                                                [cidStr]: { action: 'adjust', reward_type: payout.reward_type, amount: newAmount, partner_bonus_id: payout.partner_bonus_id ?? null }
-                                                                                            }));
-                                                                                        }}
+                                                                                        onChange={(e) => updateAdjustDraft({ amount: parseFloat(e.target.value) || 0 })}
                                                                                     />
                                                                                 </td>
                                                                                 <td className="px-3 py-2 text-muted-foreground">
