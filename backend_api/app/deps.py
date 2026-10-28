@@ -37,10 +37,6 @@ async def verify_api_token(
     jwt_token = token or api_key
     
     if not jwt_token:
-        # Dev mode check only if no authentication provided at all
-        if not settings.API_TOKEN: 
-            return True
-            
         raise HTTPException(
             status_code=401,
             detail="Authentication required (API Key or JWT)"

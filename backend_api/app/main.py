@@ -27,14 +27,15 @@ import os
 logger = setup_logging()
 
 # Validate critical environment variables on startup
-# TEMPORARILY DISABLED for demo - re-enable in production
-# try:
-#     settings.validate_required_settings()
-#     logger.info("✅ Environment validation passed")
-# except ValueError as e:
-#     logger.error(f"❌ Environment validation failed:\n{e}")
-#     raise
-logger.info("⚠️ Environment validation disabled (demo mode)")
+# production: eksik/zayıf anahtarla API açılmaz; development: sadece uyarı
+try:
+    settings.validate_required_settings()
+    logger.info("✅ Environment validation passed")
+except ValueError as e:
+    if settings.ENVIRONMENT == "production":
+        logger.error(f"❌ Environment validation failed:\n{e}")
+        raise
+    logger.warning(f"⚠️ Environment validation failed ({settings.ENVIRONMENT}):\n{e}")
 
 
 
@@ -84,10 +85,15 @@ threading.Thread(target=_run_migration_check, daemon=True).start()
 
 
 # Initialize FastAPI app
+# /docs, /redoc, /openapi.json yalnız development'ta: canlıda tüm endpoint haritasını vermesin
+docs_enabled = settings.ENVIRONMENT != "production"
 app = FastAPI(
     title="Kupon Turnuvası API",
     description="Coupon Tournament Management System with Mailgun Integration",
-    version="2.0.0"
+    version="2.0.0",
+    docs_url="/docs" if docs_enabled else None,
+    redoc_url="/redoc" if docs_enabled else None,
+    openapi_url="/openapi.json" if docs_enabled else None,
 )
 
 # Rate limiting setup

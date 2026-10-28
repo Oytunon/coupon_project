@@ -75,6 +75,9 @@ class Settings(BaseSettings):
     MAGIC_LINK_URL: str = "https://coupon-project-three.vercel.app/verify-magic-link"
 
     # Sunucu
+    # production (varsayılan): başlangıç doğrulaması zorunlu, /docs kapalı.
+    # Yerel geliştirmede .env'e ENVIRONMENT=development yazın (sunucu .env'ine YAZMAYIN).
+    ENVIRONMENT: str = "production"
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000
     FRONTEND_URL: Optional[str] = None
@@ -85,14 +88,18 @@ class Settings(BaseSettings):
     def validate_required_settings(self):
         """Production'da zorunlu ayarları kontrol et"""
         errors = []
-        
-        # SECRET_KEY kontrolü
-        if self.SECRET_KEY == "your-super-secret-key-change-in-production":
-            errors.append("SECRET_KEY production'da değiştirilmeli! Güçlü bir anahtar kullanın.")
-        
-        # API_TOKEN kontrolü
-        if not self.API_TOKEN:
-            errors.append("API_TOKEN zorunludur! .env dosyasında ayarlayın.")
+
+        def is_weak(value: Optional[str]) -> bool:
+            # Kısa veya "change-me" tarzı yer tutucu anahtarlar tahminle kırılabilir
+            return not value or len(value) < 32 or "change" in value.lower()
+
+        # SECRET_KEY kontrolü (admin JWT'lerini imzalar)
+        if is_weak(self.SECRET_KEY):
+            errors.append("SECRET_KEY zayıf! En az 32 karakterlik rastgele bir anahtar kullanın.")
+
+        # API_TOKEN kontrolü (boş/zayıfsa /api/admin statik anahtarla tahmin edilebilir)
+        if is_weak(self.API_TOKEN):
+            errors.append("API_TOKEN zayıf veya eksik! En az 32 karakterlik rastgele bir değer kullanın.")
         
         # BAPI_TOKEN kontrolü
         if not self.BAPI_TOKEN:
