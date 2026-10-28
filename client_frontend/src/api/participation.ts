@@ -1,4 +1,3 @@
-import { getAuthHeaders } from '../config/auth'
 import { apiClient } from './client'
 
 type ParticipationResponse = {
