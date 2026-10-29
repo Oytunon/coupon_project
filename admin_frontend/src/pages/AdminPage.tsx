@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react"
 import { createPortal } from "react-dom"
+import { useSearchParams } from "react-router-dom"
 import { useAuth } from "@/context/AuthContext"
 import { AdminLayout } from "@/components/layout/AdminLayout"
 import {
@@ -306,11 +307,17 @@ const ContentRuleEditor = ({ rules, onChange }: { rules: { title: string; conten
 };
 
 
+type AdminTab = "dashboard" | "events" | "participants" | "users" | "leagues"
+
 export default function AdminPage() {
 
     const { toast } = useToast()
     const { logout, adminRole } = useAuth()
-    const [activeTab, setActiveTab] = useState<"dashboard" | "events" | "participants" | "users" | "leagues">(adminRole === 'moderator' ? 'events' : 'dashboard')
+    // Görünüm (sekme, filtre, açık etkinlik, sayfa) adres çubuğunda tutulur: yenileyince aynı yerde kalınsın
+    const [searchParams, setSearchParams] = useSearchParams()
+    const allowedTabs: AdminTab[] = adminRole === 'moderator' ? ['events', 'participants'] : ['dashboard', 'events', 'participants', 'users', 'leagues']
+    const urlTab = searchParams.get('tab') as AdminTab | null
+    const [activeTab, setActiveTab] = useState<AdminTab>(urlTab && allowedTabs.includes(urlTab) ? urlTab : allowedTabs[0])
     const [selectedParticipant, setSelectedParticipant] = useState<any | null>(null)
     const [userCoupons, setUserCoupons] = useState<any[]>([])
     const [totalUserCoupons, setTotalUserCoupons] = useState(0)
@@ -325,7 +332,10 @@ export default function AdminPage() {
 
     const [participants, setParticipants] = useState<any[]>([])
     const [totalParticipants, setTotalParticipants] = useState(0)
-    const [page, setPage] = useState(1)
+    const [loadingParticipants, setLoadingParticipants] = useState(false)
+    // Art arda sayfa/arama değişiminde geç gelen eski cevap yeni listenin üstüne yazmasın
+    const participantsRequestId = useRef(0)
+    const [page, setPage] = useState(() => Math.max(1, Number(searchParams.get('page')) || 1))
     const [limit] = useState(20)
     const [searchQuery, setSearchQuery] = useState("")
     const [leagueSearchQuery, setLeagueSearchQuery] = useState("")
@@ -420,7 +430,7 @@ export default function AdminPage() {
 
     const [adminUsers, setAdminUsers] = useState<any[]>([])
     const [events, setEvents] = useState<any[]>([])
-    const [selectedEventId, setSelectedEventId] = useState<number | null>(null)
+    const [selectedEventId, setSelectedEventId] = useState<number | null>(() => Number(searchParams.get('event')) || null)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState<string | null>(null)
 
@@ -435,7 +445,10 @@ export default function AdminPage() {
 
 
 
-    const [eventFilter, setEventFilter] = useState<'active' | 'past' | 'archived'>('active')
+    const [eventFilter, setEventFilter] = useState<'active' | 'past' | 'archived'>(() => {
+        const filter = searchParams.get('filter')
+        return filter === 'past' || filter === 'archived' ? filter : 'active'
+    })
 
     const DEFAULT_NEW_EVENT = {
         name: "",
@@ -513,9 +526,37 @@ export default function AdminPage() {
     const [imageUploadLoading, setImageUploadLoading] = useState(false)
     const [tempImageFile, setTempImageFile] = useState<File | null>(null)
 
+    // İlk açılış: etkinlikler + yöneticiler + katılımcı sayfası (tam ekran yükleme sadece burada)
+    const initialLoadDone = useRef(false)
     useEffect(() => {
-        loadData()
+        loadInitialData()
+    }, [])
+
+    // Sayfa/arama/etkinlik değişince sadece katılımcı listesi yenilenir (panel kapanmaz)
+    useEffect(() => {
+        if (!initialLoadDone.current) return
+        loadParticipants()
     }, [selectedEventId, page, debouncedSearch])
+
+    // Genel istatistikler (ağır sayım sorguları) sadece Genel Bakış açıkken istenir
+    useEffect(() => {
+        if (activeTab !== 'dashboard' || adminRole === 'moderator') return
+        fetchAdminStats().then(setStats).catch(() => setStats({}))
+    }, [activeTab])
+
+    // Görünümü adres çubuğuna yaz (replace: tarayıcı geçmişine kayıt eklemez)
+    useEffect(() => {
+        const params = new URLSearchParams({ tab: activeTab })
+        if (activeTab === 'events') {
+            if (eventFilter !== 'active') params.set('filter', eventFilter)
+            if (viewEventId) params.set('view', String(viewEventId))
+        }
+        if (activeTab === 'participants') {
+            if (selectedEventId) params.set('event', String(selectedEventId))
+            if (page > 1) params.set('page', String(page))
+        }
+        setSearchParams(params, { replace: true })
+    }, [activeTab, eventFilter, viewEventId, selectedEventId, page])
 
 
     useEffect(() => {
@@ -533,6 +574,8 @@ export default function AdminPage() {
     }, [couponSearch])
 
     useEffect(() => {
+        // Açılışta (arama boşken) adresten gelen sayfa numarası sıfırlanmasın
+        if (searchQuery === debouncedSearch) return
         const timer = setTimeout(() => {
             setDebouncedSearch(searchQuery)
             setPage(1) // Reset to page 1 on search change
@@ -540,19 +583,12 @@ export default function AdminPage() {
         return () => clearTimeout(timer)
     }, [searchQuery])
 
-    const loadData = async () => {
-        setLoading(true)
+    const loadParticipants = async () => {
+        const requestId = ++participantsRequestId.current
+        setLoadingParticipants(true)
         try {
-            // Progressive loading: events first (dropdown için kritik), sonra diğerleri paralel
-            const eventsData = await fetchEvents().catch((err) => { console.error(err); return [] })
-            setEvents(Array.isArray(eventsData) ? eventsData : [])
-
-            const [s, p, u] = await Promise.all([
-                adminRole !== 'moderator' ? fetchAdminStats().catch(() => null) : Promise.resolve(null),
-                fetchParticipants(selectedEventId || undefined, (page - 1) * limit, limit, debouncedSearch).catch((err) => { console.error(err); return { items: [], total: 0 } }),
-                adminRole !== 'moderator' ? fetchAdminUsers().catch(() => []) : Promise.resolve([]),
-            ])
-            setStats(s)
+            const p = await fetchParticipants(selectedEventId || undefined, (page - 1) * limit, limit, debouncedSearch).catch((err) => { console.error(err); return { items: [], total: 0 } })
+            if (requestId !== participantsRequestId.current) return
             if (p && p.items) {
                 setParticipants(Array.isArray(p.items) ? p.items : [])
                 setTotalParticipants(p.total || 0)
@@ -560,7 +596,29 @@ export default function AdminPage() {
                 setParticipants(Array.isArray(p) ? p : [])
                 setTotalParticipants(Array.isArray(p) ? p.length : 0)
             }
+        } finally {
+            if (requestId === participantsRequestId.current) setLoadingParticipants(false)
+        }
+    }
+
+    const loadInitialData = async () => {
+        const initialViewId = Number(searchParams.get('view')) || null
+        setLoading(true)
+        try {
+            // Progressive loading: events first (dropdown için kritik), sonra diğerleri paralel
+            const eventsData = await fetchEvents().catch((err) => { console.error(err); return [] })
+            const eventList = Array.isArray(eventsData) ? eventsData : []
+            setEvents(eventList)
+
+            const [u] = await Promise.all([
+                adminRole !== 'moderator' ? fetchAdminUsers().catch(() => []) : Promise.resolve([]),
+                loadParticipants(),
+            ])
             setAdminUsers(Array.isArray(u) ? u : [])
+
+            // Yenilemeden önce bir etkinliğin detayı açıksa geri aç
+            const viewEvent = activeTab === 'events' && initialViewId ? eventList.find((e: any) => e.id === initialViewId) : null
+            if (viewEvent) handleViewDetails(viewEvent)
         } catch (err) {
             console.error("Data load failed", err)
             toast({
@@ -569,6 +627,7 @@ export default function AdminPage() {
                 variant: "destructive"
             })
         } finally {
+            initialLoadDone.current = true
             setLoading(false)
         }
     }
@@ -1179,6 +1238,7 @@ export default function AdminPage() {
     // ... existing code ...
 
     const handleViewDetails = async (event: any) => {
+        participantsRequestId.current++ // devam eden katılımcı listesi isteği etkinlik listesinin üstüne yazmasın
         setViewEventId(event.id)
         setLoadingEventDetail(true)
         try {
@@ -1209,7 +1269,9 @@ export default function AdminPage() {
     const handleBackToEvents = async () => {
         setViewEventId(null)
         setEventStats(null)
-        loadData()
+        // Detay görünümü katılımcı listesini etkinliğinkiyle değiştirmişti; liste ve etkinlikler tazelensin
+        loadParticipants()
+        fetchEvents().then(eList => setEvents(Array.isArray(eList) ? eList : [])).catch(console.error)
     }
 
     const handleOpenStatistics = async (event: any) => {
@@ -1410,10 +1472,10 @@ export default function AdminPage() {
             )}
             {activeTab === 'dashboard' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <StatCard title="Toplam Katılımcı" value={stats?.total_participants || 0} icon={Users} color="text-blue-500" />
-                    <StatCard title="Toplam Kupon" value={stats?.total_coupons || 0} icon={FileText} color="text-purple-500" />
+                    <StatCard title="Toplam Katılımcı" value={stats ? (stats.total_participants ?? 0) : "…"} icon={Users} color="text-blue-500" />
+                    <StatCard title="Toplam Kupon" value={stats ? (stats.total_coupons ?? 0) : "…"} icon={FileText} color="text-purple-500" />
                     <StatCard title="Aktif Kampanya" value={events.filter(e => e.status === 'active').length} icon={Trophy} color="text-yellow-500" />
-                    <StatCard title="Bekleyen Kontrol" value={stats?.pending_coupons || 0} icon={AlertCircle} color="text-orange-500" />
+                    <StatCard title="Bekleyen Kontrol" value={stats ? (stats.pending_coupons ?? 0) : "…"} icon={AlertCircle} color="text-orange-500" />
                 </div>
             )}
 
@@ -3192,7 +3254,7 @@ export default function AdminPage() {
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="overflow-x-auto">
+                                <div className={`overflow-x-auto transition-opacity ${loadingParticipants ? "opacity-50 pointer-events-none" : ""}`}>
                                     <table className="w-full text-left">
                                         <thead>
                                             <tr className="border-b border-white/5 text-muted-foreground text-xs uppercase tracking-wider">
