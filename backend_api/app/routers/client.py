@@ -9,8 +9,14 @@ from shared.models.enrollment import EventParticipant
 from shared.core.limiter import limiter
 from pydantic import BaseModel
 from datetime import datetime
+import time
 
 router = APIRouter(prefix="/api/client", tags=["client"])
+
+# Lobi listesi her sayfa açılışında turnuva başına katılımcı sayımı yapıyordu; 60 sn önbellek
+# (katılımcı sayıları ve admin'in turnuva değişiklikleri üye sitesinde en geç 1 dk içinde görünür)
+_PUBLIC_EVENTS_CACHE_SECONDS = 60
+_public_events_cache: dict = {"at": 0.0, "value": None}
 
 class PublicEventResponse(BaseModel):
     id: int
@@ -30,13 +36,15 @@ class PublicEventResponse(BaseModel):
         from_attributes = True
 
 @router.get("/events", response_model=List[PublicEventResponse])
-async def get_public_events(
+def get_public_events(
     db: Session = Depends(get_db_session)
 ):
     """
     Public endpoint to list all events for the Lobby.
     """
-    
+    if _public_events_cache["value"] is not None and time.monotonic() - _public_events_cache["at"] < _PUBLIC_EVENTS_CACHE_SECONDS:
+        return _public_events_cache["value"]
+
     events = db.query(Event).filter(
         Event.status.in_(["active", "ended", "paused"])
     ).order_by(
@@ -74,7 +82,8 @@ async def get_public_events(
     # Python-side sorting: Active(1) > Paused(2) > Ended(3) > Other(4)
     status_priority = {"active": 1, "paused": 2, "ended": 3}
     results.sort(key=lambda x: status_priority.get(x.status, 4))
-    
+
+    _public_events_cache.update(at=time.monotonic(), value=results)
     return results
 @router.get("/my-rewards")
 async def get_my_rewards(
