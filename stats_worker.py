@@ -24,8 +24,10 @@ logger = logging.getLogger("stats_worker")
 async def run_worker():
     logger.info("Stats Worker Başlatıldı. 'stats' türündeki görevler bekleniyor...")
     while True:
-        db = get_retrying_session()
+        db = None
         try:
+            # try içinde: Supabase kopması (SSL closed) süreci çökertmesin, 5 sn sonra tekrar denensin
+            db = get_retrying_session()
             # Stats (İstatistik/Deposit) işlerinden "pending" olanı bul
             job = db.query(WorkerLog).filter(
                 WorkerLog.status == "pending",

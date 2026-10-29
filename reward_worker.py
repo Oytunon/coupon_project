@@ -493,8 +493,10 @@ def process_job(job_id: int):
 def run_worker():
     logger.info("Reward Worker Started. Polling for jobs...")
     while True:
-        db = get_retrying_session()
+        db = None
         try:
+            # try içinde: Supabase kopması (SSL closed) süreci çökertmesin, 5 sn sonra tekrar denensin
+            db = get_retrying_session()
             # Find pending job
             job = db.query(RewardJob).filter(RewardJob.status == "pending").first()
             if job:
