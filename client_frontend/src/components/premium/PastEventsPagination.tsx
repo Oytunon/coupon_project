@@ -6,48 +6,44 @@ interface PastEventsPaginationProps {
     onChange: (page: number) => void
 }
 
-// 7 sayfaya kadar hepsi; fazlasında ilk/son sayfa + mevcut sayfanın komşuları (mobilde tek satıra sığsın)
-function getPageItems(page: number, pageCount: number): (number | "gap")[] {
-    if (pageCount <= 7) return Array.from({ length: pageCount }, (_, i) => i + 1)
-    const items: (number | "gap")[] = [1]
-    const start = Math.max(2, page - 1)
-    const end = Math.min(pageCount - 1, page + 1)
-    if (start > 2) items.push("gap")
-    for (let p = start; p <= end; p++) items.push(p)
-    if (end < pageCount - 1) items.push("gap")
-    items.push(pageCount)
-    return items
+const MAX_DOTS = 9
+
+// Çok sayfada mevcut sayfayı ortalayan kayan pencere (en fazla 9 nokta)
+function getVisiblePages(page: number, pageCount: number): number[] {
+    const count = Math.min(pageCount, MAX_DOTS)
+    const start = Math.min(Math.max(1, page - Math.floor(count / 2)), pageCount - count + 1)
+    return Array.from({ length: count }, (_, i) => start + i)
 }
 
 export function PastEventsPagination({ page, pageCount, onChange }: PastEventsPaginationProps) {
     if (pageCount <= 1) return null
 
-    const navButton = "flex items-center justify-center h-8 w-8 lg:h-10 lg:w-10 rounded-lg border-2 border-[#D9B648]/60 text-[#D9B648] transition-colors hover:bg-[#D9B648]/10 disabled:opacity-30 disabled:pointer-events-none"
+    const arrowButton = "flex items-center justify-center h-9 w-9 lg:h-10 lg:w-10 rounded-full border border-[#D9B648]/40 text-[#D9B648] transition-all duration-300 hover:border-[#D9B648] hover:bg-[#D9B648]/10 disabled:opacity-25 disabled:pointer-events-none"
 
     return (
-        <nav aria-label="Geçmiş turnuva sayfaları" className="flex items-center justify-center gap-1 lg:gap-2 pt-3 lg:pt-5">
-            <button type="button" className={navButton} onClick={() => onChange(page - 1)} disabled={page === 1} aria-label="Önceki sayfa">
+        <nav aria-label="Geçmiş turnuva sayfaları" className="flex items-center justify-center gap-3 lg:gap-4 pt-3 lg:pt-5">
+            <button type="button" className={arrowButton} onClick={() => onChange(page - 1)} disabled={page === 1} aria-label="Önceki sayfa">
                 <ChevronLeft className="w-4 h-4 lg:w-5 lg:h-5" />
             </button>
-            {getPageItems(page, pageCount).map((item, i) =>
-                item === "gap" ? (
-                    <span key={`gap-${i}`} className="px-0.5 text-sm text-[#D9B648]/60">…</span>
-                ) : (
+            {/* Slider noktalarıyla aynı dil; nokta küçük, dokunma alanı padding ile büyütüldü */}
+            <div className="flex items-center">
+                {getVisiblePages(page, pageCount).map(p => (
                     <button
-                        key={item}
+                        key={p}
                         type="button"
-                        onClick={() => onChange(item)}
-                        aria-current={item === page ? "page" : undefined}
-                        className={`h-8 min-w-[2rem] lg:h-10 lg:min-w-[2.5rem] px-1.5 rounded-lg border-2 text-sm lg:text-base font-black tabular-nums transition-colors ${item === page
-                            ? "bg-[#D9B648] border-[#D9B648] text-black"
-                            : "border-[#D9B648]/60 text-[#F7EBA5] hover:bg-[#D9B648]/10"
-                            }`}
+                        onClick={() => onChange(p)}
+                        aria-label={`Sayfa ${p}`}
+                        aria-current={p === page ? "page" : undefined}
+                        className="group p-1.5"
                     >
-                        {item}
+                        <span className={`block h-2 rounded-full transition-all duration-300 ${p === page
+                            ? "w-8 bg-[#D9B648]"
+                            : "w-2 bg-gray-600 group-hover:bg-gray-500"
+                            }`} />
                     </button>
-                )
-            )}
-            <button type="button" className={navButton} onClick={() => onChange(page + 1)} disabled={page === pageCount} aria-label="Sonraki sayfa">
+                ))}
+            </div>
+            <button type="button" className={arrowButton} onClick={() => onChange(page + 1)} disabled={page === pageCount} aria-label="Sonraki sayfa">
                 <ChevronRight className="w-4 h-4 lg:w-5 lg:h-5" />
             </button>
         </nav>
