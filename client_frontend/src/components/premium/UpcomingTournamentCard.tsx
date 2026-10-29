@@ -52,7 +52,7 @@ export function UpcomingTournamentCard({
                 {/* Image */}
                 <div className="flex-shrink-0 w-32 border-r-2 border-[#D9B648] overflow-hidden">
                     {image_url ? (
-                        <img src={`${baseUrl}${image_url}`} alt={name} className="w-full h-full object-cover" />
+                        <img src={`${baseUrl}${image_url}`} alt={name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                     ) : (
                         <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
                             <span className="text-[#D9B648] text-xs">No Img</span>

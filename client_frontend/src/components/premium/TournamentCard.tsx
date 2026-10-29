@@ -103,7 +103,7 @@ export function TournamentCard({
                         {/* Image */}
                         <div className="flex-shrink-0 w-32 border-r-2 border-[#D9B648] overflow-hidden">
                             {image_url ? (
-                                <img src={`${baseUrl}${image_url}`} alt={name} className="w-full h-full object-cover" />
+                                <img src={`${baseUrl}${image_url}`} alt={name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-zinc-900">
                                     <Trophy className="w-10 h-10 text-[#D9B648]/20" />
@@ -259,7 +259,7 @@ export function TournamentCard({
                                 {/* Image */}
                                 <div className="w-[240px] shrink-0 border-r-2 border-[#D9B648]">
                                     {image_url ? (
-                                        <img src={`${baseUrl}${image_url}`} alt={name} className="w-full h-full object-cover" />
+                                        <img src={`${baseUrl}${image_url}`} alt={name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center bg-zinc-900">
                                             <Trophy className="w-12 h-12 text-[#D9B648]/20" />

@@ -1,4 +1,4 @@
-import { useEffect, useState, Fragment } from "react"
+import { useEffect, useRef, useState, Fragment } from "react"
 import { getParticipationStatus, joinCampaign, getLeaderboard, getMyCoupons, getMyEnrollments, getMyRewards } from "../api/participation"
 import { getPublicEvents, PublicEvent } from "../api/client"
 import { getUsernameFromUrl } from "../utils/useUsername"
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { TournamentCard } from "@/components/premium/TournamentCard"
 import { UpcomingTournamentCard } from "@/components/premium/UpcomingTournamentCard"
 import { UpcomingEventsSlider } from "@/components/premium/UpcomingEventsSlider"
+import { PastEventsPagination } from "@/components/premium/PastEventsPagination"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
@@ -22,6 +23,21 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { TournamentDetails } from "@/components/premium/TournamentDetails"
 import { parseEventDate, parseUtcDate } from "@/utils/dateUtils"
 import { buildLabeledRewards, calculateTotalPrize, getRewardTypeLabel } from "@/utils/rewardUtils"
+
+// Geçmiş turnuvalar sayfa başına 5 gösterilir; görseller yalnızca görünen sayfa için iner
+const PAST_PAGE_SIZE = 5
+
+// Sonuçlanmış (veya süresi geçmiş) ve display_until'i dolmamış turnuvalar, API sırasıyla
+function getPastEvents(events: PublicEvent[]): PublicEvent[] {
+    const now = new Date()
+    return events.filter(e => {
+        const isPast = e.status === 'ended' || e.status === 'paused' || (e.status === 'active' && now > parseEventDate(e.end_date))
+        if (!isPast) return false
+        // Hide if display_until is set and expired
+        if (e.display_until && now > parseEventDate(e.display_until)) return false
+        return true
+    })
+}
 
 export default function UserDashboard() {
     const [searchParams, setSearchParams] = useSearchParams()
@@ -55,6 +71,11 @@ export default function UserDashboard() {
     const [loadingCoupons, setLoadingCoupons] = useState(false)
     const [loadingRewards, setLoadingRewards] = useState(false)
     const [joinCooldownUntil, setJoinCooldownUntil] = useState<number | null>(null)
+
+    // Past tournaments pagination
+    const [pastPage, setPastPage] = useState(1)
+    const [pastSectionSeen, setPastSectionSeen] = useState(false)
+    const pastSectionRef = useRef<HTMLDivElement | null>(null)
 
     const [username, setUsername] = useState<string | null>(paramUsername || null)
 
@@ -152,6 +173,44 @@ export default function UserDashboard() {
         }
     }
 
+    // Kategori değişince geçmiş turnuvalar ilk sayfadan başlasın
+    useEffect(() => {
+        setPastPage(1)
+    }, [activeCategory])
+
+    // Geçmiş bölüm ekrana yaklaşınca işaretle; sonraki sayfanın önden yüklenmesi ancak o zaman başlar
+    useEffect(() => {
+        const el = pastSectionRef.current
+        if (!el || pastSectionSeen) return
+        const observer = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) setPastSectionSeen(true)
+        }, { rootMargin: "200px" })
+        observer.observe(el)
+        return () => observer.disconnect()
+    }, [loading, activeCategory, publicEvents, pastSectionSeen])
+
+    // Sadece BİR sonraki sayfanın görsellerini boşta ve düşük öncelikle indir (veri tasarrufu modunda atla)
+    useEffect(() => {
+        if (!pastSectionSeen) return
+        if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return
+        const nextUrls = getPastEvents(publicEvents)
+            .slice(pastPage * PAST_PAGE_SIZE, (pastPage + 1) * PAST_PAGE_SIZE)
+            .map(e => e.image_url)
+            .filter((url): url is string => !!url)
+        if (nextUrls.length === 0) return
+        const preload = () => nextUrls.forEach(url => {
+            const img = new Image()
+            img.setAttribute("fetchpriority", "low")
+            img.src = url
+        })
+        if (typeof window.requestIdleCallback === "function") {
+            const handle = window.requestIdleCallback(preload, { timeout: 4000 })
+            return () => window.cancelIdleCallback(handle)
+        }
+        const handle = window.setTimeout(preload, 1500)
+        return () => window.clearTimeout(handle)
+    }, [pastSectionSeen, pastPage, publicEvents])
+
     // Detail View Logic - hesaplamaları her zaman yap (hooks sırası sabit kalsın)
     const targetEventId = paramEventId ? Number(paramEventId) : null
     const selectedEvent = targetEventId ? publicEvents.find(e => e.id === targetEventId) : null
@@ -209,14 +268,15 @@ export default function UserDashboard() {
         return parseEventDate(a.start_date).getTime() - parseEventDate(b.start_date).getTime()
     })
 
-    const pastEvents = publicEvents.filter(e => {
-        const now = new Date()
-        const isPast = e.status === 'ended' || e.status === 'paused' || (e.status === 'active' && now > parseEventDate(e.end_date))
-        if (!isPast) return false
-        // Hide if display_until is set and expired
-        if (e.display_until && now > parseEventDate(e.display_until)) return false
-        return true
-    })
+    const pastEvents = getPastEvents(publicEvents)
+    const pastPageCount = Math.max(1, Math.ceil(pastEvents.length / PAST_PAGE_SIZE))
+    const currentPastPage = Math.min(pastPage, pastPageCount)
+    const pagedPastEvents = pastEvents.slice((currentPastPage - 1) * PAST_PAGE_SIZE, currentPastPage * PAST_PAGE_SIZE)
+
+    const handlePastPageChange = (page: number) => {
+        setPastPage(page)
+        pastSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
 
 
     return (
@@ -399,7 +459,7 @@ export default function UserDashboard() {
 
                         {/* Past Tournaments (Only show when activeCategory is 'all' and there are past events) */}
                         {activeCategory === 'all' && pastEvents.length > 0 && (
-                            <div className="space-y-1.5 pt-1 border-t border-white/10">
+                            <div ref={pastSectionRef} className="space-y-1.5 pt-1 border-t border-white/10 scroll-mt-4">
                                 <div className="flex items-center gap-2 lg:gap-4 justify-center">
                                     <div className="h-px bg-gradient-to-r from-transparent to-primary/30 flex-1"></div>
                                     <h3 className="text-sm lg:text-xl font-black text-[#F7EBA5] uppercase italic tracking-widest px-2 lg:px-8 whitespace-nowrap">
@@ -408,7 +468,7 @@ export default function UserDashboard() {
                                     <div className="h-px bg-gradient-to-l from-transparent to-primary/30 flex-1"></div>
                                 </div>
                                 <div className="space-y-1.5">
-                                    {pastEvents.map((event) => {
+                                    {pagedPastEvents.map((event) => {
                                         const enrollment = myEnrollments.find(e => e.event_id === event.id);
                                         return (
                                             <TournamentCard
@@ -430,6 +490,7 @@ export default function UserDashboard() {
                                             />
                                         );
                                     })}
+                                    <PastEventsPagination page={currentPastPage} pageCount={pastPageCount} onChange={handlePastPageChange} />
                                 </div>
                             </div>
                         )}
@@ -444,7 +505,7 @@ export default function UserDashboard() {
                     So I will show it ONLY when activeCategory === 'finished'.
                 */}
                 {activeCategory === 'finished' && (
-                    <div id="past" className="mt-12 opacity-100 transition-opacity duration-300">
+                    <div id="past" ref={pastSectionRef} className="mt-12 opacity-100 transition-opacity duration-300 scroll-mt-4">
                         <div className="px-2 lg:px-4 mb-2 lg:mb-6">
                             <div className="flex items-center justify-center gap-2 lg:gap-3">
                                 <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent to-gray-500"></div>
@@ -460,7 +521,7 @@ export default function UserDashboard() {
                             </div>
                         ) : (
                             <div className="space-y-2 lg:space-y-4 px-2 lg:px-4">
-                                {pastEvents.map(event => {
+                                {pagedPastEvents.map(event => {
                                     const enrollment = myEnrollments.find(e => e.event_id === event.id);
                                     const isParticipated = !!enrollment;
                                     const reward = myRewards.find(r => r.event_name === event.name);
@@ -473,7 +534,7 @@ export default function UserDashboard() {
                                                 <div className="relative rounded-lg overflow-hidden cursor-pointer bg-black border-2 border-[#D9B648] shadow-xl" onClick={() => handleSwitchEvent(event.id)}>
                                                     <div className="flex items-stretch gap-0 p-1.5">
                                                         <div className="flex-shrink-0 w-32 h-34 rounded-l border-r-2 border-[#D9B648]/50 overflow-hidden">
-                                                            <img src={event.image_url || "/5.jpg"} alt={event.name} className="w-full h-full object-cover" />
+                                                            <img src={event.image_url || "/5.jpg"} alt={event.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                                         </div>
                                                         <div className="flex-1 flex flex-col gap-1.5 pl-2 pr-1 py-1 min-w-0">
                                                             <h3 className="text-xs font-black text-[#F7EBA5] tracking-tight leading-tight line-clamp-2">{event.name}</h3>
@@ -516,7 +577,7 @@ export default function UserDashboard() {
                                                         <div className="flex flex-col md:flex-row items-start md:items-center md:justify-between gap-4 md:gap-0">
                                                             <div className="flex flex-col md:flex-row items-start md:items-center gap-0 flex-1 relative z-10 w-full">
                                                                 <div className="w-full h-28 md:w-[280px] md:h-full shrink-0 md:border-r-2 border-[#D9B648]">
-                                                                    <img src={event.image_url || "/5.jpg"} alt={event.name} className="w-full h-full object-cover" />
+                                                                    <img src={event.image_url || "/5.jpg"} alt={event.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                                                 </div>
                                                                 <div className="flex flex-col flex-1 px-3 md:px-6 py-3 md:py-6 w-full">
                                                                     <div className="text-center mb-2 md:mb-4">
@@ -596,6 +657,7 @@ export default function UserDashboard() {
                                         </div>
                                     )
                                 })}
+                                <PastEventsPagination page={currentPastPage} pageCount={pastPageCount} onChange={handlePastPageChange} />
                             </div>
                         )}
                     </div>
