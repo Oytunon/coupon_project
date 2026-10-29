@@ -449,6 +449,12 @@ export default function AdminPage() {
         const filter = searchParams.get('filter')
         return filter === 'past' || filter === 'archived' ? filter : 'active'
     })
+    // Geçmiş/Arşiv listesi sayfa başına 5 etkinlik (Aktif listesi tam gösterilir)
+    const [eventListPage, setEventListPage] = useState(() => Math.max(1, Number(searchParams.get('epage')) || 1))
+    const changeEventFilter = (filter: 'active' | 'past' | 'archived') => {
+        setEventFilter(filter)
+        setEventListPage(1)
+    }
 
     const DEFAULT_NEW_EVENT = {
         name: "",
@@ -549,6 +555,7 @@ export default function AdminPage() {
         const params = new URLSearchParams({ tab: activeTab })
         if (activeTab === 'events') {
             if (eventFilter !== 'active') params.set('filter', eventFilter)
+            if (eventFilter !== 'active' && eventListPage > 1) params.set('epage', String(eventListPage))
             if (viewEventId) params.set('view', String(viewEventId))
         }
         if (activeTab === 'participants') {
@@ -556,7 +563,7 @@ export default function AdminPage() {
             if (page > 1) params.set('page', String(page))
         }
         setSearchParams(params, { replace: true })
-    }, [activeTab, eventFilter, viewEventId, selectedEventId, page])
+    }, [activeTab, eventFilter, eventListPage, viewEventId, selectedEventId, page])
 
 
     useEffect(() => {
@@ -1335,6 +1342,19 @@ export default function AdminPage() {
     }
     const { title, description } = getHeaderInfo()
 
+    const EVENTS_PAGE_SIZE = 5
+    const filteredEventList = events.filter(event => {
+        if (eventFilter === 'active') return ['draft', 'active', 'paused'].includes(event.status)
+        if (eventFilter === 'past') return event.status === 'ended'
+        if (eventFilter === 'archived') return event.status === 'archived'
+        return true
+    })
+    const eventPageCount = eventFilter === 'active' ? 1 : Math.max(1, Math.ceil(filteredEventList.length / EVENTS_PAGE_SIZE))
+    const currentEventPage = Math.min(eventListPage, eventPageCount)
+    const pagedEventList = eventFilter === 'active'
+        ? filteredEventList
+        : filteredEventList.slice((currentEventPage - 1) * EVENTS_PAGE_SIZE, currentEventPage * EVENTS_PAGE_SIZE)
+
     return (
         <AdminLayout
             activeTab={activeTab}
@@ -1563,13 +1583,13 @@ export default function AdminPage() {
                     <div className="space-y-6">
                         <div className="flex items-center justify-between">
                             <div className="flex gap-1 bg-black/30 p-1 rounded-lg border border-white/5">
-                                <button onClick={() => setEventFilter('active')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${eventFilter === 'active' ? 'bg-green-500/20 text-green-400 shadow-sm' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}>
+                                <button onClick={() => changeEventFilter('active')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${eventFilter === 'active' ? 'bg-green-500/20 text-green-400 shadow-sm' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}>
                                     Aktif <span className="ml-1.5 text-xs opacity-70">({events.filter(e => ['draft', 'active', 'paused'].includes(e.status)).length})</span>
                                 </button>
-                                <button onClick={() => setEventFilter('past')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${eventFilter === 'past' ? 'bg-orange-500/20 text-orange-400 shadow-sm' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}>
+                                <button onClick={() => changeEventFilter('past')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${eventFilter === 'past' ? 'bg-orange-500/20 text-orange-400 shadow-sm' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}>
                                     Geçmiş <span className="ml-1.5 text-xs opacity-70">({events.filter(e => e.status === 'ended').length})</span>
                                 </button>
-                                <button onClick={() => setEventFilter('archived')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${eventFilter === 'archived' ? 'bg-gray-500/20 text-gray-400 shadow-sm' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}>
+                                <button onClick={() => changeEventFilter('archived')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${eventFilter === 'archived' ? 'bg-gray-500/20 text-gray-400 shadow-sm' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}>
                                     Arşiv <span className="ml-1.5 text-xs opacity-70">({events.filter(e => e.status === 'archived').length})</span>
                                 </button>
                             </div>
@@ -1582,17 +1602,12 @@ export default function AdminPage() {
 
                         {/* Event List */}
                         <div className="grid grid-cols-1 gap-6">
-                            {events.filter(event => {
-                                if (eventFilter === 'active') return ['draft', 'active', 'paused'].includes(event.status)
-                                if (eventFilter === 'past') return event.status === 'ended'
-                                if (eventFilter === 'archived') return event.status === 'archived'
-                                return true
-                            }).map(event => (
+                            {pagedEventList.map(event => (
                                 <Card key={event.id} className="bg-card/40 border-white/5 backdrop-blur-xl hover:border-primary/20 transition-all">
                                     <CardHeader className="flex flex-row items-center gap-4 space-y-0">
                                         <div className="h-16 w-24 bg-black/40 rounded flex items-center justify-center overflow-hidden border border-white/5 shrink-0 shadow-inner">
                                             {event.image_url ? (
-                                                <img src={`${event.image_url}`} alt={event.name} className="h-full w-full object-cover" />
+                                                <img src={`${event.image_url}`} alt={event.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                                             ) : (
                                                 <Trophy className="h-6 w-6 text-white/10" />
                                             )}
@@ -1812,6 +1827,34 @@ export default function AdminPage() {
                                 </Card>
                             ))}
                         </div>
+
+                        {eventPageCount > 1 && (
+                            <div className="flex items-center justify-between border-t border-white/5 pt-4">
+                                <div className="text-sm text-muted-foreground">
+                                    Sayfa {currentEventPage} / {eventPageCount}
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => { setEventListPage(currentEventPage - 1); window.scrollTo({ top: 0, behavior: "smooth" }) }}
+                                        disabled={currentEventPage === 1}
+                                        className="gap-1"
+                                    >
+                                        <ChevronLeft className="h-4 w-4" /> Önceki
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => { setEventListPage(currentEventPage + 1); window.scrollTo({ top: 0, behavior: "smooth" }) }}
+                                        disabled={currentEventPage === eventPageCount}
+                                        className="gap-1"
+                                    >
+                                        Sonraki <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Reward Pool Popup */}
                         {rewardPoolEvent && (
