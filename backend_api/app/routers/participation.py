@@ -26,7 +26,7 @@ async def get_leaderboard(
     Belirtilen turnuva için puan tablosunu getirir (Top 50).
     Login gerektirmez.
     """
-    from shared.domain.leaderboard import get_event_leaderboard
+    from shared.domain.leaderboard import get_event_leaderboard_cached
     from shared.models.event import Event
     target_event = None
     if slug:
@@ -42,8 +42,8 @@ async def get_leaderboard(
         
 
 
-    results = get_event_leaderboard(db, target_event.id)
-    
+    results = get_event_leaderboard_cached(db, target_event.id)
+
     from shared.utils.masking import mask_username
 
     return [{
@@ -167,7 +167,7 @@ async def get_my_enrollments(
         # Cache yerine canlı hesaplama - Leaderboard ile AYNI sıralama kullan (tutarlılık)
         from shared.models.coupon import Coupon
         from shared.models.coupon_event_result import CouponEventResult
-        from shared.domain.leaderboard import get_event_leaderboard
+        from shared.domain.leaderboard import get_event_leaderboard_cached
 
         live_score = db.query(func.coalesce(func.sum(CouponEventResult.points_earned), 0.0)).join(
             Coupon, Coupon.id == CouponEventResult.coupon_id
@@ -177,8 +177,8 @@ async def get_my_enrollments(
             CouponEventResult.is_eligible == True
         ).scalar()
 
-        # Rank: Leaderboard'dan türet (aynı sıralama mantığı - 1:1 tutarlılık)
-        lb = get_event_leaderboard(db, eid)
+        # Rank: Leaderboard'dan türet (aynı sıralama mantığı - 1:1 tutarlılık; ≤60 sn önbellek)
+        lb = get_event_leaderboard_cached(db, eid)
         rank = 1
         for i, r in enumerate(lb):
             if r.get("client_id") == participant.client_id:

@@ -579,6 +579,8 @@ async def add_manual_coupon_endpoint(
 
     success, result = await add_manual_coupon(db, event_id, body.bet_id)
     if success:
+        from shared.domain.leaderboard import invalidate_event_leaderboard_cache
+        invalidate_event_leaderboard_cache(event_id)  # sıralama ekranları yeni puanı hemen görsün
         return {
             "success": True,
             "message": result["message"],
@@ -648,6 +650,9 @@ async def recalculate_event_points(
             db.rollback()
             logger.error(f"Recalculate commit failed event_id={event_id}: {e}")
             raise HTTPException(500, f"Kayıt hatası: {str(e)}")
+
+        from shared.domain.leaderboard import invalidate_event_leaderboard_cache
+        invalidate_event_leaderboard_cache(event_id)  # sıralama ekranları yeni puanları hemen görsün
 
         msg = f"Recalculated {recalculated_count} coupon points for event {event.name}"
         if errors:
@@ -827,9 +832,9 @@ async def get_event_participants_list(
     db: Session = Depends(get_db_session),
     _: AdminUser = Depends(get_current_admin)
 ):
-    """Etkinliğe katılan kullanıcıları getir (Puan sıralı)."""
-    from shared.domain.leaderboard import get_event_leaderboard
-    return get_event_leaderboard(db, event_id)
+    """Etkinliğe katılan kullanıcıları getir (Puan sıralı, ≤60 sn önbellek; export'lar canlı)."""
+    from shared.domain.leaderboard import get_event_leaderboard_cached
+    return get_event_leaderboard_cached(db, event_id)
 
 
 @router.get("/{event_id}/participants/export")

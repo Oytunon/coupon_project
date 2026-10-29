@@ -1,3 +1,4 @@
+import time
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from shared.models.participant import Participant
@@ -50,3 +51,33 @@ def get_event_leaderboard(db: Session, event_id: int):
         }
         for r in rows
     ]
+
+
+# Ekranda gösterilen sıralamalar (üye sıralama tablosu, "Katıldığım Turnuvalar", admin
+# "Detayları Gör") için kısa süreli önbellek: büyük turnuvada sorgu 2-6 sn sürüyor ve her
+# istekte tekrar hesaplanıyordu. Ödül dağıtımı ve export'lar get_event_leaderboard'ı
+# doğrudan çağırır, her zaman canlı sıralamayı kullanır.
+_ACTIVE_TTL_SECONDS = 60     # puanlar zaten 15 dk'da bir güncelleniyor
+_ENDED_TTL_SECONDS = 600     # bitmiş turnuvada sıralama değişmez (admin işlemleri önbelleği siler)
+_leaderboard_cache: dict = {}
+
+
+def get_event_leaderboard_cached(db: Session, event_id: int):
+    """get_event_leaderboard ile aynı sonuç ve sıra; en fazla TTL kadar eski olabilir."""
+    from shared.models.event import Event
+
+    cached = _leaderboard_cache.get(event_id)
+    if cached and time.monotonic() < cached[0]:
+        rows = cached[1]
+    else:
+        rows = get_event_leaderboard(db, event_id)
+        status = db.query(Event.status).filter(Event.id == event_id).scalar()
+        ttl = _ENDED_TTL_SECONDS if status in ("ended", "archived") else _ACTIVE_TTL_SECONDS
+        _leaderboard_cache[event_id] = (time.monotonic() + ttl, rows)
+    # Çağıran listeyi değiştirse bile önbellek bozulmasın
+    return [dict(r) for r in rows]
+
+
+def invalidate_event_leaderboard_cache(event_id: int):
+    """Puanları değiştiren admin işlemlerinden (yeniden hesapla, manuel kupon) sonra çağrılır."""
+    _leaderboard_cache.pop(event_id, None)
