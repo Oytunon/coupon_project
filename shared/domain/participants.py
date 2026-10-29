@@ -24,43 +24,55 @@ def list_participants_paginated(
         
     total = query.count()
     participants = query.offset(skip).limit(limit).all()
-    
+    if not participants:
+        return total, []
+
     from shared.models.coupon_event_result import CouponEventResult
-    
+
+    # Sayfadaki tüm katılımcılar için toplu sorgular (eskiden kişi başı 3-4 sorgu, sayfa başı ~60-80)
+    participant_ids = [p.id for p in participants]
+    client_ids = [p.client_id for p in participants]
+
+    if event_id:
+        # Count coupons for this event via Intersection table; points directly from CouponEventResult
+        # aggregation (Live consistency) so Admin Panel matches Client/Leaderboard exactly.
+        event_rows = db.query(
+            Coupon.client_id,
+            func.count(CouponEventResult.id),
+            func.coalesce(func.sum(CouponEventResult.points_earned), 0.0)
+        ).join(CouponEventResult, CouponEventResult.coupon_id == Coupon.id).filter(
+            CouponEventResult.event_id == event_id,
+            CouponEventResult.is_eligible == True,
+            Coupon.client_id.in_(client_ids)
+        ).group_by(Coupon.client_id).all()
+        event_stats = {client_id: (count, points) for client_id, count, points in event_rows}
+    else:
+        # Fallback for Global View (Sum of points from all enrolled events)
+        points_rows = db.query(EventParticipant.participant_id, func.sum(EventParticipant.total_points)).filter(
+            EventParticipant.participant_id.in_(participant_ids)
+        ).group_by(EventParticipant.participant_id).all()
+        global_points = dict(points_rows)
+
+        # For coupon count, we still count master coupons
+        count_rows = db.query(Coupon.client_id, func.count(Coupon.id)).filter(
+            Coupon.client_id.in_(client_ids)
+        ).group_by(Coupon.client_id).all()
+        global_counts = dict(count_rows)
+
+    enrolled_rows = db.query(EventParticipant.participant_id, Event.name).join(
+        Event, Event.id == EventParticipant.event_id
+    ).filter(EventParticipant.participant_id.in_(participant_ids)).all()
+    enrolled_names: dict = {}
+    for participant_id, name in enrolled_rows:
+        enrolled_names.setdefault(participant_id, []).append(name)
+
     items = []
     for p in participants:
-        # Calculate stats correctly for the specific event
         if event_id:
-             # Count coupons for this event via Intersection table
-             coupon_count = db.query(func.count(CouponEventResult.id)).filter(
-                 CouponEventResult.event_id == event_id,
-                 CouponEventResult.coupon_id.in_(
-                     db.query(Coupon.id).filter(Coupon.client_id == p.client_id)
-                 ),
-                 CouponEventResult.is_eligible == True
-             ).scalar()
-             
-             # Get points directly from CouponEventResult aggregation (Live consistency)
-             # This ensures Admin Panel matches Client/Leaderboard exactly.
-             total_points = db.query(func.coalesce(func.sum(CouponEventResult.points_earned), 0.0)).filter(
-                 CouponEventResult.event_id == event_id,
-                 CouponEventResult.coupon_id.in_(
-                     db.query(Coupon.id).filter(Coupon.client_id == p.client_id)
-                 ),
-                 CouponEventResult.is_eligible == True
-             ).scalar()
-             
+            coupon_count, total_points = event_stats.get(p.client_id, (0, 0.0))
         else:
-            # Fallback for Global View (Sum of points from all enrolled events)
-            total_points = db.query(func.sum(EventParticipant.total_points)).filter(
-                EventParticipant.participant_id == p.id
-            ).scalar() or 0.0
-            
-            # For coupon count, we still count master coupons
-            coupon_count = db.query(Coupon).filter(Coupon.client_id == p.client_id).count()
-        
-        enrolled_events = db.query(Event).join(EventParticipant).filter(EventParticipant.participant_id == p.id).all()
-        enrolled_event_names = [e.name for e in enrolled_events]
+            total_points = global_points.get(p.id) or 0.0
+            coupon_count = global_counts.get(p.client_id, 0)
 
         items.append({
             "id": p.id,
@@ -69,9 +81,9 @@ def list_participants_paginated(
             "joined_at": p.joined_at,
             "coupon_count": coupon_count,
             "points": total_points,
-            "enrolled_events": enrolled_event_names
+            "enrolled_events": enrolled_names.get(p.id, [])
         })
-        
+
     return total, items
 
 def get_user_coupon_history(
