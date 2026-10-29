@@ -213,9 +213,21 @@ app.include_router(client_router)
 from backend_api.app.routers.leagues import router as leagues_router
 app.include_router(leagues_router)
 
+class ImmutableStaticFiles(StaticFiles):
+    """Yüklenen her dosya benzersiz adla kaydedilir (event_{id}_{uuid}); aynı adres hiç farklı
+    içerik vermez. Tarayıcı ve CDN bir kez indirip bir daha sormasın (eskiden max-age=0 ile
+    her sayfa geçişinde ~1 MB'lık görseller tekrar isteniyordu)."""
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code in (200, 304):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
+
+
 # Mount media files (Uploads)
 os.makedirs("media", exist_ok=True)
-app.mount("/media", StaticFiles(directory="media"), name="media")
+app.mount("/media", ImmutableStaticFiles(directory="media"), name="media")
 
 # Mount static files (Assets)
 os.makedirs("static", exist_ok=True)
