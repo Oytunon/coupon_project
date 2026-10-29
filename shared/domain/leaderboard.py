@@ -1,4 +1,5 @@
 import time
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from shared.models.participant import Participant
@@ -54,16 +55,26 @@ def get_event_leaderboard(db: Session, event_id: int):
 
 
 # Ekranda gösterilen sıralamalar (üye sıralama tablosu, "Katıldığım Turnuvalar", admin
-# "Detayları Gör") için kısa süreli önbellek: büyük turnuvada sorgu 2-6 sn sürüyor ve her
-# istekte tekrar hesaplanıyordu. Ödül dağıtımı ve export'lar get_event_leaderboard'ı
-# doğrudan çağırır, her zaman canlı sıralamayı kullanır.
-_ACTIVE_TTL_SECONDS = 60     # puanlar zaten 15 dk'da bir güncelleniyor
-_ENDED_TTL_SECONDS = 600     # bitmiş turnuvada sıralama değişmez (admin işlemleri önbelleği siler)
+# "Detayları Gör") için önbellek: büyük turnuvada sorgu 2-9 sn sürüyor ve her istekte
+# tekrar hesaplanıyordu. Ödül dağıtımı ve export'lar get_event_leaderboard'ı doğrudan
+# çağırır, her zaman canlı sıralamayı kullanır.
+# Aktif turnuvada puanlar yalnız 15 dk'lık otomatik taramada (:00/:15/:30/:45) değişir;
+# önbellek her taramadan 3 dk sonra yenilenir (tarama 10-40 sn sürüyor).
+_REFRESH_MARGIN = timedelta(minutes=3)
+_ENDED_TTL_SECONDS = 3600    # bitmiş turnuvada sıralama değişmez (admin işlemleri önbelleği siler)
 _leaderboard_cache: dict = {}
 
 
+def _seconds_until_next_refresh(now: datetime) -> float:
+    quarter = now.replace(minute=now.minute - now.minute % 15, second=0, microsecond=0)
+    refresh_at = quarter + _REFRESH_MARGIN
+    if now >= refresh_at:
+        refresh_at += timedelta(minutes=15)
+    return (refresh_at - now).total_seconds()
+
+
 def get_event_leaderboard_cached(db: Session, event_id: int):
-    """get_event_leaderboard ile aynı sonuç ve sıra; en fazla TTL kadar eski olabilir."""
+    """get_event_leaderboard ile aynı sonuç ve sıra; en son otomatik taramanın sonucunu gösterir."""
     from shared.models.event import Event
 
     cached = _leaderboard_cache.get(event_id)
@@ -72,7 +83,7 @@ def get_event_leaderboard_cached(db: Session, event_id: int):
     else:
         rows = get_event_leaderboard(db, event_id)
         status = db.query(Event.status).filter(Event.id == event_id).scalar()
-        ttl = _ENDED_TTL_SECONDS if status in ("ended", "archived") else _ACTIVE_TTL_SECONDS
+        ttl = _ENDED_TTL_SECONDS if status in ("ended", "archived") else _seconds_until_next_refresh(datetime.now())
         _leaderboard_cache[event_id] = (time.monotonic() + ttl, rows)
     # Çağıran listeyi değiştirse bile önbellek bozulmasın
     return [dict(r) for r in rows]

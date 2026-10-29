@@ -827,7 +827,7 @@ async def distribute_event_rewards(
 
 
 @router.get("/{event_id}/participants")
-async def get_event_participants_list(
+def get_event_participants_list(
     event_id: int,
     db: Session = Depends(get_db_session),
     _: AdminUser = Depends(get_current_admin)

@@ -13,8 +13,8 @@ router = APIRouter(prefix="/api")
 
 
 @router.get("/leaderboard")
-@limiter.limit("20/minute")
-async def get_leaderboard(
+@limiter.limit("120/minute")  # önbellekten geldiği için hafif; limit Vercel IP'si başına (tüm üyeler ortak)
+def get_leaderboard(
     request: Request,
     event_id: Optional[int] = None,
     slug: Optional[str] = None,
@@ -138,7 +138,7 @@ async def join_tournament_api(
     return await join_event(db, username, client_id, event_id, slug)
 
 @router.get("/my-enrollments")
-async def get_my_enrollments(
+def get_my_enrollments(
     username: str,
     db: Session = Depends(get_db)
 ):
@@ -164,7 +164,7 @@ async def get_my_enrollments(
         event = db.query(Event).get(eid)
         if not event: continue
         
-        # Cache yerine canlı hesaplama - Leaderboard ile AYNI sıralama kullan (tutarlılık)
+        # Puan canlı; sıra Leaderboard ile AYNI sıralamadan (son otomatik taramanın sonucu)
         from shared.models.coupon import Coupon
         from shared.models.coupon_event_result import CouponEventResult
         from shared.domain.leaderboard import get_event_leaderboard_cached
@@ -177,9 +177,10 @@ async def get_my_enrollments(
             CouponEventResult.is_eligible == True
         ).scalar()
 
-        # Rank: Leaderboard'dan türet (aynı sıralama mantığı - 1:1 tutarlılık; ≤60 sn önbellek)
+        # Rank: Leaderboard'dan türet (aynı sıralama mantığı - 1:1 tutarlılık)
         lb = get_event_leaderboard_cached(db, eid)
-        rank = 1
+        # Önbellek dolduktan sonra katılan üye listede yok: puanı henüz oluşmadığı için en sonda
+        rank = len(lb) + 1
         for i, r in enumerate(lb):
             if r.get("client_id") == participant.client_id:
                 rank = i + 1
