@@ -832,7 +832,7 @@ def get_event_participants_list(
     db: Session = Depends(get_db_session),
     _: AdminUser = Depends(get_current_admin)
 ):
-    """Etkinliğe katılan kullanıcıları getir (Puan sıralı, ≤60 sn önbellek; export'lar canlı)."""
+    """Etkinliğe katılan kullanıcıları getir (Puan sıralı, son otomatik taramanın sonucu; export'lar canlı)."""
     from shared.domain.leaderboard import get_event_leaderboard_cached
     return get_event_leaderboard_cached(db, event_id)
 

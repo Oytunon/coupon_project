@@ -9,6 +9,7 @@ from shared.models.enrollment import EventParticipant
 from shared.core.limiter import limiter
 from pydantic import BaseModel
 from datetime import datetime
+import threading
 import time
 
 router = APIRouter(prefix="/api/client", tags=["client"])
@@ -17,6 +18,7 @@ router = APIRouter(prefix="/api/client", tags=["client"])
 # (katılımcı sayıları ve admin'in turnuva değişiklikleri üye sitesinde en geç 1 dk içinde görünür)
 _PUBLIC_EVENTS_CACHE_SECONDS = 60
 _public_events_cache: dict = {"at": 0.0, "value": None}
+_public_events_lock = threading.Lock()
 
 class PublicEventResponse(BaseModel):
     id: int
@@ -42,9 +44,27 @@ def get_public_events(
     """
     Public endpoint to list all events for the Lobby.
     """
-    if _public_events_cache["value"] is not None and time.monotonic() - _public_events_cache["at"] < _PUBLIC_EVENTS_CACHE_SECONDS:
-        return _public_events_cache["value"]
+    def is_fresh():
+        return _public_events_cache["value"] is not None and time.monotonic() - _public_events_cache["at"] < _PUBLIC_EVENTS_CACHE_SECONDS
 
+    if is_fresh():
+        return _public_events_cache["value"]
+    # Aynı anda çok istek gelse de listeyi tek istek yenilesin; o sırada diğerleri bir önceki
+    # listeyi görür (hiç liste yoksa hesaplanmasını bekler)
+    stale = _public_events_cache["value"]
+    if not _public_events_lock.acquire(blocking=stale is None):
+        return stale
+    try:
+        if is_fresh():
+            return _public_events_cache["value"]
+        results = _build_public_events(db)
+        _public_events_cache.update(at=time.monotonic(), value=results)
+        return results
+    finally:
+        _public_events_lock.release()
+
+
+def _build_public_events(db: Session) -> List[PublicEventResponse]:
     events = db.query(Event).filter(
         Event.status.in_(["active", "ended", "paused"])
     ).order_by(
@@ -82,9 +102,9 @@ def get_public_events(
     # Python-side sorting: Active(1) > Paused(2) > Ended(3) > Other(4)
     status_priority = {"active": 1, "paused": 2, "ended": 3}
     results.sort(key=lambda x: status_priority.get(x.status, 4))
-
-    _public_events_cache.update(at=time.monotonic(), value=results)
     return results
+
+
 @router.get("/my-rewards")
 async def get_my_rewards(
     username: str,

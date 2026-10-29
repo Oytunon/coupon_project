@@ -1,3 +1,4 @@
+import threading
 import time
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
@@ -63,6 +64,14 @@ def get_event_leaderboard(db: Session, event_id: int):
 _REFRESH_MARGIN = timedelta(minutes=3)
 _ENDED_TTL_SECONDS = 3600    # bitmiş turnuvada sıralama değişmez (admin işlemleri önbelleği siler)
 _leaderboard_cache: dict = {}
+# Önbellek dolduğunda aynı anda yüzlerce üye gelse de ağır sorguyu turnuva başına tek istek çalıştırsın
+_refresh_locks: dict = {}
+_refresh_locks_guard = threading.Lock()
+
+
+def _refresh_lock(event_id: int) -> threading.Lock:
+    with _refresh_locks_guard:
+        return _refresh_locks.setdefault(event_id, threading.Lock())
 
 
 def _seconds_until_next_refresh(now: datetime) -> float:
@@ -77,16 +86,30 @@ def get_event_leaderboard_cached(db: Session, event_id: int):
     """get_event_leaderboard ile aynı sonuç ve sıra; en son otomatik taramanın sonucunu gösterir."""
     from shared.models.event import Event
 
+    # Çağıran listeyi değiştirse bile önbellek bozulmasın
+    def copy(rows):
+        return [dict(r) for r in rows]
+
     cached = _leaderboard_cache.get(event_id)
     if cached and time.monotonic() < cached[0]:
-        rows = cached[1]
-    else:
+        return copy(cached[1])
+
+    # Başka bir istek yeniliyorsa o bitene kadar bir önceki sıralamayı göster;
+    # hiç sonuç yoksa (ilk dolum / admin sildi) hesaplanmasını bekle
+    lock = _refresh_lock(event_id)
+    if not lock.acquire(blocking=cached is None):
+        return copy(cached[1])
+    try:
+        cached = _leaderboard_cache.get(event_id)
+        if cached and time.monotonic() < cached[0]:  # beklerken başka istek yeniledi
+            return copy(cached[1])
         rows = get_event_leaderboard(db, event_id)
         status = db.query(Event.status).filter(Event.id == event_id).scalar()
         ttl = _ENDED_TTL_SECONDS if status in ("ended", "archived") else _seconds_until_next_refresh(datetime.now())
         _leaderboard_cache[event_id] = (time.monotonic() + ttl, rows)
-    # Çağıran listeyi değiştirse bile önbellek bozulmasın
-    return [dict(r) for r in rows]
+        return copy(rows)
+    finally:
+        lock.release()
 
 
 def invalidate_event_leaderboard_cache(event_id: int):
