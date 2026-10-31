@@ -19,6 +19,7 @@ from backend_api.app.routers.auth import router as auth_router
 from backend_api.app.routers.events import router as events_router
 from backend_api.app.routers.user_stats import router as user_stats_router
 from backend_api.app.routers.client import router as client_router
+from backend_api.app.routers.media import router as media_router
 from backend_api.app.middleware import SecurityHeadersMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
@@ -212,6 +213,8 @@ app.include_router(user_stats_router)
 app.include_router(client_router)
 from backend_api.app.routers.leagues import router as leagues_router
 app.include_router(leagues_router)
+# /media mount'undan önce eklenmeli; yoksa /media/thumb/... istekleri statik dosya olarak aranır
+app.include_router(media_router)
 
 class ImmutableStaticFiles(StaticFiles):
     """Yüklenen her dosya benzersiz adla kaydedilir (event_{id}_{uuid}); aynı adres hiç farklı
