@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { parseEventDate } from '@/utils/dateUtils'
 import { calculateTotalPrize } from '@/utils/rewardUtils'
+import { EventImage } from './EventImage'
 
 interface Event {
     id: number
@@ -98,7 +99,7 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                         >
                             <div className="flex items-stretch gap-0">
                                 <div className="flex-shrink-0 w-28 border-r-2 border-[#D9B648] overflow-hidden">
-                                    <img
+                                    <EventImage
                                         src={currentEvent.image_url || "/placeholder-tournament.jpg"}
                                         alt={currentEvent.name}
                                         className="w-full h-full object-cover"
@@ -205,7 +206,7 @@ export function UpcomingEventsSlider({ events, onDetails }: UpcomingEventsSlider
                                     <div className="flex flex-row items-stretch gap-0 flex-1 relative z-10 w-full">
                                         {/* Image */}
                                         <div className="w-[240px] shrink-0 border-r-2 border-[#D9B648]">
-                                            <img
+                                            <EventImage
                                                 src={currentEvent.image_url || "/placeholder-tournament.jpg"}
                                                 alt={currentEvent.name}
                                                 className="w-full h-full object-cover"
