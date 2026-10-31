@@ -145,61 +145,59 @@ def get_my_enrollments(
     """
     Kullanıcının katıldığı turnuvaları ve bu turnuvalardaki sıralamasını getirir.
     """
-    from sqlalchemy import func, desc
+    from sqlalchemy import func
     from shared.models.participant import Participant
+    from shared.models.coupon import Coupon
+    from shared.models.coupon_event_result import CouponEventResult
+    from shared.domain.leaderboard import get_event_leaderboard_cached
+
     participant = db.query(Participant).filter(Participant.username == username).first()
     if not participant:
         return []
 
-    user_event_ids = [ep.event_id for ep in db.query(EventParticipant.event_id).filter(EventParticipant.participant_id == participant.id).all()]
-    
-    if not user_event_ids:
+    # Kayıtlar ve turnuva bilgileri tek sorguda (eskiden turnuva başına ayrı sorgular atılıyordu;
+    # 31 turnuvalı üyede ~95 sorgu, ~5 sn). Silinmiş turnuvalar join ile zaten dışarıda kalır.
+    enrollments = (
+        db.query(EventParticipant.event_id, EventParticipant.joined_at, Event.name, Event.status, Event.slug)
+        .join(Event, Event.id == EventParticipant.event_id)
+        .filter(EventParticipant.participant_id == participant.id)
+        .all()
+    )
+    if not enrollments:
         return []
-        
-    
-    results = []
-    from shared.models.event import Event
-    
-    for eid in user_event_ids:
-        event = db.query(Event).get(eid)
-        if not event: continue
-        
-        # Puan canlı; sıra Leaderboard ile AYNI sıralamadan (son otomatik taramanın sonucu)
-        from shared.models.coupon import Coupon
-        from shared.models.coupon_event_result import CouponEventResult
-        from shared.domain.leaderboard import get_event_leaderboard_cached
 
-        live_score = db.query(func.coalesce(func.sum(CouponEventResult.points_earned), 0.0)).join(
-            Coupon, Coupon.id == CouponEventResult.coupon_id
-        ).filter(
+    # Puan canlı; tüm turnuvalar için tek sorgu (kuponu olmayan turnuvada 0)
+    live_scores = dict(
+        db.query(CouponEventResult.event_id, func.sum(CouponEventResult.points_earned))
+        .join(Coupon, Coupon.id == CouponEventResult.coupon_id)
+        .filter(
             Coupon.client_id == participant.client_id,
-            CouponEventResult.event_id == eid,
+            CouponEventResult.event_id.in_([e.event_id for e in enrollments]),
             CouponEventResult.is_eligible == True
-        ).scalar()
+        )
+        .group_by(CouponEventResult.event_id)
+        .all()
+    )
 
+    results = []
+    for enr in enrollments:
         # Rank: Leaderboard'dan türet (aynı sıralama mantığı - 1:1 tutarlılık)
-        lb = get_event_leaderboard_cached(db, eid)
+        lb = get_event_leaderboard_cached(db, enr.event_id)
         # Önbellek dolduktan sonra katılan üye listede yok: puanı henüz oluşmadığı için en sonda
         rank = len(lb) + 1
         for i, r in enumerate(lb):
             if r.get("client_id") == participant.client_id:
                 rank = i + 1
                 break
-        
-        # Get joined_at from EventParticipant
-        enrollment = db.query(EventParticipant).filter(
-            EventParticipant.event_id == eid,
-            EventParticipant.participant_id == participant.id
-        ).first()
 
         results.append({
-            "event_id": event.id,
-            "event_name": event.name,
-            "status": event.status,
-            "score": live_score, # my_stats.total_points yerine live_score
+            "event_id": enr.event_id,
+            "event_name": enr.name,
+            "status": enr.status,
+            "score": live_scores.get(enr.event_id) or 0.0, # my_stats.total_points yerine live_score
             "rank": rank,
-            "slug": event.slug,
-            "joined_at": enrollment.joined_at.isoformat() if enrollment and enrollment.joined_at else None
+            "slug": enr.slug,
+            "joined_at": enr.joined_at.isoformat() if enr.joined_at else None
         })
 
     # En son katılınan turnuva en üstte görünsün
