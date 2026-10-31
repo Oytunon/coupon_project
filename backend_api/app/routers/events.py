@@ -416,6 +416,8 @@ async def update_event(
         db.commit()
         db.refresh(event)
         logger.info(f"Event {event_id} successfully saved and committed")
+        from shared.domain.leaderboard import invalidate_event_leaderboard_cache
+        invalidate_event_leaderboard_cache(event_id)  # durum değiştiyse (ör. tekrar aktif) sıralama önbelleği eski kalmasın
         return event
     except Exception as e:
         db.rollback()
@@ -538,6 +540,8 @@ async def update_event_status(
     db.commit()
     db.refresh(event)
     logger.info(f"Status updated successfully for event {event_id}")
+    from shared.domain.leaderboard import invalidate_event_leaderboard_cache
+    invalidate_event_leaderboard_cache(event_id)  # ör. biten turnuva tekrar aktif yapıldıysa sıralama önbelleği eski kalmasın
     return event
 
 
@@ -818,7 +822,11 @@ async def distribute_event_rewards(
     db.add(job)
     db.commit()
     db.refresh(job)
-    
+
+    # Ödüller canlı sıralamayla dağıtılır; üyelerin gördüğü sıralama da aynı veriden yeniden hesaplansın
+    from shared.domain.leaderboard import invalidate_event_leaderboard_cache
+    invalidate_event_leaderboard_cache(event_id)
+
     # We rely on the standalone worker to pick this up using the scheduler or polling.
     # If we want to trigger it immediately, we might need a way to signal it.
     # But user asked for "separate worker", implying async processing.

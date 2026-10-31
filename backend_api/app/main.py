@@ -250,7 +250,14 @@ async def startup_event():
     except Exception as e:
         logger.error(f"❌ Table creation failed: {e}")
 
-    
+    # Sıralamaları arka planda önceden hesapla; deploy sonrası ilk gelen üye beklemesin (açılışı geciktirmez)
+    try:
+        import threading
+        from shared.domain.leaderboard import warm_leaderboard_cache
+        threading.Thread(target=warm_leaderboard_cache, daemon=True, name="leaderboard-warmup").start()
+    except Exception as e:
+        logger.error(f"❌ Sıralama önbelleği doldurma başlatılamadı: {e}")
+
     # Mailgun yapılandırma kontrolü
     if settings.MAILGUN_API_KEY and settings.MAILGUN_DOMAIN:
         logger.info("📧 Email provider: Mailgun (✅ TAM YAPILANDIRILMIŞ)")
